@@ -80,6 +80,12 @@ _CURSO_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Digits glued to duration units are never a grade (belt-and-suspenders vs bare \d matches).
+_DURATION_UNIT_RE = re.compile(
+    r"\b\d{1,2}\s*(?:min|mins|minuto|minutos|hrs?|horas?)\b",
+    re.IGNORECASE,
+)
+
 _ASIGNATURA_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("matem", "fracción", "fraccion", "númer", "numer", "álgebra", "algebra"), "Matemática"),
     (("lengua", "lectura", "cuento", "literat", "comprensi"), "Lenguaje y Comunicación"),
@@ -105,7 +111,10 @@ _RUMBO_HINTS: tuple[tuple[tuple[str, ...], Rumbo], ...] = (
 
 
 def infer_curso(text: str) -> str:
-    match = _CURSO_RE.search(text or "")
+    blob = text or ""
+    # Strip duration chips so "45 min" cannot feed a digit-only grade guess.
+    blob = _DURATION_UNIT_RE.sub(" ", blob)
+    match = _CURSO_RE.search(blob)
     if not match:
         return ""
     if match.group(1):
