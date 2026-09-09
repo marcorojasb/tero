@@ -145,7 +145,11 @@ class Bridge:
             self.session.set_encargo(Encargo.from_dict(message.get("encargo") or {}))
             self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
             # Changing tipo/curso/oa mid-flight clears stale proposal context
-            if self.session.phase in {"esperando_criterio", "esperando_plan", "esperando_clarificacion"}:
+            if self.session.phase in {
+                "esperando_criterio",
+                "esperando_plan",
+                "esperando_clarificacion",
+            }:
                 self.emit(
                     {
                         "type": "warning",
@@ -183,7 +187,9 @@ class Bridge:
             return
         if kind == "plan.answer":
             self.session.answer_plan_question(
-                option_id=str(message["option_id"]) if message.get("option_id") is not None else None,
+                option_id=str(message["option_id"])
+                if message.get("option_id") is not None
+                else None,
                 free_text=str(message["text"]) if message.get("text") is not None else None,
                 question_id=str(message["question_id"])
                 if message.get("question_id") is not None

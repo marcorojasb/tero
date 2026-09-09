@@ -145,7 +145,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
         if pending is None:
             break
         suggested = next((opt for opt in pending.options if opt.suggested), None)
-        option_id = (suggested or (pending.options[0] if pending.options else None))
+        option_id = suggested or (pending.options[0] if pending.options else None)
         session.answer_plan_question(option_id=option_id.id if option_id else "1")
         turn = session.turns[-1]
     if session.phase == "esperando_plan":

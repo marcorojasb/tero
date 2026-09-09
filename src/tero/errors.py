@@ -102,4 +102,7 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         )
     if "prompt vacío" in lower or "garbage" in lower:
         return "bad_input", text
-    return "host_error", f"Algo falló en el host: {text[:240]}. Puedes reintentar el último encargo."
+    return (
+        "host_error",
+        f"Algo falló en el host: {text[:240]}. Puedes reintentar el último encargo.",
+    )

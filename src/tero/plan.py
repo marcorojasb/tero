@@ -116,7 +116,9 @@ def build_plan(
         supuestos=assumptions,
         questions=qs,
         entregables=dels,
-        status="clarificando" if any(q.answer is None and q.free_text is None for q in qs) else "propuesto",
+        status="clarificando"
+        if any(q.answer is None and q.free_text is None for q in qs)
+        else "propuesto",
     )
 
 
@@ -174,7 +176,9 @@ def default_questions(tipo: ArtifactType, encargo: Encargo) -> list[PlanQuestion
                 id="q_niveles",
                 prompt="¿Cuántos niveles quieres en la pauta?",
                 options=[
-                    PlanOption(id="1", label="4 niveles (destacado → no observado)", suggested=True),
+                    PlanOption(
+                        id="1", label="4 niveles (destacado → no observado)", suggested=True
+                    ),
                     PlanOption(id="2", label="3 niveles (logrado / proceso / inicial)"),
                     PlanOption(id="3", label="Lista de cotejo sí/no"),
                 ],

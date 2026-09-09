@@ -140,6 +140,7 @@ def _propose_plan(ctx: TurnContext):
 
     return propose_plan
 
+
 def _cite_evidence(ctx: TurnContext):
     @tool
     def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
