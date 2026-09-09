@@ -151,6 +151,10 @@ activemq-data/
 .env
 .envrc
 .venv
+
+# tero teacher-generated proposals (local / demo)
+derivados/
+fixtures/**/derivados/
 env/
 venv/
 ENV/
