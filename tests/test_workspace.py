@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import pytest
-from tests.conftest import open_demo
 
 from tero.errors import WriteGuardError
 from tero.hashutil import sha256_file
+from tero.workspace import Workspace
 
 
-def test_list_and_read_only_inside_carpeta(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_list_and_read_only_inside_carpeta(workspace: Workspace):
     sources = workspace.list_sources()
     paths = {item.relative_path for item in sources}
     assert any(path.startswith("fuentes/") for path in paths)
@@ -18,8 +17,7 @@ def test_list_and_read_only_inside_carpeta(tmp_path):
     assert payload["changed"] is False
 
 
-def test_never_overwrite_originals(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_never_overwrite_originals(workspace: Workspace):
     with pytest.raises(WriteGuardError):
         workspace.write_artifact("fuentes/cuento-el-condor-y-el-huemul.md", "hack")
     original = workspace.root / "fuentes" / "cuento-el-condor-y-el-huemul.md"
@@ -29,14 +27,12 @@ def test_never_overwrite_originals(tmp_path):
     assert (workspace.root / "derivados" / "ok.md").read_text(encoding="utf-8") == "si"
 
 
-def test_path_escape_rejected(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_path_escape_rejected(workspace: Workspace):
     with pytest.raises(Exception):
         workspace.resolve_source("../secret.md")
 
 
-def test_hash_change_is_flagged_not_rewritten(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_hash_change_is_flagged_not_rewritten(workspace: Workspace):
     workspace.rebuild_index()
     target = workspace.root / "fuentes" / "notas-curso.md"
     original = target.read_text(encoding="utf-8")

@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from tests.conftest import open_demo
-
 from tero.config import Settings
 from tero.session import TeacherSession
 from tero.types import Encargo
+from tero.workspace import Workspace
 
 
-def test_offline_strands_loop_plan_draft_accept(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_offline_strands_loop_plan_draft_accept(workspace: Workspace):
     settings = Settings(offline=True, carpeta=workspace.root)
     encargo = Encargo(
         curso="4° básico",
@@ -41,8 +39,7 @@ def test_offline_strands_loop_plan_draft_accept(tmp_path):
     assert "draft" in tools
 
 
-def test_gate_c_runs_another_pass(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_gate_c_runs_another_pass(workspace: Workspace):
     settings = Settings(offline=True, carpeta=workspace.root)
     session = TeacherSession(
         workspace,

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from tests.conftest import open_demo
-
 from tero.gate import apply_gate
 from tero.plan import apply_plan_edits, build_plan
 from tero.types import ArtifactDraft, ArtifactType, Encargo
+from tero.workspace import Workspace
 
 
 def test_plan_typed_and_editable():
@@ -22,8 +21,7 @@ def test_plan_typed_and_editable():
     assert edited.duracion == "90 min"
 
 
-def test_gate_s_writes_derivados_n_does_not(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_gate_s_writes_derivados_n_does_not(workspace: Workspace):
     encargo = Encargo(curso="4°", oa="OA 4")
     draft = ArtifactDraft(
         tipo=ArtifactType.ACTIVIDAD,

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import io
 import json
-
-from tests.conftest import copy_demo_carpeta
+from pathlib import Path
 
 from tero.bridge import Bridge
 from tero.config import Settings
@@ -17,9 +16,8 @@ def test_protocol_roundtrip():
     assert data["v"] == 1
 
 
-def test_bridge_jsonl_offline_yes(tmp_path):
-    carpeta = copy_demo_carpeta(tmp_path)
-    settings = Settings(offline=True, carpeta=carpeta)
+def test_bridge_jsonl_offline_yes(demo_carpeta: Path):
+    settings = Settings(offline=True, carpeta=demo_carpeta)
     stdin = io.StringIO(
         json.dumps({"type": "hello", "encargo": {"oa": "OA 4", "tipo": "planificacion"}})
         + "\n"

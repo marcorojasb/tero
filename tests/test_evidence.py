@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from tests.conftest import open_demo
-
 from tero.artifacts import missing_headings
 from tero.evidence import collect_warnings, parse_evidence_blob
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence
+from tero.workspace import Workspace
 
 
 def test_parse_evidence_json():
@@ -13,8 +12,7 @@ def test_parse_evidence_json():
     assert items[0].seccion == "inicio"
 
 
-def test_warnings_oa_and_thin(tmp_path):
-    workspace = open_demo(tmp_path)
+def test_warnings_oa_and_thin(workspace: Workspace):
     draft = ArtifactDraft(
         tipo=ArtifactType.EVALUACION,
         titulo="corta",
