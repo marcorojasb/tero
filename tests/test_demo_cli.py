@@ -11,6 +11,7 @@ def test_demo_offline_yes(demo_carpeta: Path, capsys):
     assert code == 0
     assert "escrito:" in captured.out
     assert "listo." in captured.out
+    assert "Originales intactos." in captured.out
     derivados = list((demo_carpeta / "derivados").glob("*.md"))
     assert derivados, captured.out
     text = derivados[0].read_text(encoding="utf-8")

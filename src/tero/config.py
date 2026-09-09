@@ -12,6 +12,14 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CARPETA = PACKAGE_ROOT / "examples" / "carpeta-demo"
 
 
+def _load_dotenv() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv()
+
+
 @dataclass(frozen=True)
 class Settings:
     model_id: str = DEFAULT_MODEL_ID
@@ -22,9 +30,13 @@ class Settings:
 
     @classmethod
     def from_env(cls, *, offline: bool | None = None, carpeta: Path | None = None) -> Settings:
+        _load_dotenv()
         env_offline = os.environ.get("TERO_OFFLINE", "").strip() in {"1", "true", "yes"}
+        model_id = (
+            os.environ.get("TERO_MODEL") or os.environ.get("TERO_MODEL_ID") or DEFAULT_MODEL_ID
+        ).strip() or DEFAULT_MODEL_ID
         return cls(
-            model_id=os.environ.get("TERO_MODEL", DEFAULT_MODEL_ID).strip() or DEFAULT_MODEL_ID,
+            model_id=model_id,
             region=os.environ.get("TERO_AWS_REGION")
             or os.environ.get("AWS_REGION")
             or os.environ.get("AWS_DEFAULT_REGION")

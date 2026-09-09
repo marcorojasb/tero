@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, "cursor/**"]
+    branches: [main, "feat/**", "cursor/**"]
   pull_request:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
       - name: Pytest
         run: pytest
       - name: Offline demo
-        run: python -m tero demo --offline --yes --carpeta examples/carpeta-demo
+        run: python -m tero demo --offline --yes --quiet --carpeta examples/carpeta-demo
 
   tui:
     runs-on: ubuntu-latest

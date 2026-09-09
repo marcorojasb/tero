@@ -7,12 +7,14 @@ name = "tero"
 version = "0.1.0"
 description = "tero — agente docente (Agents for Humans). El agente prepara; el profesor decide."
 readme = "README.md"
-license = { text = "MIT" }
-requires-python = ">=3.11"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
 authors = [{ name = "Marco Rojas" }]
-keywords = ["strands", "bedrock", "opentui", "teacher", "hitl"]
+keywords = ["strands", "bedrock", "opentui", "teacher", "hitl", "chile"]
 dependencies = [
-  "strands-agents>=1.0.0",
+  "strands-agents>=1.40.0",
+  "python-dotenv>=1.0.0",
+  "pypdf>=5.0.0",
 ]
 
 [project.optional-dependencies]

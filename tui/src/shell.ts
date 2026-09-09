@@ -367,13 +367,14 @@ function emptyProposal(state: AppState): string {
 
 function renderEvidence(state: AppState): string {
   if (!state.evidence.length) {
-    return "Las citas aparecen al redactar.\npath + fragmento + sección."
+    return "Las citas aparecen al redactar.\npath + fragmento + sección.\n\nEn la revisión: [ y ] recorren las citas."
   }
   return state.evidence
     .map((item, i) => {
-      const snippet = item.snippet.replace(/\s+/g, " ").slice(0, 160)
+      const snippet = item.snippet.replace(/\s+/g, " ").slice(0, 220)
       const sec = item.seccion ? ` · ${item.seccion}` : ""
-      return `${i + 1}. ${item.path}${sec}\n   “${snippet}”`
+      const mark = i === state.evidenceIndex ? ">" : " "
+      return `${mark} ${i + 1}. ${item.path}${sec}\n     “${snippet}”`
     })
     .join("\n\n")
 }

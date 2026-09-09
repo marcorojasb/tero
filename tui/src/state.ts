@@ -31,6 +31,7 @@ export type AppState = {
   lastError: string
   uiMode: UiMode
   lastPath: string
+  evidenceIndex: number
 }
 
 export function initialState(encargo: Encargo): AppState {
@@ -53,6 +54,7 @@ export function initialState(encargo: Encargo): AppState {
     lastError: "",
     uiMode: "prompt",
     lastPath: "",
+    evidenceIndex: 0,
   }
 }
 
@@ -145,6 +147,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.proposal = artifact?.cuerpo_markdown ?? ""
       next.evidence = artifact?.evidencias ?? []
       next.warnings = artifact?.warnings ?? []
+      next.evidenceIndex = 0
       next.phase = "esperando_criterio"
       next.statusLine = "s sí · n no · b borrador · c corregir"
       next.turns = next.turns.map((turn, i) =>
@@ -274,6 +277,18 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
 }
 
 export function handleHotkey(state: AppState, key: string): LocalAction {
+  if (key === "[") {
+    if (state.evidence.length) {
+      const evidenceIndex = (state.evidenceIndex - 1 + state.evidence.length) % state.evidence.length
+      return { kind: "state", state: { ...state, evidenceIndex } }
+    }
+  }
+  if (key === "]") {
+    if (state.evidence.length) {
+      const evidenceIndex = (state.evidenceIndex + 1) % state.evidence.length
+      return { kind: "state", state: { ...state, evidenceIndex } }
+    }
+  }
   if (key === "?" ) {
     return { kind: "state", state: { ...state, help: !state.help } }
   }
@@ -336,7 +351,7 @@ export function footerFor(state: AppState): string {
   if (state.help) return "esc cierra ayuda"
   if (state.uiMode === "critique") return "crítica → Enter envía · esc cancela"
   if (state.phase === "esperando_plan") return "a aprobar plan · x cancelar · ? ayuda"
-  if (state.phase === "esperando_criterio") return "s sí → derivados/  n no  b borrador  c corregir  ? ayuda"
+  if (state.phase === "esperando_criterio") return "s sí → derivados/  n no  b borrador  c corregir  [ ] evidencia  ? ayuda"
   return "Enter envía  /oa  /tipo  /export  ? ayuda  q salir"
 }
 
@@ -351,6 +366,7 @@ Teclas
   b  guardar en borradores/
   c  corregir: otra pasada del agente
   a  aprobar el plan     x  cancelar el plan
+  [ ]  recorrer evidencia
   ?  esta ayuda          q  salir
 
 Comandos

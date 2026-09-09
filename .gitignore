@@ -151,6 +151,10 @@ activemq-data/
 .env
 .envrc
 .venv
+
+# tero teacher-generated proposals (local / demo)
+derivados/
+fixtures/**/derivados/
 env/
 venv/
 ENV/
@@ -228,7 +232,9 @@ examples/**/derivados/**
 !examples/**/derivados/.gitkeep
 examples/**/borradores/**
 !examples/**/borradores/.gitkeep
-examples/**/.tero/
+fixtures/**/derivados/**
+fixtures/**/borradores/**
+fixtures/**/.tero/
 *.docx
 .pytest_cache/
 .ruff_cache/

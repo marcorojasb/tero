@@ -71,6 +71,11 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
         default="planificacion",
         help="planificacion | guia | evaluacion | pauta | actividad",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Menos ruido en stdout (sigue imprimiendo escrito:/listo.).",
+    )
 
 
 def _settings(args: argparse.Namespace) -> Settings:
@@ -100,22 +105,26 @@ def _encargo(args: argparse.Namespace) -> Encargo:
 def cmd_demo(args: argparse.Namespace) -> int:
     settings = _settings(args)
     workspace = Workspace(settings.carpeta)
+    before = workspace.fingerprint_sources()
     events: list[dict] = []
     session = TeacherSession(workspace, settings, encargo=_encargo(args), emit=events.append)
     prompt = args.prompt.strip() or (
         "Prepara una planificación de 45 minutos sobre el cuento de la carpeta, "
         "alineada al OA de comprensión lectora. Usa solo las fuentes locales."
     )
-    print("tero demo", flush=True)
-    print(f"  modo: {'offline' if settings.offline else 'bedrock'}", flush=True)
-    print(f"  modelo: {settings.model_id if not settings.offline else 'tero-offline'}", flush=True)
-    print(f"  carpeta: {workspace.root}", flush=True)
-    print(f"  encargo: {', '.join(session.encargo.chips())}", flush=True)
+    quiet = bool(getattr(args, "quiet", False))
+
+    def say(text: str) -> None:
+        if not quiet:
+            print(text, flush=True)
+
+    say("tero demo")
+    say(f"  modo: {'offline' if settings.offline else 'bedrock'}")
+    say(f"  modelo: {settings.model_id if not settings.offline else 'tero-offline'}")
+    say(f"  carpeta: {workspace.root}")
+    say(f"  encargo: {', '.join(session.encargo.chips())}")
     if not settings.offline and not args.yes:
-        print(
-            "Bedrock requiere credenciales de entorno (nunca en git). Ctrl+C para salir.",
-            flush=True,
-        )
+        say("Bedrock requiere credenciales de entorno (nunca en git). Ctrl+C para salir.")
     turn = session.start_turn(prompt)
     if session.phase == "esperando_plan":
         if args.yes:
@@ -134,10 +143,10 @@ def cmd_demo(args: argparse.Namespace) -> int:
     if session.phase == "esperando_criterio":
         assert session.turns[-1].draft is not None
         draft = session.turns[-1].draft
-        print(f"\nPROPUESTA · {draft.tipo.label} · {draft.titulo}", flush=True)
-        print(f"  evidencias: {len(draft.evidencias)}", flush=True)
+        say(f"\nPROPUESTA · {draft.tipo.label} · {draft.titulo}")
+        say(f"  evidencias: {len(draft.evidencias)}")
         for warning in draft.warnings:
-            print(f"  aviso ({warning.code}): {warning.message}", flush=True)
+            say(f"  aviso ({warning.code}): {warning.message}")
         if args.yes:
             result = session.decide_gate("s")
         else:
@@ -152,6 +161,11 @@ def cmd_demo(args: argparse.Namespace) -> int:
             result = session.decide_gate(decision, note)  # type: ignore[arg-type]
         if result.path:
             print(f"\nescrito: {result.path}", flush=True)
+        after = workspace.fingerprint_sources()
+        if after != before:
+            print("ADVERTENCIA: un original cambió. tero no debería haberlo escrito.", file=sys.stderr)
+            return 1
+        print("Originales intactos.", flush=True)
         print("listo.", flush=True)
         return 0
     print(f"fase inesperada: {session.phase}", flush=True)
