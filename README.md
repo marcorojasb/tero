@@ -46,12 +46,17 @@ python -m tero tui --offline
 
 **Keys:** **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador · **`c`** corregir (crítica persistida). Plan: **`a`** aprobar · **`e`** editar supuesto · **`x`** cancelar. Clarificación: **`1`/`2`/`3`** o texto libre. Evidence: **`[` `]`** cycle · **Tab** panels · **`?`** ayuda por fase · **`r`** reintentar error. Citas **✓** están in the file; **?** is paraphrase. `/export` works on accepted **or** draft.
 
-### B. Amazon Bedrock
+### B. Amazon Bedrock (lean — Nova Lite only)
 
-1. Region with Amazon Nova (README default **`us-east-1`**).
-2. IAM: `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on `amazon.nova-lite-v1:0` (and `amazon.nova-micro-v1:0` if you switch). Confirm Nova Lite in the Bedrock playground.
-3. Credentials: `aws configure`, or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, or `AWS_BEARER_TOKEN_BEDROCK`. **Never commit `.env`.**
-4. `cp .env.example .env` then:
+One Strands agent → Bedrock. **No** AgentCore, multi-agent mesh, or extra AWS services.
+
+#### AWS free tier / Nova Lite checklist
+
+1. Region with Amazon Nova on-demand (README default **`us-east-1`**).
+2. Bedrock console → **Model access** → enable **Amazon Nova Lite** (`amazon.nova-lite-v1:0`). Confirm in the playground.
+3. IAM: `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on that model id (and `amazon.nova-micro-v1:0` only if you switch).
+4. Credentials: `aws configure`, or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, or `AWS_BEARER_TOKEN_BEDROCK`. **Never commit `.env`.**
+5. `cp .env.example .env` → set `TERO_OFFLINE=0` → fill keys:
 
 ```bash
 python -m tero tui
@@ -59,7 +64,11 @@ python -m tero tui
 python -m tero demo --yes
 ```
 
-Default model: `amazon.nova-lite-v1:0` (`TERO_MODEL` or alias `TERO_MODEL_ID`). Nova Micro is cheaper; Claude needs extra account enablement.
+Default model: `amazon.nova-lite-v1:0` via `TERO_MODEL` (alias **`TERO_MODEL_ID`**). Nova Micro is cheaper for smokes; Claude needs extra enablement.
+
+**Resilience (already in host):** Bedrock errors are humanized in Spanish (auth / throttle / model / network). If Nova returns tools/text without a draft, tero **retries the draft once** automatically, then `r` / `/retry`. Curriculum OA + LaTeX stay **host-side** (catalog + templates); Nova Lite fills **JSON**, not free-form TeX.
+
+Video day: prefer `python -m tero demo --offline --yes` (honest `tero-offline` label). Use Bedrock live only if keys + Nova access are confirmed.
 
 ## What this is (and is not)
 

@@ -97,7 +97,7 @@ Stress + Pteron/OpenCode overhaul. Lo que cambió de verdad:
 | Bedrock falla en crudo | `humanize_exception` → mensajes de auth/throttle/modelo/red + `retryable`. |
 | Cancelar plan deja sucio | `plan_cancelled` → idle/home, limpia plan/propuesta/evidencia. |
 
-## Mitigaciones (`feat/curriculum-latex-nova-lite`)
+## Mitigaciones currículum + LaTeX (`feat/curriculum-latex-nova-lite`)
 
 | Riesgo / gap | Mitigación |
 | --- | --- |
@@ -108,6 +108,27 @@ Stress + Pteron/OpenCode overhaul. Lo que cambió de verdad:
 | Evaluación / pauta sin criterio | `curriculum/chile/evaluacion/lineamientos.md` (resumen de aula, no asesoría legal) alimenta plantillas pauta/evaluación. |
 
 Detalle adversarial: [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md).
+
+## Mitigaciones lean AWS (`feat/curriculum-latex-nova-lite`)
+
+| Riesgo / gap | Mitigación |
+| --- | --- |
+| Credenciales / IAM / región opacos | `humanize_exception`: auth vs model-access vs throttle vs network en español; tip `TERO_MODEL` / Nova Lite / `us-east-1`. |
+| Nova Lite entrega tools/texto sin `draft_artifact` | `_draft_phase` reintenta **una** vez con nudge explícito (`step=draft_retry`); luego `r`/`/retry`. |
+| Juez sin AWS | Offline `tero-offline` intacto; README reserva video day al demo offline. |
+| Confusión de env vars | `.env.example` + README checklist free tier; `TERO_MODEL` canónico, alias `TERO_MODEL_ID`. |
+| Tentación de “completar AWS” con infra | **Defer explícito:** no AgentCore, no multi-agent, no servicios cloud nuevos. Un solo path Strands→Bedrock. |
+
+## Diferido (a propósito, ~video day)
+
+- AgentCore / runtime managed / multi-agent orchestration
+- Live Bedrock en CI (hace falta secret + smoke barato)
+- Source viewer con highlight de línea
+- Catálogo curricular MINEDUC completo (el JSON es mínimo 4°–6°)
+- PDF LaTeX obligatorio en CI (`.tex` basta; `latexmk` opcional en host)
+- Ollama / local LLM como default
+
+Ver [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md).
 
 Sigue siendo verdad (no mitigué del todo):
 

@@ -89,3 +89,32 @@ def test_humanize_bedrock_auth():
     code, msg = humanize_exception(Fake("UnrecognizedClientException: credentials"))
     assert code == "bedrock_auth"
     assert "credenciales" in msg.lower()
+
+
+def test_humanize_bedrock_model_and_throttle():
+    class Fake(Exception):
+        pass
+
+    code, msg = humanize_exception(
+        Fake(
+            "AccessDeniedException: You don't have access to the model with the specified model ID."
+        )
+    )
+    assert code == "bedrock_model"
+    assert "Nova Lite" in msg or "TERO_MODEL" in msg
+
+    code, msg = humanize_exception(Fake("ThrottlingException: Rate exceeded"))
+    assert code == "bedrock_throttle"
+
+    # IAM invoke denial must stay auth, not model (InvokeModel contains "model")
+    code, msg = humanize_exception(
+        Fake("AccessDeniedException: User is not authorized to perform: bedrock:InvokeModel")
+    )
+    assert code == "bedrock_auth"
+
+
+def test_settings_accepts_tero_model_id(monkeypatch):
+    monkeypatch.setenv("TERO_MODEL_ID", "amazon.nova-micro-v1:0")
+    monkeypatch.delenv("TERO_MODEL", raising=False)
+    settings = Settings.from_env(offline=True)
+    assert settings.model_id == "amazon.nova-micro-v1:0"
