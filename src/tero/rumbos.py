@@ -72,8 +72,11 @@ RUMBO_ORDER: tuple[Rumbo, ...] = (
     Rumbo.ADAPTAR,
 )
 
+# Require °/º or an explicit level word. Bare "45" in "45 min" must NOT become "45° básico".
 _CURSO_RE = re.compile(
-    r"\b(\d{1,2})\s*[°º]?\s*(b[aá]sico|medio)?\b|\b(prekinder|k[ií]nder|1ro|2do|3ro|4to|5to|6to|7mo|8vo)\b",
+    r"\b(\d{1,2})\s*[°º]\s*(b[aá]sico|medio)?\b"
+    r"|\b(\d{1,2})\s+(b[aá]sico|medio)\b"
+    r"|\b(prekinder|k[ií]nder|1ro|2do|3ro|4to|5to|6to|7mo|8vo)\b",
     re.IGNORECASE,
 )
 
@@ -106,10 +109,18 @@ def infer_curso(text: str) -> str:
     if not match:
         return ""
     if match.group(1):
-        n = match.group(1)
+        n = int(match.group(1))
+        if not 1 <= n <= 12:
+            return ""
         level = (match.group(2) or "básico").lower().replace("basico", "básico")
         return f"{n}° {level}"
-    token = (match.group(3) or "").lower()
+    if match.group(3):
+        n = int(match.group(3))
+        if not 1 <= n <= 12:
+            return ""
+        level = (match.group(4) or "básico").lower().replace("basico", "básico")
+        return f"{n}° {level}"
+    token = (match.group(5) or "").lower()
     mapping = {
         "prekinder": "prekínder",
         "kinder": "kínder",

@@ -89,6 +89,54 @@ Observación formativa.
     text = path.read_text(encoding="utf-8")
     assert "Planificación" in text or "Plan cuento" in text
     assert r"\section*{Objetivo}" in text
+    # Regression: grade 4° must not pick up the "5" from "45 min".
+    assert "4° básico" in text
+    assert "45° básico" not in text
+
+
+def test_grado_4_survives_markdown_and_schema_to_latex():
+    """4° básico + duracion 45 min must not become 45° básico in LaTeX."""
+    md = """---
+generado_por: tero
+tipo: planificacion
+titulo: Plan valle
+curso: 4° básico
+asignatura: Lenguaje
+oa: LEN-4B-OA04
+duracion: 45 min
+---
+
+# Planificación
+
+## Objetivo
+Que las y los estudiantes de 4° básico lean el cuento.
+
+## Inicio (45 min)
+Activar saberes.
+"""
+    payload = extract_payload_from_markdown(md, tipo="planificacion")
+    assert payload["curso"] == "4° básico"
+    assert payload.get("duracion") == "45 min"
+    assert "45°" not in payload["curso"]
+
+    filled = repair_payload(
+        "planificacion",
+        {
+            "tipo": "planificacion",
+            "titulo": "Plan valle",
+            "curso": "4° básico",
+            "asignatura": "Lenguaje",
+            "oa": "LEN-4B-OA04",
+            "duracion": "45 min",
+            "objetivo": "Leer",
+            "inicio": "Inicio",
+            "desarrollo": "Desarrollo",
+            "cierre": "Cierre",
+        },
+    )
+    tex = render_latex(filled)
+    assert r"\textbf{Curso} & 4° básico" in tex
+    assert "45° básico" not in tex
 
 
 def test_export_latex_from_json_payload(tmp_path):

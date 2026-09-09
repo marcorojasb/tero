@@ -38,6 +38,20 @@ def test_sync_encargo_updates_curso_and_domain():
 def test_infer_curso_variants():
     assert "6°" in infer_curso("para 6to básico")
     assert "4°" in infer_curso("4° básico Lenguaje")
+    assert "4°" in infer_curso("estudiantes de 4 básico")
+    # Duration must not be read as a grade ("45 min" → not "45° básico").
+    assert infer_curso("planificación de 45 minutos sobre el cuento") == ""
+    assert infer_curso("duracion: 45 min") == ""
+
+
+def test_sync_keeps_grado_when_prompt_only_has_duration():
+    base = Encargo(curso="4° básico", asignatura="Lenguaje", oa="OA 4", duracion="45 min")
+    synced = sync_encargo_from_prompt(
+        base,
+        "Prepara una planificación de 45 minutos sobre el cuento, alineada al OA.",
+    )
+    assert synced.curso == "4° básico"
+    assert "45°" not in synced.curso
 
 
 def test_plan_card_and_clarification():
