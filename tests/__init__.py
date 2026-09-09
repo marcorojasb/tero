@@ -1,1 +1,1 @@
-# These pytest files are not a package; this file keeps imports tidy if needed.
+"""Tests package marker so pytest can import helpers if needed."""

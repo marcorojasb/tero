@@ -1,24 +1,25 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "tero"
 version = "0.1.0"
-description = "Strands agent for Chilean teachers: your sources, your judgment / agent prepares, teacher decides."
+description = "tero — agente docente (Agents for Humans). El agente prepara; el profesor decide."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [{ name = "Marco Rojas" }]
-keywords = ["strands", "bedrock", "education", "chile", "agents"]
+keywords = ["strands", "bedrock", "opentui", "teacher", "hitl", "chile"]
 dependencies = [
-    "strands-agents>=1.40.0",
-    "python-dotenv>=1.0.0",
-    "pypdf>=5.0.0",
+  "strands-agents>=1.40.0",
+  "python-dotenv>=1.0.0",
+  "pypdf>=5.0.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0"]
+docx = ["python-docx>=1.1.0"]
+dev = ["pytest>=8.0", "ruff>=0.8", "python-docx>=1.1.0"]
 
 [project.scripts]
 tero = "tero.cli:main"
@@ -27,9 +28,24 @@ tero = "tero.cli:main"
 Homepage = "https://github.com/marcorojasb/tero"
 
 [tool.setuptools.packages.find]
-include = ["tero*"]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tero = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
-addopts = "-q"
+pythonpath = ["src", "."]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"

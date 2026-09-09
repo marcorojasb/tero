@@ -1,92 +1,71 @@
 # Architecture — tero
 
-tero is a **single Strands agent** with three tools and one human gate. There is no desktop shell, no background daemon, and no write path except `derivados/`.
+tero is a **Strands agent** plus an **OpenTUI** shell. The agent prepares; the teacher decides. The only artifact writes are `derivados/` (accepted) and `borradores/` (draft). Originals are hashed and never overwritten.
 
 ## Thesis
 
 > your sources, your judgment / agent prepares, teacher decides
 
-The teacher’s folder is the system of record. The agent is a preparer. The write tool is not allowed to run until a human answers.
+The teacher’s folder is the system of record. Tools only read. The host applies `s` / `n` / `b` / `c`.
 
 ## Components
 
 ```mermaid
 flowchart TB
-  subgraph CLI["CLI (python -m tero)"]
-    Banner[Banner + encargo]
-    Fingerprint[Hash de originales]
+  subgraph TUI["OpenTUI (Bun / @opentui/core)"]
+    Chips[Encargo chips]
+    Session[Sesión + actividad]
+    Proposal[Propuesta + evidencia]
+    Gate[s / n / b / c]
   end
 
-  subgraph Runtime["Strands Agents SDK"]
-    Agent[Agent]
-    HITL[HumanInTheLoop]
-    Model{Model}
-    Bedrock[BedrockModel<br/>Amazon Nova Lite]
-    Scripted[ScriptedTeacherModel<br/>offline / CI]
-  end
-
-  subgraph Tools["Tools"]
-    list_sources
-    read_source
-    write_derived
+  subgraph Host["python -m tero bridge"]
+    JSONL[JSONL stdin/stdout]
+    Agent[Strands Agent]
+    Offline[OfflineModel]
+    Bedrock[BedrockModel Nova Lite]
+    Tools[list_sources / read_source / propose_plan / cite_evidence / draft_artifact]
+    GateHost[tero.gate]
   end
 
   subgraph Disk["Carpeta de trabajo"]
-    Fuentes[Fuentes .md .txt .pdf]
+    Fuentes[Originales .md .txt .pdf]
     Derivados[derivados/]
-    Borradores[derivados/borradores/]
+    Borradores[borradores/]
   end
 
-  Banner --> Agent
-  Agent --> Model
-  Model --> Bedrock
-  Model --> Scripted
-  Agent --> list_sources
-  Agent --> read_source
-  Agent --> HITL
-  HITL -->|allowed| list_sources
-  HITL -->|allowed| read_source
-  HITL -->|confirm s/n/b| write_derived
-  list_sources --> Fuentes
-  read_source --> Fuentes
-  write_derived --> Derivados
-  write_derived --> Borradores
-  Fingerprint --> Fuentes
+  TUI --> JSONL
+  JSONL --> Agent
+  Agent --> Offline
+  Agent --> Bedrock
+  Agent --> Tools
+  Tools --> Fuentes
+  Gate --> GateHost
+  GateHost --> Derivados
+  GateHost --> Borradores
 ```
 
-## Agent loop
+## Loop
 
-1. The CLI builds a `Workspace` rooted at the teacher folder.
-2. `build_agent` registers `list_sources`, `read_source`, `write_derived`.
-3. `HumanInTheLoop` allow-lists the two read tools. `write_derived` always asks.
-4. The model (Bedrock or scripted) must **list → read → write**. The system prompt forbids inventing OA codes that are not in the sources.
-5. The custom `ask` callback prints the Markdown proposal and waits for `s` / `n` / `b`.
-   - **s:** tool runs; file lands in `derivados/`.
-   - **n:** tool is denied; proposal discarded.
-   - **b:** tool runs with `workspace.as_draft = True`; file lands in `derivados/borradores/`.
-6. After the run, the CLI re-hashes originals. A mismatch exits non-zero.
+1. Encargo chips (curso / asignatura / OA / duración / tipo).
+2. Agent **lists and reads** only inside the carpeta (path sandbox + hash index).
+3. Optional **typed plan** — teacher approves / edits / cancels.
+4. **Draft** + evidence citations. Warnings (OA mismatch, thin skeleton, missing rubric) do **not** block.
+5. Gate: `s` write `derivados/`, `n` discard, `b` write `borradores/`, `c` another agent pass.
+6. Re-hash originals after write. A change is a warning, never a rewrite of the source.
 
-## Why Strands + Bedrock
+## Why this HITL shape
 
-- **Strands** owns the tool loop and the official HITL intervention (`strands.vended_interventions.hitl.HumanInTheLoop`). tero does not reimplement an agent runtime.
-- **Bedrock** is the production model provider. The id is `TERO_MODEL_ID` (default `amazon.nova-lite-v1:0` in `us-east-1`) so judges can switch to Nova Micro or Claude without code changes.
-- **ScriptedTeacherModel** is a Strands `Model` that emits the same tool-call stream events, so CI and `--offline` still exercise tools + HITL. It is not a second product path; it is the same agent with a stand-in model.
+The first MVP on `main` used Strands `HumanInTheLoop` around a `write_derived` tool. This tree keeps Strands for the **agent loop** and moves the write to the **host** so the TUI can show plan, evidence, and `c` (correct) without the model being able to dump a file mid-stream. Both are real HITL; the host gate is the one OpenTUI drives.
 
 ## Trust boundaries
 
 | Can the agent… | |
 | --- | --- |
-| Read files outside the work folder | No (`Path.resolve` + `relative_to`) |
-| Read `derivados/` as a “source” | No |
-| Write a non-`.md` name, or a path with `..` | No |
-| Write without at least one citation that exists as an original | No |
-| Overwrite an original | No — writes only under `derivados/` |
+| Read files outside the work folder | No |
+| Overwrite originals | No (`WriteGuardError`) |
+| Write `derivados/` itself | No — only `tero.gate` after `s`/`b` |
+| Invent a live Bedrock call in `--offline` | No — `tero-offline` is a scripted Strands `Model` |
+| Cite a snippet that is not in the file | Allowed, but host marks it `verified: false` and warns |
 
-## Offline vs Bedrock
-
-Both modes construct `strands.Agent(...)`. The only swap is `model=`.
-
-```text
-tero demo --yes              → BedrockModel(TERO_MODEL_ID)
-tero demo --offline --yes    → ScriptedTeacherModel()
-```
+Package layout: `src/tero` (canonical). The older `tero/` layout from PR #1 is not used.

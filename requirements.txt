@@ -1,4 +1,5 @@
-# Runtime (Python 3.10+)
+# Install the project instead of pinning this file:
+#   pip install -e ".[dev]"
 strands-agents>=1.40.0
 python-dotenv>=1.0.0
 pypdf>=5.0.0
