@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tero.artifacts import missing_headings
-from tero.evidence import collect_warnings, parse_evidence_blob
+from tero.evidence import collect_warnings, parse_evidence_blob, snippet_in_text, verify_evidence
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence
 from tero.workspace import Workspace
 
@@ -30,6 +30,44 @@ def test_warnings_oa_and_thin(workspace: Workspace):
     assert "missing_rubric" in codes
     assert "unknown_source" in codes
     assert all(item.blocking is False for item in warnings)
+    assert "unverified_citation" not in codes or "unknown_source" in codes
+
+
+def test_snippet_must_appear_in_source(workspace: Workspace):
+    assert snippet_in_text("hola mundo largo", "hola mundo")
+    assert not snippet_in_text("hola mundo", "no está")
+    ok = verify_evidence(
+        workspace,
+        Evidence(
+            path="fuentes/cuento-el-condor-y-el-huemul.md",
+            snippet="El huemul no corrió: preguntó al cóndor por qué el valle tenía sed.",
+        ),
+    )
+    assert ok.verified is True
+    fake = verify_evidence(
+        workspace,
+        Evidence(path="fuentes/cuento-el-condor-y-el-huemul.md", snippet="Los pingüinos votaron"),
+    )
+    assert fake.verified is False
+    draft = ArtifactDraft(
+        tipo=ArtifactType.ACTIVIDAD,
+        titulo="x",
+        cuerpo_markdown="# Actividad\n\n## Objetivo\n...\n## Materiales\n...\n## Pasos\n..."
+        + "x" * 800,
+        evidencias=[
+            Evidence(
+                path="fuentes/cuento-el-condor-y-el-huemul.md", snippet="Los pingüinos votaron"
+            ),
+            Evidence(path="fuentes/notas-curso.md", snippet="x"),
+        ],
+    )
+    warnings = collect_warnings(
+        workspace=workspace,
+        encargo=Encargo(oa="OA 4"),
+        plan=None,
+        draft=draft,
+    )
+    assert "unverified_citation" in {item.code for item in warnings}
 
 
 def test_planificacion_structure_ok():

@@ -31,6 +31,7 @@ export type Evidence = {
   path: string
   snippet: string
   seccion: string
+  verified?: boolean
 }
 
 export type WarningItem = {

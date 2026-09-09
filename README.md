@@ -42,7 +42,7 @@ OpenTUI (needs [Bun](https://bun.sh)):
 python -m tero tui --offline
 ```
 
-Keys: **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador · **`c`** corregir (another agent pass). Plan: **`a`** aprobar · **`x`** cancelar.
+Keys: **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador · **`c`** corregir (another agent pass). Plan: **`a`** aprobar · **`x`** cancelar. Evidence: **`[` `]`** cycle · **Tab** session/proposal/evidence. Citas **✓** are in the file; **?** is a paraphrase the host did not find.
 
 ### B. Amazon Bedrock
 

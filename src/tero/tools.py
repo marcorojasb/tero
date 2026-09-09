@@ -9,7 +9,7 @@ from typing import Any
 
 from strands import tool
 
-from tero.evidence import parse_evidence_blob
+from tero.evidence import parse_evidence_blob, snippet_in_text, verify_evidence
 from tero.plan import build_plan
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
 from tero.workspace import Workspace
@@ -129,12 +129,29 @@ def _cite_evidence(ctx: TurnContext):
     def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
         """Vincula un fragmento de una fuente a una sección de la propuesta. No escribe archivos."""
         ctx._emit({"type": "activity", "tool": "cite_evidence", "state": "start", "detail": path})
-        item = Evidence(path=path, snippet=snippet, seccion=seccion)
+        try:
+            payload = ctx.workspace.read_source(path)
+        except Exception as exc:
+            ctx._emit(
+                {"type": "activity", "tool": "cite_evidence", "state": "end", "detail": "error"}
+            )
+            return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+        canonical = str(payload.get("path") or path)
+        verified = snippet_in_text(str(payload.get("text") or ""), snippet)
+        item = Evidence(path=canonical, snippet=snippet, seccion=seccion, verified=verified)
         ctx.evidence.append(item)
         ctx._emit(
-            {"type": "activity", "tool": "cite_evidence", "state": "end", "detail": seccion or path}
+            {
+                "type": "activity",
+                "tool": "cite_evidence",
+                "state": "end",
+                "detail": f"{'✓' if verified else '?'} {seccion or canonical}",
+            }
         )
-        return json.dumps({"ok": True, "n": len(ctx.evidence)}, ensure_ascii=False)
+        return json.dumps(
+            {"ok": True, "n": len(ctx.evidence), "verified": verified, "path": canonical},
+            ensure_ascii=False,
+        )
 
     return cite_evidence
 
@@ -155,11 +172,12 @@ def _draft_artifact(ctx: TurnContext):
         merged: list[Evidence] = []
         seen: set[tuple[str, str]] = set()
         for item in [*ctx.evidence, *extra]:
-            key = (item.path, item.snippet[:80])
+            checked = verify_evidence(ctx.workspace, item)
+            key = (checked.path, checked.snippet[:80])
             if key in seen:
                 continue
             seen.add(key)
-            merged.append(item)
+            merged.append(checked)
         ctx.pending_draft = ArtifactDraft(
             tipo=parsed,
             titulo=titulo.strip() or parsed.label,

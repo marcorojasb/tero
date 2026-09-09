@@ -29,7 +29,7 @@ def make_model(settings: Settings, encargo: Encargo):
     return BedrockModel(
         model_id=settings.model_id,
         region_name=settings.region,
-        temperature=0.3,
+        temperature=settings.temperature,
     )
 
 
@@ -116,7 +116,7 @@ class TeacherSession:
             self._set_phase("idle")
             self.emit({"type": "plan_cancelled", "id": turn.id})
             return turn
-        if decision == "edit" and edits:
+        if edits:
             turn.plan = apply_plan_edits(turn.plan, edits)
         assert turn.plan is not None
         self.ctx.pending_plan = turn.plan

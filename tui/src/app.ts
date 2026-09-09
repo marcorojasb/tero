@@ -63,11 +63,16 @@ export async function launch(opts: LaunchOptions): Promise<void> {
       dispatch({ kind: "quit" })
       return
     }
+    const typing = Boolean(shell.input.value) && state.uiMode !== "critique"
+    const globalKeys = new Set(["?", "tab", "[", "]", "escape"])
+    if (typing && !globalKeys.has(name) && !key.ctrl) {
+      return
+    }
     const busyInput =
       (state.uiMode === "critique" || (state.phase !== "esperando_plan" && state.phase !== "esperando_criterio")) &&
       name.length === 1 &&
       !key.ctrl
-    if (busyInput && name !== "?" && state.uiMode !== "critique") {
+    if (busyInput && !globalKeys.has(name) && state.uiMode !== "critique") {
       return
     }
     if (state.uiMode === "critique" && name !== "escape" && name !== "?") return

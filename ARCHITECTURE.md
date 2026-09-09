@@ -66,5 +66,6 @@ The first MVP on `main` used Strands `HumanInTheLoop` around a `write_derived` t
 | Overwrite originals | No (`WriteGuardError`) |
 | Write `derivados/` itself | No — only `tero.gate` after `s`/`b` |
 | Invent a live Bedrock call in `--offline` | No — `tero-offline` is a scripted Strands `Model` |
+| Cite a snippet that is not in the file | Allowed, but host marks it `verified: false` and warns |
 
 Package layout: `src/tero` (canonical). The older `tero/` layout from PR #1 is not used.

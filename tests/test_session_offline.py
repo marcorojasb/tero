@@ -25,6 +25,7 @@ def test_offline_strands_loop_plan_draft_accept(workspace: Workspace):
     draft = session.turns[-1].draft
     assert draft is not None
     assert len(draft.evidencias) >= 2
+    assert all(item.verified for item in draft.evidencias)
     assert "Objetivo" in draft.cuerpo_markdown or "objetivo" in draft.cuerpo_markdown.lower()
     result = session.decide_gate("s")
     assert result.path is not None

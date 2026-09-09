@@ -16,6 +16,7 @@
 - No secrets in the tree. `.env` is gitignored; `.env.example` lists names only.
 - Commit style: conventional commits, small diffs, no drive-by refactors.
 - HITL invariant: tools must not write teacher artifacts. `tero.gate` writes after a decision.
+- Citations are host-checked: a snippet that is not in the file is `verified: false` and a non-blocking warning. Do not treat paraphrases as quotes.
 
 ## How to run
 

@@ -11,6 +11,8 @@ import type {
 } from "./protocol.ts"
 
 export type UiMode = "prompt" | "critique"
+export type FocusPanel = "session" | "proposal" | "evidence"
+export const FOCUS_PANELS: FocusPanel[] = ["session", "proposal", "evidence"]
 
 export type AppState = {
   ready: boolean
@@ -32,6 +34,10 @@ export type AppState = {
   uiMode: UiMode
   lastPath: string
   evidenceIndex: number
+  focusPanel: FocusPanel
+  sourceCount: number
+  changedCount: number
+  planPinned: boolean
 }
 
 export function initialState(encargo: Encargo): AppState {
@@ -55,6 +61,10 @@ export function initialState(encargo: Encargo): AppState {
     uiMode: "prompt",
     lastPath: "",
     evidenceIndex: 0,
+    focusPanel: "proposal",
+    sourceCount: 0,
+    changedCount: 0,
+    planPinned: false,
   }
 }
 
@@ -96,6 +106,11 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       if (event.encargo && typeof event.encargo === "object") {
         next.encargo = { ...next.encargo, ...(event.encargo as Encargo) }
       }
+      if (typeof event.fuentes === "number") next.sourceCount = event.fuentes
+      if (typeof event.changed === "number") next.changedCount = event.changed
+      next.statusLine = next.sourceCount
+        ? `carpeta · ${next.sourceCount} fuente${next.sourceCount === 1 ? "" : "s"}`
+        : next.statusLine
       break
     case "status":
       next.phase = (event.phase as Phase) || next.phase
@@ -115,6 +130,10 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       if (idx >= 0 && item.state === "end") next.activities[idx] = item
       else next.activities.push(item)
       if (next.activities.length > 24) next.activities = next.activities.slice(-24)
+      if (tool === "list_sources" && item.state === "end" && item.detail) {
+        const n = Number.parseInt(item.detail, 10)
+        if (!Number.isNaN(n)) next.sourceCount = n
+      }
       break
     }
     case "delta":
@@ -234,19 +253,23 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     return { kind: "quit" }
   }
   if (text.startsWith("/oa ")) {
-    const encargo = { ...state.encargo, oa: text.slice(4).trim() }
+    const oa = text.slice(4).trim()
+    const encargo = { ...state.encargo, oa }
+    const plan = state.plan ? { ...state.plan, oa } : state.plan
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, statusLine: `OA → ${encargo.oa}` },
+      state: { ...state, encargo, plan, statusLine: `OA → ${oa}` },
     }
   }
   if (text.startsWith("/tipo ")) {
-    const encargo = { ...state.encargo, tipo: text.slice(6).trim() }
+    const tipo = text.slice(6).trim()
+    const encargo = { ...state.encargo, tipo }
+    const plan = state.plan ? { ...state.plan, tipo } : state.plan
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, statusLine: `tipo → ${encargo.tipo}` },
+      state: { ...state, encargo, plan, statusLine: `tipo → ${tipo}` },
     }
   }
   if (text.startsWith("/curso ")) {
@@ -254,7 +277,33 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
-      state: { ...state, encargo },
+      state: { ...state, encargo, statusLine: `curso → ${encargo.curso}` },
+    }
+  }
+  if (text.startsWith("/asignatura ")) {
+    const encargo = { ...state.encargo, asignatura: text.slice(12).trim() }
+    return {
+      kind: "send",
+      message: { type: "encargo.update", encargo },
+      state: { ...state, encargo, statusLine: `asignatura → ${encargo.asignatura}` },
+    }
+  }
+  if (text.startsWith("/duracion ") || text.startsWith("/duración ")) {
+    const duracion = text.replace(/^\/duraci[oó]n\s+/, "").trim()
+    const encargo = { ...state.encargo, duracion }
+    const plan = state.plan ? { ...state.plan, duracion } : state.plan
+    return {
+      kind: "send",
+      message: { type: "encargo.update", encargo },
+      state: { ...state, encargo, plan, statusLine: `duración → ${duracion}` },
+    }
+  }
+  if (text.startsWith("/objetivo ")) {
+    if (!state.plan) return { kind: "none", state }
+    const plan = { ...state.plan, objetivo: text.slice(10).trim() }
+    return {
+      kind: "state",
+      state: { ...state, plan, statusLine: "plan · objetivo editado — a aprueba" },
     }
   }
   if (text === "/export" || text.startsWith("/export ")) {
@@ -277,16 +326,27 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
 }
 
 export function handleHotkey(state: AppState, key: string): LocalAction {
+  if (key === "tab") {
+    const idx = FOCUS_PANELS.indexOf(state.focusPanel)
+    const focusPanel = FOCUS_PANELS[(idx + 1) % FOCUS_PANELS.length]
+    return { kind: "state", state: { ...state, focusPanel } }
+  }
+  if (key === "e" && state.evidence.length) {
+    return { kind: "state", state: { ...state, focusPanel: "evidence" } }
+  }
+  if (key === "p" && state.plan) {
+    return { kind: "state", state: { ...state, planPinned: !state.planPinned } }
+  }
   if (key === "[") {
     if (state.evidence.length) {
       const evidenceIndex = (state.evidenceIndex - 1 + state.evidence.length) % state.evidence.length
-      return { kind: "state", state: { ...state, evidenceIndex } }
+      return { kind: "state", state: { ...state, evidenceIndex, focusPanel: "evidence" } }
     }
   }
   if (key === "]") {
     if (state.evidence.length) {
       const evidenceIndex = (state.evidenceIndex + 1) % state.evidence.length
-      return { kind: "state", state: { ...state, evidenceIndex } }
+      return { kind: "state", state: { ...state, evidenceIndex, focusPanel: "evidence" } }
     }
   }
   if (key === "?" ) {
@@ -299,7 +359,7 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
     if (key === "a" || key === "enter") {
       return {
         kind: "send",
-        message: { type: "plan.decide", decision: "approve" },
+        message: { type: "plan.decide", decision: "approve", plan: state.plan ?? undefined },
         state: { ...state, statusLine: "Plan aprobado. Redactando…" },
       }
     }
@@ -341,6 +401,21 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
   return { kind: "none", state }
 }
 
+export function gateStrip(state: AppState): string {
+  if (state.uiMode === "critique") {
+    return "crítica abierta · Enter envía al agente · esc vuelve a s/n/b/c"
+  }
+  if (state.phase === "esperando_plan") {
+    return "[ a ] aprobar plan     [ x ] cancelar     /objetivo  /oa  /duracion"
+  }
+  if (state.phase === "esperando_criterio") {
+    const n = state.evidence.length
+    const mark = n ? `     [ ] ${state.evidenceIndex + 1}/${n}` : ""
+    return `[ s ] sí → derivados/     [ n ] no     [ b ] borrador     [ c ] corregir${mark}`
+  }
+  return ""
+}
+
 export function chips(encargo: Encargo): string[] {
   return [encargo.curso, encargo.asignatura, encargo.oa, encargo.duracion, encargo.tipo]
     .map((item) => (item ?? "").trim())
@@ -350,9 +425,9 @@ export function chips(encargo: Encargo): string[] {
 export function footerFor(state: AppState): string {
   if (state.help) return "esc cierra ayuda"
   if (state.uiMode === "critique") return "crítica → Enter envía · esc cancela"
-  if (state.phase === "esperando_plan") return "a aprobar plan · x cancelar · ? ayuda"
-  if (state.phase === "esperando_criterio") return "s sí → derivados/  n no  b borrador  c corregir  [ ] evidencia  ? ayuda"
-  return "Enter envía  /oa  /tipo  /export  ? ayuda  q salir"
+  if (state.phase === "esperando_plan") return "a aprobar  x cancelar  /objetivo  Tab panel  ? ayuda"
+  if (state.phase === "esperando_criterio") return "s sí  n no  b borrador  c corregir  [ ] evidencia  Tab  ? "
+  return "Enter envía  /oa /tipo /export  Tab panel  ? ayuda  q salir"
 }
 
 export const HELP_TEXT = `tero — el agente prepara, el docente decide
@@ -361,17 +436,17 @@ Flujo
   1. Encargo (chips)  2. Plan tipado  3. Borrador + evidencia  4. Puerta
 
 Teclas
-  s  aceptar y escribir en derivados/
-  n  descartar (no escribe)
-  b  guardar en borradores/
-  c  corregir: otra pasada del agente
-  a  aprobar el plan     x  cancelar el plan
-  [ ]  recorrer evidencia
-  ?  esta ayuda          q  salir
+  s  aceptar → derivados/     n  descartar
+  b  borradores/              c  corregir
+  a  aprobar plan             x  cancelar plan
+  [ ]  recorrer evidencia     e  foco evidencia
+  Tab  sesión/propuesta/evidencia
+  p  fijar/ocultar plan       ?  ayuda   q  salir
 
 Comandos
-  /oa OA 6     /tipo guia|evaluacion|pauta|actividad|planificacion
-  /curso 4°    /export [md|docx]
+  /oa OA 6   /tipo guia|evaluacion|pauta|actividad|planificacion
+  /curso 4°  /asignatura …  /duracion 45 min  /objetivo …
+  /export [md|docx]
 
-La carpeta de trabajo es el sistema de registro.
+La carpeta es el sistema de registro. Citas: ✓ en el archivo, ? parafraseo.
 tero no sobreescribe originales (hash).`

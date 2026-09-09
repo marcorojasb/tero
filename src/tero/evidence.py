@@ -12,6 +12,36 @@ from tero.workspace import Workspace
 THIN_CHARS = 700
 
 
+def snippet_in_text(text: str, snippet: str) -> bool:
+    needle = snippet.strip()
+    if not needle or not text:
+        return False
+    if needle in text:
+        return True
+    compact = " ".join(text.lower().split())
+    return " ".join(needle.lower().split()) in compact
+
+
+def verify_evidence(workspace: Workspace, item: Evidence) -> Evidence:
+    try:
+        payload = workspace.read_source(item.path)
+    except Exception:
+        return Evidence(
+            path=item.path,
+            snippet=item.snippet,
+            seccion=item.seccion,
+            start_line=item.start_line,
+            verified=False,
+        )
+    return Evidence(
+        path=str(payload.get("path") or item.path),
+        snippet=item.snippet,
+        seccion=item.seccion,
+        start_line=item.start_line,
+        verified=snippet_in_text(str(payload.get("text") or ""), item.snippet),
+    )
+
+
 def parse_evidence_blob(raw: str | list[dict[str, Any]] | None) -> list[Evidence]:
     if raw is None or raw == "":
         return []
@@ -35,9 +65,16 @@ def parse_evidence_blob(raw: str | list[dict[str, Any]] | None) -> list[Evidence
         seccion = str(row.get("seccion") or row.get("section") or "").strip()
         start = row.get("start_line")
         start_line = int(start) if isinstance(start, int) else None
+        verified = bool(row.get("verified"))
         if path or snippet:
             items.append(
-                Evidence(path=path, snippet=snippet, seccion=seccion, start_line=start_line)
+                Evidence(
+                    path=path,
+                    snippet=snippet,
+                    seccion=seccion,
+                    start_line=start_line,
+                    verified=verified,
+                )
             )
     return items
 
@@ -101,6 +138,18 @@ def collect_warnings(
                 WarningItem(
                     code="unknown_source",
                     message=f"Cita a una ruta que no está en la carpeta: {item.path}",
+                )
+            )
+            continue
+        checked = verify_evidence(workspace, item)
+        if item.snippet and not checked.verified:
+            warnings.append(
+                WarningItem(
+                    code="unverified_citation",
+                    message=(
+                        f"El fragmento citado no aparece en {item.path}. "
+                        "Puede ser parafraseo del modelo; no lo trates como cita textual."
+                    ),
                 )
             )
         if any(

@@ -163,7 +163,9 @@ def cmd_demo(args: argparse.Namespace) -> int:
             print(f"\nescrito: {result.path}", flush=True)
         after = workspace.fingerprint_sources()
         if after != before:
-            print("ADVERTENCIA: un original cambió. tero no debería haberlo escrito.", file=sys.stderr)
+            print(
+                "ADVERTENCIA: un original cambió. tero no debería haberlo escrito.", file=sys.stderr
+            )
             return 1
         print("Originales intactos.", flush=True)
         print("listo.", flush=True)

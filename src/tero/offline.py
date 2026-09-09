@@ -66,64 +66,139 @@ class OfflineModel(Model):
         tipo = infer_tipo(prompt, self.encargo)
         if len(called) >= 12:
             return {"text": "Listo. Esperando el criterio del docente."}
+        listed = _listed_paths(messages)
+        reads = _read_payloads(messages)
         if "list_sources" in available and "list_sources" not in called:
             return {"tool": "list_sources", "input": {}}
         if "read_source" in available and called.count("read_source") < 2:
-            path = (
-                "fuentes/bases-oa-lenguaje-4b.md"
-                if called.count("read_source") == 0
-                else "fuentes/cuento-el-condor-y-el-huemul.md"
-            )
+            path = _read_path_for(listed, called.count("read_source"))
             return {"tool": "read_source", "input": {"path": path}}
         if "propose_plan" in available and "propose_plan" not in called:
-            plan = demo_plan(self.encargo, tipo)
+            plan = demo_plan(self.encargo, tipo, sources=listed)
             return {"tool": "propose_plan", "input": plan}
         if "cite_evidence" in available and called.count("cite_evidence") < 2:
-            if called.count("cite_evidence") == 0:
-                return {
-                    "tool": "cite_evidence",
-                    "input": {
-                        "path": "fuentes/bases-oa-lenguaje-4b.md",
-                        "snippet": "OA 4: extraer información explícita e implícita de textos literarios.",
-                        "seccion": "OA",
-                    },
-                }
-            return {
-                "tool": "cite_evidence",
-                "input": {
-                    "path": "fuentes/cuento-el-condor-y-el-huemul.md",
-                    "snippet": "El huemul no corrió: preguntó al cóndor por qué el valle tenía sed.",
-                    "seccion": "desarrollo",
-                },
-            }
+            citation = _citation_for(listed, reads, called.count("cite_evidence"))
+            return {"tool": "cite_evidence", "input": citation}
         if "draft_artifact" in available and "draft_artifact" not in called:
             critique = ""
             if "CORRECCIÓN" in prompt or "CORRECCION" in prompt:
                 critique = prompt
+            citations = [
+                _citation_for(listed, reads, 0),
+                _citation_for(listed, reads, 1),
+            ]
             return {
                 "tool": "draft_artifact",
                 "input": {
                     "tipo": tipo.value,
-                    "titulo": demo_plan(self.encargo, tipo)["objetivo"][:80],
-                    "cuerpo_markdown": demo_draft_markdown(self.encargo, tipo, critique=critique),
-                    "evidencias_json": json.dumps(
-                        [
-                            {
-                                "path": "fuentes/bases-oa-lenguaje-4b.md",
-                                "snippet": "OA 4: extraer información explícita e implícita.",
-                                "seccion": "OA",
-                            },
-                            {
-                                "path": "fuentes/cuento-el-condor-y-el-huemul.md",
-                                "snippet": "El huemul no corrió: preguntó al cóndor.",
-                                "seccion": "desarrollo",
-                            },
-                        ],
-                        ensure_ascii=False,
+                    "titulo": demo_plan(self.encargo, tipo, sources=listed)["objetivo"][:80],
+                    "cuerpo_markdown": demo_draft_markdown(
+                        self.encargo,
+                        tipo,
+                        critique=critique,
+                        sources=listed or list(reads),
                     ),
+                    "evidencias_json": json.dumps(citations, ensure_ascii=False),
                 },
             }
         return {"text": "Listo. Esperando el criterio del docente."}
+
+
+DEMO_READS = (
+    "fuentes/bases-oa-lenguaje-4b.md",
+    "fuentes/cuento-el-condor-y-el-huemul.md",
+)
+DEMO_CITATIONS = (
+    {
+        "path": DEMO_READS[0],
+        "snippet": (
+            "Extraer información explícita e implícita de textos literarios y no literarios, "
+            "distinguiendo lo que el texto dice de lo que el lector infiere con evidencia."
+        ),
+        "seccion": "OA",
+    },
+    {
+        "path": DEMO_READS[1],
+        "snippet": "El huemul no corrió: preguntó al cóndor por qué el valle tenía sed.",
+        "seccion": "desarrollo",
+    },
+)
+
+
+def _listed_paths(messages: Messages) -> list[str]:
+    for payload in _tool_result_payloads(messages):
+        fuentes = payload.get("fuentes")
+        if isinstance(fuentes, list):
+            paths = [
+                str(row.get("relative_path") or "")
+                for row in fuentes
+                if isinstance(row, dict) and row.get("relative_path")
+            ]
+            if paths:
+                return paths
+    return []
+
+
+def _read_payloads(messages: Messages) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for payload in _tool_result_payloads(messages):
+        path = str(payload.get("path") or "")
+        text = str(payload.get("text") or "")
+        if path and text:
+            out[path] = text
+    return out
+
+
+def _tool_result_payloads(messages: Messages) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for message in messages:
+        for block in message.get("content") or []:
+            if not isinstance(block, dict) or "toolResult" not in block:
+                continue
+            result = block.get("toolResult") or {}
+            for part in result.get("content") or []:
+                raw = ""
+                if isinstance(part, dict) and "text" in part:
+                    raw = str(part["text"])
+                elif isinstance(part, dict) and "json" in part and isinstance(part["json"], dict):
+                    payloads.append(part["json"])
+                    continue
+                if not raw:
+                    continue
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(data, dict):
+                    payloads.append(data)
+    return payloads
+
+
+def _read_path_for(listed: list[str], index: int) -> str:
+    if listed and all(path in listed for path in DEMO_READS):
+        return DEMO_READS[index % 2]
+    if listed:
+        return listed[index % len(listed)]
+    return DEMO_READS[index % 2]
+
+
+def _citation_for(listed: list[str], reads: dict[str, str], index: int) -> dict[str, str]:
+    if listed and all(path in listed for path in DEMO_READS):
+        return dict(DEMO_CITATIONS[index % 2])
+    path = _read_path_for(listed, index)
+    text = reads.get(path) or ""
+    snippet = _snippet_from(text) or path
+    seccion = "OA" if index == 0 else "desarrollo"
+    return {"path": path, "snippet": snippet, "seccion": seccion}
+
+
+def _snippet_from(text: str) -> str:
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if len(cleaned) >= 40 and not cleaned.startswith("#"):
+            return cleaned[:220]
+    compact = " ".join(text.split())
+    return compact[:220]
 
 
 def _tool_names(messages: Messages) -> list[str]:

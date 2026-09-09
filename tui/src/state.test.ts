@@ -54,11 +54,42 @@ describe("hotkeys HITL", () => {
     expect(action.kind).toBe("state")
     if (action.kind === "state") expect(action.state.uiMode).toBe("critique")
   })
-  test("a approves plan", () => {
-    const state = { ...initialState(encargo), phase: "esperando_plan" as const }
+  test("a approves plan and sends local edits", () => {
+    const plan = {
+      objetivo: "Leer con evidencia",
+      tipo: "planificacion",
+      oa: "OA 6",
+      duracion: "45 min",
+      notas: "",
+    }
+    const state = { ...initialState(encargo), phase: "esperando_plan" as const, plan }
     const action = handleHotkey(state, "a")
     expect(action.kind).toBe("send")
-    if (action.kind === "send") expect(action.message.type).toBe("plan.decide")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "plan.decide", decision: "approve", plan })
+    }
+  })
+  test("[ ] cycles evidence and focuses the panel", () => {
+    const evidence = [
+      { path: "a.md", snippet: "uno", seccion: "OA", verified: true },
+      { path: "b.md", snippet: "dos", seccion: "cierre", verified: false },
+    ]
+    const state = { ...initialState(encargo), evidence, evidenceIndex: 0 }
+    const next = handleHotkey(state, "]")
+    expect(next.kind).toBe("state")
+    if (next.kind === "state") {
+      expect(next.state.evidenceIndex).toBe(1)
+      expect(next.state.focusPanel).toBe("evidence")
+    }
+    const wrap = handleHotkey({ ...state, evidenceIndex: 1 }, "]")
+    if (wrap.kind === "state") expect(wrap.state.evidenceIndex).toBe(0)
+  })
+  test("tab cycles focus panels", () => {
+    const state = initialState(encargo)
+    expect(state.focusPanel).toBe("proposal")
+    const next = handleHotkey(state, "tab")
+    expect(next.kind).toBe("state")
+    if (next.kind === "state") expect(next.state.focusPanel).toBe("evidence")
   })
 })
 
@@ -73,6 +104,24 @@ describe("commands", () => {
     expect(action.kind).toBe("send")
     if (action.kind === "send" && action.message.type === "encargo.update") {
       expect(action.message.encargo.oa).toBe("OA 6")
+    }
+  })
+  test("/objetivo edits the pending plan locally", () => {
+    const state = {
+      ...initialState(encargo),
+      phase: "esperando_plan" as const,
+      plan: {
+        objetivo: "viejo",
+        tipo: "planificacion",
+        oa: "OA 4",
+        duracion: "45 min",
+        notas: "",
+      },
+    }
+    const action = handleCommand(state, "/objetivo Distinguir explícito e implícito")
+    expect(action.kind).toBe("state")
+    if (action.kind === "state") {
+      expect(action.state.plan?.objetivo).toBe("Distinguir explícito e implícito")
     }
   })
 })

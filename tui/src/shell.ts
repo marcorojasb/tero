@@ -8,7 +8,7 @@ import {
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core"
-import { chips, footerFor, PHASE_LABEL, TOOL_LABEL, HELP_TEXT, type AppState } from "./state.ts"
+import { chips, footerFor, gateStrip, PHASE_LABEL, TOOL_LABEL, HELP_TEXT, type AppState } from "./state.ts"
 import { theme } from "./theme.ts"
 
 const syntax = SyntaxStyle.fromStyles({
@@ -41,7 +41,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
 
   const header = new BoxRenderable(renderer, {
     id: "header",
-    height: 5,
+    height: 4,
     flexDirection: "column",
     backgroundColor: theme.panel,
     border: true,
@@ -154,6 +154,26 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   body.add(center)
   body.add(right)
 
+  const gateBar = new BoxRenderable(renderer, {
+    id: "gate-bar",
+    height: 3,
+    border: true,
+    borderStyle: "rounded",
+    borderColor: theme.ok,
+    backgroundColor: theme.overlay,
+    paddingLeft: 1,
+    title: " puerta ",
+    titleColor: theme.ok,
+  })
+  const gateText = new TextRenderable(renderer, {
+    id: "gate-text",
+    content: "",
+    fg: theme.text,
+    wrapMode: "none",
+  })
+  gateBar.add(gateText)
+  gateBar.visible = false
+
   const planBar = new BoxRenderable(renderer, {
     id: "plan-bar",
     height: 4,
@@ -233,6 +253,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   root.add(header)
   root.add(body)
   root.add(planBar)
+  root.add(gateBar)
   root.add(helpBox)
   root.add(promptRow)
   root.add(footer)
@@ -241,10 +262,18 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
 
   const sync = (state: AppState) => {
     const mode = state.mode === "offline" ? "offline" : "bedrock"
-    headerLine.content = `${mode}  ·  ${state.model}  ·  ${PHASE_LABEL[state.phase] ?? state.phase}`
+    const sources = state.sourceCount ? `  ·  ${state.sourceCount} fuentes` : ""
+    const dirty = state.changedCount ? `  ·  ${state.changedCount} hash≠` : ""
+    headerLine.content = `${mode}  ·  ${state.model}  ·  ${PHASE_LABEL[state.phase] ?? state.phase}${sources}${dirty}`
     const chip = chips(state.encargo)
     chipLine.content = chip.length ? chip.map((c) => `[ ${c} ]`).join("  ") : "[ sin encargo — /oa /tipo /curso ]"
     header.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
+    left.borderColor = state.focusPanel === "session" ? theme.borderFocus : theme.border
+    center.borderColor = state.focusPanel === "proposal" ? theme.borderFocus : theme.border
+    right.borderColor = state.focusPanel === "evidence" ? theme.borderFocus : theme.border
+    left.title = state.focusPanel === "session" ? " ▸ sesión " : " sesión "
+    center.title = state.focusPanel === "proposal" ? " ▸ propuesta " : " propuesta "
+    right.title = state.focusPanel === "evidence" ? " ▸ evidencia " : " evidencia "
 
     sessionText.content = renderSession(state)
     activityText.content = renderActivity(state)
@@ -259,11 +288,30 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     evidenceText.content = renderEvidence(state)
     warnText.content = renderWarnings(state)
 
-    if (state.plan && (state.phase === "esperando_plan" || state.phase === "escribiendo" || state.phase === "esperando_criterio")) {
+    const showPlan =
+      Boolean(state.plan) &&
+      (state.planPinned ||
+        state.phase === "esperando_plan" ||
+        state.phase === "escribiendo" ||
+        state.phase === "esperando_criterio")
+    if (showPlan && state.plan) {
       planBar.visible = true
-      planText.content = `objetivo  ${state.plan.objetivo}\n${state.plan.tipo_label ?? state.plan.tipo}  ·  ${state.plan.oa || "sin OA"}  ·  ${state.plan.duracion || "sin duración"}`
+      const notas = state.plan.notas ? `\n${state.plan.notas}` : ""
+      planText.content = `objetivo  ${state.plan.objetivo}\n${state.plan.tipo_label ?? state.plan.tipo}  ·  ${state.plan.oa || "sin OA"}  ·  ${state.plan.duracion || "sin duración"}${notas}`
     } else {
       planBar.visible = false
+    }
+    const strip = gateStrip(state)
+    gateBar.visible = Boolean(strip)
+    gateText.content = strip
+    if (state.phase === "esperando_criterio") {
+      gateBar.borderColor = theme.ok
+      gateBar.title = " puerta  s/n/b/c "
+      gateBar.titleColor = theme.ok
+    } else if (state.phase === "esperando_plan") {
+      gateBar.borderColor = theme.accent
+      gateBar.title = " plan "
+      gateBar.titleColor = theme.accent
     }
     helpBox.visible = state.help
 
@@ -367,14 +415,19 @@ function emptyProposal(state: AppState): string {
 
 function renderEvidence(state: AppState): string {
   if (!state.evidence.length) {
-    return "Las citas aparecen al redactar.\npath + fragmento + sección.\n\nEn la revisión: [ y ] recorren las citas."
+    return "Las citas aparecen al redactar.\npath + fragmento + sección.\n\n[ ] recorre  ·  e enfoca  ·  ✓ en el archivo  ·  ? parafraseo"
   }
   return state.evidence
     .map((item, i) => {
-      const snippet = item.snippet.replace(/\s+/g, " ").slice(0, 220)
+      const selected = i === state.evidenceIndex
+      const snippet = item.snippet.replace(/\s+/g, " ").slice(0, selected ? 360 : 120)
       const sec = item.seccion ? ` · ${item.seccion}` : ""
-      const mark = i === state.evidenceIndex ? ">" : " "
-      return `${mark} ${i + 1}. ${item.path}${sec}\n     “${snippet}”`
+      const mark = selected ? "▸" : " "
+      const trust = item.verified ? "✓" : "?"
+      if (selected) {
+        return `${mark} ${i + 1}/${state.evidence.length}  ${trust}  ${item.path}${sec}\n     “${snippet}”`
+      }
+      return `${mark} ${i + 1}. ${trust}  ${item.path}${sec}`
     })
     .join("\n\n")
 }

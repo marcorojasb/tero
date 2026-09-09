@@ -146,6 +146,7 @@ class Evidence:
     snippet: str
     seccion: str = ""
     start_line: int | None = None
+    verified: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)

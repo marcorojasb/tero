@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tero.errors import WorkspaceError
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
 from tero.workspace import Workspace
 
@@ -88,7 +90,20 @@ def slugify(text: str) -> str:
 
 def artifact_filename(tipo: ArtifactType, titulo: str, *, stamp: str | None = None) -> str:
     when = stamp or datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    return f"{when}-{SLUG_TYPE[tipo]}-{slugify(titulo)[:48]}.md"
+    return f"{when}-{SLUG_TYPE[tipo]}-{slugify(titulo)[:48]}-{uuid.uuid4().hex[:6]}.md"
+
+
+def _unique_under(workspace: Workspace, folder: str, relative_name: str) -> str:
+    candidate = f"{folder}/{relative_name}"
+    if not (workspace.root / candidate).exists():
+        return candidate
+    stem = Path(relative_name).stem
+    suffix = Path(relative_name).suffix or ".md"
+    for _ in range(12):
+        alt = f"{folder}/{stem}-{uuid.uuid4().hex[:4]}{suffix}"
+        if not (workspace.root / alt).exists():
+            return alt
+    raise WorkspaceError(f"No pude elegir un nombre libre en {folder}/")
 
 
 def render_front_matter(encargo: Encargo, plan: Plan | None, draft: ArtifactDraft) -> str:
@@ -119,7 +134,8 @@ def render_evidence_appendix(evidencias: list[Evidence]) -> str:
     lines = ["", "## Evidencia (fuentes usadas)", ""]
     for item in evidencias:
         where = f" — sección *{item.seccion}*" if item.seccion else ""
-        lines.append(f"- `{item.path}`{where}")
+        mark = "verificada" if item.verified else "no verificada en el archivo"
+        lines.append(f"- `{item.path}`{where} · {mark}")
         snippet = item.snippet.strip().replace("\n", " ")
         if snippet:
             lines.append(f"  > {snippet[:280]}")
@@ -141,8 +157,8 @@ def materialize_markdown(
 
 
 def write_accepted(workspace: Workspace, relative_name: str, markdown: str) -> Path:
-    return workspace.write_artifact(f"derivados/{relative_name}", markdown)
+    return workspace.write_artifact(_unique_under(workspace, "derivados", relative_name), markdown)
 
 
 def write_draft(workspace: Workspace, relative_name: str, markdown: str) -> Path:
-    return workspace.write_artifact(f"borradores/{relative_name}", markdown)
+    return workspace.write_artifact(_unique_under(workspace, "borradores", relative_name), markdown)

@@ -89,11 +89,14 @@ class Bridge:
                     encargo=self.session.encargo,
                     emit=self.emit,
                 )
+            sources = self.workspace.list_sources()
             self.emit(
                 {
                     "type": "hello_ok",
                     "carpeta": str(self.workspace.root),
                     "encargo": self.session.encargo.as_dict(),
+                    "fuentes": len(sources),
+                    "changed": sum(1 for item in sources if item.changed),
                 }
             )
             return

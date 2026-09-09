@@ -20,6 +20,16 @@ def _load_dotenv() -> None:
     load_dotenv()
 
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class Settings:
     model_id: str = DEFAULT_MODEL_ID
@@ -27,6 +37,7 @@ class Settings:
     offline: bool = False
     carpeta: Path = EXAMPLE_CARPETA
     skip_plan: bool = False
+    temperature: float = 0.3
 
     @classmethod
     def from_env(cls, *, offline: bool | None = None, carpeta: Path | None = None) -> Settings:
@@ -46,4 +57,5 @@ class Settings:
                 carpeta or Path(os.environ.get("TERO_CARPETA") or EXAMPLE_CARPETA)
             ).expanduser(),
             skip_plan=os.environ.get("TERO_SKIP_PLAN", "").strip() in {"1", "true", "yes"},
+            temperature=_env_float("TERO_TEMPERATURE", 0.3),
         )
