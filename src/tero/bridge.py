@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from tero.config import Settings
-from tero.errors import ProtocolError, TeroError
+from tero.encargo_sync import apply_rumbo
+from tero.errors import ProtocolError, TeroError, humanize_exception
 from tero.export import export_docx, export_markdown
 from tero.offline import model_label
 from tero.protocol import decode, encode
@@ -40,7 +41,22 @@ class Bridge:
 
     def _maybe_autogate(self, event: dict[str, Any]) -> None:
         kind = event.get("type")
-        if kind == "plan":
+        if kind == "plan_question":
+            # Prefer suggested option for offline/demo autogate
+            question = event.get("question") or {}
+            options = question.get("options") or []
+            suggested = next((opt for opt in options if opt.get("suggested")), None)
+            option_id = (suggested or (options[0] if options else {})).get("id") or "1"
+            self.session.answer_plan_question(option_id=str(option_id))
+        elif kind == "plan_ready":
+            self.session.decide_plan("approve")
+        elif kind == "plan":
+            plan = event.get("plan") or {}
+            # Plans with clarification questions wait for plan_ready.
+            if plan.get("questions"):
+                return
+            if plan.get("status") == "clarificando":
+                return
             self.session.decide_plan("approve")
         elif kind == "proposal":
             self.session.decide_gate("s")
@@ -61,7 +77,7 @@ class Bridge:
             try:
                 message = decode(line)
             except ProtocolError as exc:
-                self.emit({"type": "error", "message": exc.message})
+                self.emit({"type": "error", "message": exc.message, "code": exc.code})
                 continue
             kind = message["type"]
             if kind == "shutdown":
@@ -70,9 +86,33 @@ class Bridge:
             try:
                 self._handle(message)
             except TeroError as exc:
-                self.emit({"type": "error", "message": exc.message, "code": exc.code})
+                self.emit(
+                    {
+                        "type": "error",
+                        "message": exc.message,
+                        "code": exc.code,
+                        "retryable": exc.code
+                        in {
+                            "bedrock_auth",
+                            "bedrock_throttle",
+                            "bedrock_model",
+                            "network",
+                            "no_plan",
+                            "no_draft",
+                            "host_error",
+                        },
+                    }
+                )
             except Exception as exc:  # noqa: BLE001 — surface to TUI, keep host alive
-                self.emit({"type": "error", "message": str(exc)})
+                code, message = humanize_exception(exc)
+                self.emit(
+                    {
+                        "type": "error",
+                        "message": message,
+                        "code": code,
+                        "retryable": True,
+                    }
+                )
         return 0
 
     def _handle(self, message: dict[str, Any]) -> None:
@@ -97,22 +137,65 @@ class Bridge:
                     "encargo": self.session.encargo.as_dict(),
                     "fuentes": len(sources),
                     "changed": sum(1 for item in sources if item.changed),
+                    "sessions": _recent_sessions(self.workspace),
                 }
             )
             return
         if kind == "encargo.update":
             self.session.set_encargo(Encargo.from_dict(message.get("encargo") or {}))
             self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
+            # Changing tipo/curso/oa mid-flight clears stale proposal context
+            if self.session.phase in {"esperando_criterio", "esperando_plan", "esperando_clarificacion"}:
+                self.emit(
+                    {
+                        "type": "warning",
+                        "warning": {
+                            "code": "encargo_changed",
+                            "message": (
+                                "Encargo actualizado. La propuesta anterior puede quedar obsoleta; "
+                                "envía un nuevo prompt o cancela con x."
+                            ),
+                            "blocking": False,
+                        },
+                    }
+                )
+            return
+        if kind == "rumbo":
+            rumbo = str(message.get("rumbo") or "")
+            self.session.set_encargo(apply_rumbo(self.session.encargo, rumbo))
+            self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
+            self.emit({"type": "rumbo", "rumbo": self.session.encargo.rumbo})
             return
         if kind == "prompt":
             text = str(message.get("text") or "").strip()
             if not text:
-                raise ProtocolError("prompt vacío")
+                raise ProtocolError("prompt vacío — escribe un encargo o elige un rumbo")
             turn = self.session.start_turn(text)
             self.emit({"type": "turn", "turn": turn.as_dict()})
             return
+        if kind == "retry":
+            turn = self.session.retry_last()
+            if turn:
+                self.emit({"type": "turn", "turn": turn.as_dict()})
+            return
         if kind == "plan.decide":
             self.session.decide_plan(str(message.get("decision") or "approve"), message.get("plan"))
+            return
+        if kind == "plan.answer":
+            self.session.answer_plan_question(
+                option_id=str(message["option_id"]) if message.get("option_id") is not None else None,
+                free_text=str(message["text"]) if message.get("text") is not None else None,
+                question_id=str(message["question_id"])
+                if message.get("question_id") is not None
+                else None,
+            )
+            return
+        if kind == "plan.edit_assumption":
+            assumption_id = str(message.get("id") or message.get("assumption_id") or "s1")
+            text = str(message.get("text") or "").strip()
+            if not text:
+                raise ProtocolError("supuesto vacío")
+            self.session.edit_plan_assumption(assumption_id, text)
             return
         if kind == "gate":
             decision = str(message.get("decision") or "")
@@ -121,10 +204,12 @@ class Bridge:
             self.session.decide_gate(decision, str(message.get("note") or ""))  # type: ignore[arg-type]
             return
         if kind == "export":
-            turn = self.session.turns[-1] if self.session.turns else None
-            if not turn or not turn.artifact_path:
-                raise ProtocolError("no hay artefacto aceptado para exportar")
-            source = Path(turn.artifact_path)
+            source = self.session.exportable_path()
+            if source is None:
+                raise ProtocolError(
+                    "No hay artefacto para exportar. Acepta con `s` (derivados/) "
+                    "o guarda borrador con `b` (borradores/) primero."
+                )
             fmt = str(message.get("format") or "md")
             dest_raw = message.get("path")
             if fmt == "docx":
@@ -133,6 +218,43 @@ class Bridge:
             else:
                 dest = Path(dest_raw) if dest_raw else source.with_name(source.stem + ".export.md")
                 path = export_markdown(source, dest)
-            self.emit({"type": "exported", "path": str(path), "format": fmt})
+            # Also offer a feedback sidecar summarizing session critiques
+            feedback = _write_feedback(self.workspace, self.session)
+            self.emit(
+                {
+                    "type": "exported",
+                    "path": str(path),
+                    "format": fmt,
+                    "feedback": str(feedback) if feedback else None,
+                }
+            )
             return
         raise ProtocolError(f"no implementado: {kind}")
+
+
+def _recent_sessions(workspace: Workspace) -> list[dict[str, str]]:
+    """Lightweight recent artifact list for the home screen."""
+    items: list[dict[str, str]] = []
+    for folder in ("derivados", "borradores"):
+        root = workspace.root / folder
+        if not root.exists():
+            continue
+        for path in sorted(root.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:6]:
+            kind = "derivado" if folder == "derivados" else "borrador"
+            items.append({"label": path.stem[:42], "path": f"{folder}/{path.name}", "kind": kind})
+    return items[:8]
+
+
+def _write_feedback(workspace: Workspace, session: TeacherSession) -> Path | None:
+    notes: list[str] = []
+    for turn in session.turns:
+        for note in turn.critique_notes:
+            notes.append(f"- turn `{turn.id}`: {note}")
+    if not notes:
+        return None
+    from datetime import UTC, datetime
+
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    relative = f".tero/feedback-{stamp}.md"
+    body = "# Feedback exportado desde tero\n\n" + "\n".join(notes) + "\n"
+    return workspace.write_artifact(relative, body, overwrite=True)

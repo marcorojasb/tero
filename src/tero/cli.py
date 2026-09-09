@@ -126,6 +126,15 @@ def cmd_demo(args: argparse.Namespace) -> int:
     if not settings.offline and not args.yes:
         say("Bedrock requiere credenciales de entorno (nunca en git). Ctrl+C para salir.")
     turn = session.start_turn(prompt)
+    # Autocomplete clarification questions in --yes (suggested option).
+    while session.phase == "esperando_clarificacion" and turn.plan:
+        pending = turn.plan.pending_question()
+        if pending is None:
+            break
+        suggested = next((opt for opt in pending.options if opt.suggested), None)
+        option_id = (suggested or (pending.options[0] if pending.options else None))
+        session.answer_plan_question(option_id=option_id.id if option_id else "1")
+        turn = session.turns[-1]
     if session.phase == "esperando_plan":
         if args.yes:
             session.decide_plan("approve")
@@ -133,6 +142,8 @@ def cmd_demo(args: argparse.Namespace) -> int:
             print("\nPLAN (a=aprobar / x=cancelar):", flush=True)
             assert turn.plan is not None
             for key, value in turn.plan.as_dict().items():
+                if key in {"questions", "como_abordare", "supuestos", "entregables"}:
+                    continue
                 print(f"  {key}: {value}", flush=True)
             choice = input("¿Aprobar plan? [a/x]: ").strip().lower()
             if choice in {"x", "n", "cancel"}:

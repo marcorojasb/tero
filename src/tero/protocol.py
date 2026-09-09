@@ -12,9 +12,13 @@ ALLOWED_IN = {
     "hello",
     "prompt",
     "encargo.update",
+    "rumbo",
     "plan.decide",
+    "plan.answer",
+    "plan.edit_assumption",
     "gate",
     "export",
+    "retry",
     "shutdown",
 }
 

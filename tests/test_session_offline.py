@@ -18,6 +18,9 @@ def test_offline_strands_loop_plan_draft_accept(workspace: Workspace):
     events: list[dict] = []
     session = TeacherSession(workspace, settings, encargo=encargo, emit=events.append)
     session.start_turn("Prepara una planificación sobre el cuento.")
+    assert session.phase in {"esperando_plan", "esperando_clarificacion"}
+    while session.phase == "esperando_clarificacion":
+        session.answer_plan_question(option_id="1")
     assert session.phase == "esperando_plan"
     assert session.turns[-1].plan is not None
     session.decide_plan("approve")
@@ -49,6 +52,8 @@ def test_gate_c_runs_another_pass(workspace: Workspace):
         emit=lambda _e: None,
     )
     session.start_turn("planificación del cuento")
+    while session.phase == "esperando_clarificacion":
+        session.answer_plan_question(option_id="1")
     session.decide_plan("approve")
     first = session.turns[-1].draft
     assert first is not None

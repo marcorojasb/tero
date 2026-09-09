@@ -99,9 +99,18 @@ def _propose_plan(ctx: TurnContext):
         oa: str = "",
         duracion: str = "",
         notas: str = "",
+        titulo: str = "",
+        tema: str = "",
+        curso: str = "",
+        asignatura: str = "",
     ) -> str:
-        """Registra un plan tipado en memoria. No escribe archivos. El docente debe aprobarlo."""
+        """Registra un plan tipado (card Pteron) en memoria. No escribe archivos."""
         ctx._emit({"type": "activity", "tool": "plan", "state": "start"})
+        decisiones = {
+            "curso": curso or ctx.encargo.curso,
+            "asignatura": asignatura or ctx.encargo.asignatura,
+            "tema": tema or ctx.encargo.tema,
+        }
         plan = build_plan(
             objetivo=objetivo,
             tipo=tipo,
@@ -109,20 +118,27 @@ def _propose_plan(ctx: TurnContext):
             duracion=duracion,
             notas=notas,
             encargo=ctx.encargo,
+            decisiones=decisiones,
+            titulo=titulo,
         )
         ctx.pending_plan = plan
-        ctx._emit({"type": "activity", "tool": "plan", "state": "end", "detail": plan.tipo.label})
+        detail = plan.tipo.label
+        if plan.pending_question():
+            detail = f"{detail} · clarificación"
+        ctx._emit({"type": "activity", "tool": "plan", "state": "end", "detail": detail})
         return json.dumps(
             {
                 "ok": True,
                 "plan": plan.as_dict(),
-                "mensaje": "Plan registrado. Detente: el docente debe aprobar, editar o cancelar.",
+                "mensaje": (
+                    "Plan registrado. Si hay preguntas, el docente responde; "
+                    "luego aprueba, edita supuestos o cancela. No redactes aún."
+                ),
             },
             ensure_ascii=False,
         )
 
     return propose_plan
-
 
 def _cite_evidence(ctx: TurnContext):
     @tool

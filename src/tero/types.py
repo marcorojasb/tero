@@ -8,8 +8,10 @@ from typing import Any, Literal
 
 ProtocolPhase = Literal[
     "idle",
+    "home",
     "leyendo",
     "proponiendo_plan",
+    "esperando_clarificacion",
     "esperando_plan",
     "escribiendo",
     "esperando_criterio",
@@ -76,13 +78,19 @@ class Encargo:
     duracion: str = ""
     tipo: ArtifactType | None = None
     notas: str = ""
+    rumbo: str = ""
+    tema: str = ""
 
     def chips(self) -> list[str]:
         chips: list[str] = []
+        if self.rumbo:
+            chips.append(self.rumbo.capitalize())
         if self.curso:
             chips.append(self.curso)
         if self.asignatura:
             chips.append(self.asignatura)
+        if self.tema:
+            chips.append(self.tema if len(self.tema) <= 36 else self.tema[:33] + "…")
         if self.oa:
             chips.append(self.oa)
         if self.duracion:
@@ -107,6 +115,148 @@ class Encargo:
             duracion=str(data.get("duracion") or ""),
             tipo=tipo,
             notas=str(data.get("notas") or ""),
+            rumbo=str(data.get("rumbo") or ""),
+            tema=str(data.get("tema") or ""),
+        )
+
+    def merge(self, other: Encargo) -> Encargo:
+        """Prefer non-empty fields from *other*."""
+        return Encargo(
+            curso=other.curso or self.curso,
+            asignatura=other.asignatura or self.asignatura,
+            oa=other.oa or self.oa,
+            duracion=other.duracion or self.duracion,
+            tipo=other.tipo or self.tipo,
+            notas=other.notas or self.notas,
+            rumbo=other.rumbo or self.rumbo,
+            tema=other.tema or self.tema,
+        )
+
+
+@dataclass
+class PlanDecisionFields:
+    curso: str = ""
+    asignatura: str = ""
+    tema: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> PlanDecisionFields:
+        data = data or {}
+        return cls(
+            curso=str(data.get("curso") or ""),
+            asignatura=str(data.get("asignatura") or ""),
+            tema=str(data.get("tema") or ""),
+        )
+
+
+@dataclass
+class PlanStep:
+    titulo: str
+    detalle: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PlanStep:
+        return cls(
+            titulo=str(data.get("titulo") or data.get("title") or "").strip(),
+            detalle=str(data.get("detalle") or data.get("detail") or "").strip(),
+        )
+
+
+@dataclass
+class PlanAssumption:
+    id: str
+    text: str
+    editable: bool = True
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PlanAssumption:
+        return cls(
+            id=str(data.get("id") or "s1"),
+            text=str(data.get("text") or "").strip(),
+            editable=bool(data.get("editable", True)),
+        )
+
+
+@dataclass
+class PlanOption:
+    id: str
+    label: str
+    suggested: bool = False
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PlanOption:
+        return cls(
+            id=str(data.get("id") or ""),
+            label=str(data.get("label") or "").strip(),
+            suggested=bool(data.get("suggested")),
+        )
+
+
+@dataclass
+class PlanQuestion:
+    id: str
+    prompt: str
+    options: list[PlanOption] = field(default_factory=list)
+    answer: str | None = None
+    free_text: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "prompt": self.prompt,
+            "options": [item.as_dict() for item in self.options],
+            "answer": self.answer,
+            "free_text": self.free_text,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PlanQuestion:
+        options = [
+            PlanOption.from_dict(row)
+            for row in (data.get("options") or [])
+            if isinstance(row, dict)
+        ]
+        return cls(
+            id=str(data.get("id") or "q1"),
+            prompt=str(data.get("prompt") or "").strip(),
+            options=options,
+            answer=str(data["answer"]) if data.get("answer") is not None else None,
+            free_text=str(data["free_text"]) if data.get("free_text") is not None else None,
+        )
+
+
+@dataclass
+class PlanDeliverable:
+    tipo: ArtifactType
+    label: str = ""
+    description: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "tipo": self.tipo.value,
+            "label": self.label or self.tipo.label,
+            "description": self.description,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PlanDeliverable:
+        tipo = ArtifactType.parse(data.get("tipo")) or ArtifactType.PLANIFICACION
+        return cls(
+            tipo=tipo,
+            label=str(data.get("label") or tipo.label),
+            description=str(data.get("description") or ""),
         )
 
 
@@ -117,6 +267,21 @@ class Plan:
     oa: str = ""
     duracion: str = ""
     notas: str = ""
+    titulo: str = ""
+    meta: str = ""
+    resultado_previsto: list[str] = field(default_factory=list)
+    decisiones: PlanDecisionFields = field(default_factory=PlanDecisionFields)
+    como_abordare: list[PlanStep] = field(default_factory=list)
+    supuestos: list[PlanAssumption] = field(default_factory=list)
+    questions: list[PlanQuestion] = field(default_factory=list)
+    entregables: list[PlanDeliverable] = field(default_factory=list)
+    status: str = "propuesto"
+
+    def pending_question(self) -> PlanQuestion | None:
+        for question in self.questions:
+            if question.answer is None and question.free_text is None:
+                return question
+        return None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -126,17 +291,56 @@ class Plan:
             "oa": self.oa,
             "duracion": self.duracion,
             "notas": self.notas,
+            "titulo": self.titulo,
+            "meta": self.meta,
+            "resultado_previsto": list(self.resultado_previsto),
+            "decisiones": self.decisiones.as_dict(),
+            "como_abordare": [item.as_dict() for item in self.como_abordare],
+            "supuestos": [item.as_dict() for item in self.supuestos],
+            "questions": [item.as_dict() for item in self.questions],
+            "entregables": [item.as_dict() for item in self.entregables],
+            "status": self.status,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Plan:
         tipo = ArtifactType.parse(data.get("tipo")) or ArtifactType.PLANIFICACION
+        entregables = [
+            PlanDeliverable.from_dict(row)
+            for row in (data.get("entregables") or [])
+            if isinstance(row, dict)
+        ]
+        if not entregables:
+            entregables = [PlanDeliverable(tipo=tipo, label=tipo.label)]
         return cls(
             objetivo=str(data.get("objetivo") or "").strip(),
             tipo=tipo,
             oa=str(data.get("oa") or "").strip(),
             duracion=str(data.get("duracion") or "").strip(),
             notas=str(data.get("notas") or "").strip(),
+            titulo=str(data.get("titulo") or "").strip(),
+            meta=str(data.get("meta") or "").strip(),
+            resultado_previsto=[
+                str(item) for item in (data.get("resultado_previsto") or []) if str(item).strip()
+            ],
+            decisiones=PlanDecisionFields.from_dict(data.get("decisiones")),
+            como_abordare=[
+                PlanStep.from_dict(row)
+                for row in (data.get("como_abordare") or [])
+                if isinstance(row, dict)
+            ],
+            supuestos=[
+                PlanAssumption.from_dict(row)
+                for row in (data.get("supuestos") or [])
+                if isinstance(row, dict)
+            ],
+            questions=[
+                PlanQuestion.from_dict(row)
+                for row in (data.get("questions") or [])
+                if isinstance(row, dict)
+            ],
+            entregables=entregables,
+            status=str(data.get("status") or "propuesto"),
         )
 
 
@@ -201,6 +405,7 @@ class Turn:
     draft: ArtifactDraft | None = None
     gate: GateDecision | None = None
     artifact_path: str | None = None
+    critique_notes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -211,4 +416,5 @@ class Turn:
             "draft": self.draft.as_dict() if self.draft else None,
             "gate": self.gate,
             "artifact_path": self.artifact_path,
+            "critique_notes": list(self.critique_notes),
         }
