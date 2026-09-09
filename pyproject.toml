@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tero"
+version = "0.1.0"
+description = "Strands agent for Chilean teachers: your sources, your judgment / agent prepares, teacher decides."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Marco Rojas" }]
+keywords = ["strands", "bedrock", "education", "chile", "agents"]
+dependencies = [
+    "strands-agents>=1.40.0",
+    "python-dotenv>=1.0.0",
+    "pypdf>=5.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+tero = "tero.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/marcorojasb/tero"
+
+[tool.setuptools.packages.find]
+include = ["tero*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
