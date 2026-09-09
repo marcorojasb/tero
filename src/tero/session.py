@@ -36,6 +36,25 @@ def make_model(settings: Settings, encargo: Encargo):
     )
 
 
+def _is_retryable_stream_error(exc: BaseException) -> bool:
+    """Nova Lite ConverseStream ToolUse / modelStreamErrorException flakiness."""
+    blob = f"{type(exc).__name__} {exc}".lower()
+    tokens = (
+        "modelstreamerrorexception",
+        "modelstreamerror",
+        "tooluse",
+        "tool use",
+        "tool_use",
+        "invalid tool",
+        "unexpected tool",
+        "toolcall",
+        "conversationstream",
+        "event stream error",
+        "internalserverexception",
+    )
+    return any(token in blob for token in tokens)
+
+
 class TeacherSession:
     def __init__(
         self,
@@ -348,7 +367,21 @@ class TeacherSession:
                     + "\n\nIMPORTANTE: Debes llamar a draft_artifact ahora con el markdown completo. "
                     "No te detengas solo en texto."
                 )
-            agent(self._user_payload(nudge))
+            try:
+                agent(self._user_payload(nudge))
+            except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
+                if attempt == 1 and _is_retryable_stream_error(exc):
+                    self.emit(
+                        {
+                            "type": "status",
+                            "phase": "escribiendo",
+                            "detail": "reintento: error de stream/ToolUse de Bedrock",
+                            "step": "draft_stream_retry",
+                            "progress": "2/2",
+                        }
+                    )
+                    continue
+                raise
             if self.ctx.pending_draft is not None:
                 break
         if self.ctx.pending_draft is None:

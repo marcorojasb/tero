@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
+from tero.coerce import as_text
 from tero.errors import TeroError
 from tero.rumbos import infer_tema
 from tero.types import (
@@ -49,11 +51,11 @@ TEMPLATES: dict[ArtifactType, tuple[PlanStep, ...]] = {
 
 def build_plan(
     *,
-    objetivo: str,
-    tipo: str,
-    oa: str = "",
-    duracion: str = "",
-    notas: str = "",
+    objetivo: Any,
+    tipo: Any,
+    oa: Any = "",
+    duracion: Any = "",
+    notas: Any = "",
     encargo: Encargo | None = None,
     resultado_previsto: list[str] | None = None,
     decisiones: dict[str, str] | None = None,
@@ -61,17 +63,23 @@ def build_plan(
     supuestos: list[dict[str, str]] | None = None,
     questions: list[dict] | None = None,
     entregables: list[dict] | None = None,
-    titulo: str = "",
+    titulo: Any = "",
 ) -> Plan:
-    parsed = ArtifactType.parse(tipo)
+    tipo_text = as_text(tipo, joiner=" ")
+    objetivo_text = as_text(objetivo, joiner=" ")
+    oa_text = as_text(oa, joiner=" ")
+    duracion_text = as_text(duracion, joiner=" ")
+    notas_text = as_text(notas, joiner=" ")
+    titulo_text = as_text(titulo, joiner=" ")
+    parsed = ArtifactType.parse(tipo_text)
     if parsed is None:
-        raise TeroError(f"Tipo de artefacto desconocido: {tipo}", code="bad_tipo")
-    objetivo_clean = objetivo.strip()
+        raise TeroError(f"Tipo de artefacto desconocido: {tipo_text}", code="bad_tipo")
+    objetivo_clean = objetivo_text.strip()
     if not objetivo_clean:
         raise TeroError("El plan necesita un objetivo.", code="bad_plan")
     encargo = encargo or Encargo()
-    oa_final = (oa or encargo.oa).strip()
-    duracion_final = (duracion or encargo.duracion).strip()
+    oa_final = (oa_text or encargo.oa).strip()
+    duracion_final = (duracion_text or encargo.duracion).strip()
     curso = (decisiones or {}).get("curso") or encargo.curso
     asignatura = (decisiones or {}).get("asignatura") or encargo.asignatura
     tema = (decisiones or {}).get("tema") or encargo.tema or infer_tema(objetivo_clean)
@@ -99,7 +107,7 @@ def build_plan(
     resultados = resultado_previsto or [item.label for item in dels]
     n = len(dels)
     when = datetime.now(UTC).strftime("%d %b %Y").lower().lstrip("0")
-    titulo_final = titulo.strip() or f"Plan de {parsed.label} — {tema or objetivo_clean[:48]}"
+    titulo_final = titulo_text.strip() or f"Plan de {parsed.label} — {tema or objetivo_clean[:48]}"
     meta = f"Plan de trabajo · {n} entregable{'s' if n != 1 else ''} · Listo · {when}"
 
     return Plan(
@@ -107,7 +115,7 @@ def build_plan(
         tipo=parsed,
         oa=oa_final,
         duracion=duracion_final,
-        notas=notas.strip(),
+        notas=notas_text.strip(),
         titulo=titulo_final,
         meta=meta,
         resultado_previsto=resultados,
@@ -228,20 +236,47 @@ def default_entregables(tipo: ArtifactType, encargo: Encargo) -> list[PlanDelive
     return [primary]
 
 
+_FULL_PLAN_KEYS = (
+    "supuestos",
+    "como_abordare",
+    "questions",
+    "entregables",
+    "resultado_previsto",
+    "decisiones",
+)
+
+
+def _looks_like_full_plan(edits: dict) -> bool:
+    """True when payload is plan.as_dict() (list/dict fields), not flat string patches."""
+    if isinstance(edits.get("decisiones"), dict):
+        return True
+    return any(isinstance(edits.get(key), (list, tuple)) for key in _FULL_PLAN_KEYS)
+
+
 def apply_plan_edits(plan: Plan, edits: dict[str, str] | None) -> Plan:
     if not edits:
         return plan
-    tipo = ArtifactType.parse(edits.get("tipo") or plan.tipo.value) or plan.tipo
+    # TUI often sends plan.as_dict() on plan.decide — list/dict fields are not flat patches.
+    if _looks_like_full_plan(edits):
+        return plan
+    tipo = (
+        ArtifactType.parse(as_text(edits.get("tipo") or plan.tipo.value, joiner=" ")) or plan.tipo
+    )
     decisiones = PlanDecisionFields(
-        curso=(edits.get("curso") if "curso" in edits else plan.decisiones.curso).strip(),
-        asignatura=(
-            edits.get("asignatura") if "asignatura" in edits else plan.decisiones.asignatura
+        curso=as_text(
+            edits.get("curso") if "curso" in edits else plan.decisiones.curso, joiner=" "
         ).strip(),
-        tema=(edits.get("tema") if "tema" in edits else plan.decisiones.tema).strip(),
+        asignatura=as_text(
+            edits.get("asignatura") if "asignatura" in edits else plan.decisiones.asignatura,
+            joiner=" ",
+        ).strip(),
+        tema=as_text(
+            edits.get("tema") if "tema" in edits else plan.decisiones.tema, joiner=" "
+        ).strip(),
     )
     supuestos = list(plan.supuestos)
     if "supuesto" in edits or "supuestos" in edits:
-        text = (edits.get("supuesto") or edits.get("supuestos") or "").strip()
+        text = as_text(edits.get("supuesto") or edits.get("supuestos") or "", joiner=" ").strip()
         if text:
             if supuestos:
                 supuestos[0] = PlanAssumption(
@@ -250,12 +285,16 @@ def apply_plan_edits(plan: Plan, edits: dict[str, str] | None) -> Plan:
             else:
                 supuestos = [PlanAssumption(id="s1", text=text)]
     return Plan(
-        objetivo=(edits.get("objetivo") or plan.objetivo).strip(),
+        objetivo=as_text(edits.get("objetivo") or plan.objetivo, joiner=" ").strip(),
         tipo=tipo,
-        oa=(edits.get("oa") if "oa" in edits else plan.oa).strip(),
-        duracion=(edits.get("duracion") if "duracion" in edits else plan.duracion).strip(),
-        notas=(edits.get("notas") if "notas" in edits else plan.notas).strip(),
-        titulo=(edits.get("titulo") if "titulo" in edits else plan.titulo).strip(),
+        oa=as_text(edits.get("oa") if "oa" in edits else plan.oa, joiner=" ").strip(),
+        duracion=as_text(
+            edits.get("duracion") if "duracion" in edits else plan.duracion, joiner=" "
+        ).strip(),
+        notas=as_text(edits.get("notas") if "notas" in edits else plan.notas, joiner=" ").strip(),
+        titulo=as_text(
+            edits.get("titulo") if "titulo" in edits else plan.titulo, joiner=" "
+        ).strip(),
         meta=plan.meta,
         resultado_previsto=list(plan.resultado_previsto),
         decisiones=decisiones,

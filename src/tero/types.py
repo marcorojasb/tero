@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from typing import Any, Literal
 
+from tero.coerce import as_text
+
 ProtocolPhase = Literal[
     "idle",
     "home",
@@ -42,10 +44,11 @@ class ArtifactType(StrEnum):
         }[self]
 
     @classmethod
-    def parse(cls, value: str | None) -> ArtifactType | None:
-        if not value:
+    def parse(cls, value: Any) -> ArtifactType | None:
+        text = as_text(value, joiner=" ")
+        if not text:
             return None
-        raw = value.strip().lower()
+        raw = text.strip().lower()
         aliases = {
             "planificación": cls.PLANIFICACION,
             "planificacion": cls.PLANIFICACION,
