@@ -74,18 +74,52 @@ Theater / weak:
 - Plan “edit” is local (`/objetivo`, `/oa`, …) then `a` sends the dict.
   There is no field-by-field modal.
 
+**Update (`feat/tui-pteron-opencode`):** `c` now writes under `.tero/criticas/`
+and is appended when the artifact is saved. Plan assumptions edit inline
+(`e`); clarifications use numbered options + free text. See mitigations below.
+
+## Mitigaciones aterrizadas (`feat/tui-pteron-opencode`)
+
+Stress + Pteron/OpenCode overhaul. Lo que cambió de verdad:
+
+| Riesgo / gap | Mitigación |
+| --- | --- |
+| Encargo vs chips desync (fracciones 6° vs chips 4° Lenguaje) | `encargo_sync.sync_encargo_from_prompt` reescribe curso/asignatura/tema/tipo/rumbo antes del turno; TUI refresca chips vía evento `encargo`. |
+| Citas de dominio incorrecto (math vs carpeta lenguaje) | Warning no bloqueante `domain_mismatch` en `collect_warnings` + al inicio del turno. |
+| Plan delgado vs card Pteron | Plan card con título/meta, resultado previsto, decisiones, cómo lo abordaré, supuestos editables (`e` / `plan.edit_assumption`). |
+| Sin clarificaciones | Preguntas tipadas con opciones + badge **SUGERIDA** + texto libre (`plan.answer`). |
+| Home ausente (grilla vacía) | Pantalla `home`: marca tero, 4 rumbos, hero input; chips solo tras rumbo/prompt. |
+| `/export` tras `b` confuso | Exporta último **aceptado o borrador**; copy dice cómo llegar a `s` si no hay nada. |
+| `/oa` `/tipo` dejan propuesta stale | Al cambiar encargo o nuevo prompt: `proposal_cleared` + avisos; TUI vacía propuesta/evidencia. |
+| `c` no persistía | Críticas en `.tero/criticas/` + apéndice en el markdown al aceptar/borrar. |
+| Ayuda cortada / evidencia `[ ]` con 1 ítem | `helpFor(phase)` paginado corto; no-op claro `1/1` si no hay más citas. |
+| Status opaco / errores solo en footer | Spinner + label de tool; panel de error dedicado + `retry`. |
+| Bedrock falla en crudo | `humanize_exception` → mensajes de auth/throttle/modelo/red + `retryable`. |
+| Cancelar plan deja sucio | `plan_cancelled` → idle/home, limpia plan/propuesta/evidencia. |
+
+Sigue siendo verdad (no mitigué del todo):
+
+- Warnings no bloquean `s` (diseño).
+- Offline sigue siendo prosa template + paths reales.
+- No hay source viewer con highlight de línea.
+- Bedrock no corre en CI.
+- OpenTUI ≠ paridad con OpenCode ni con el desktop Pteron.
+
+Ver también [docs/INFORME-MEJORAS.md](INFORME-MEJORAS.md).
+
 ## Evidence / plan / gate UX (what is built vs OpenCode envy)
 
-Built: encargo chips, session log, streaming activity, markdown proposal,
-evidence list with `[` `]` and ✓/?, non-blocking avisos, typed plan bar,
-dedicated `s/n/b/c` strip, Tab focus between panels, `/export md|docx`.
+Built: home Pteron, rumbo chips, session log, streaming activity + spinner,
+markdown proposal, evidence list with `[` `]` and ✓/?, non-blocking avisos,
+deep plan card + clarifications + editable assumptions, dedicated `s/n/b/c`
+strip with labels, Tab focus, `/export` (aceptado o borrador), error panel + retry.
 
 Not built: split-diff of crítica vs previous draft, jump-to-line in the
 source, mouse-drag selection of a quote, multi-file workspaces, session
 replay, or anything that looks like Pteron’s Biblioteca.
 
-If a judge has used OpenCode, this TUI is in the same family and a thinner
-one. Do not claim parity.
+If a judge has used OpenCode, this TUI is in the same family and still thinner.
+Do not claim parity.
 
 ## Thin vs Pteron (say this if asked)
 

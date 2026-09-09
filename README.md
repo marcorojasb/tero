@@ -7,7 +7,7 @@ Teacher agent for [Agents for Humans](https://aws.amazon.com/): an AWS **Strands
 Spanish UI. Keyboard-first. MIT.
 
 ```
-encargo (chips) → leer carpeta → plan tipado → borrador + evidencia → s/n/b/c → derivados/
+home (rumbos) → encargo (chips) → plan card + clarificación → borrador + evidencia → s/n/b/c → derivados/
 ```
 
 The model **never writes originals**. Accepted artifacts land in `derivados/`. Drafts in `borradores/`. Sources are hashed; tero refuses to overwrite them.
@@ -42,7 +42,9 @@ OpenTUI (needs [Bun](https://bun.sh)):
 python -m tero tui --offline
 ```
 
-Keys: **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador · **`c`** corregir (another agent pass). Plan: **`a`** aprobar · **`x`** cancelar. Evidence: **`[` `]`** cycle · **Tab** session/proposal/evidence. Citas **✓** are in the file; **?** is a paraphrase the host did not find.
+**Home first:** brand `tero`, four rumbos (`1` Planificar · `2` Crear · `3` Evaluar · `4` Adaptar), hero *Pregunta, explora o crea…*. Chips appear after a rumbo or prompt.
+
+**Keys:** **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador · **`c`** corregir (crítica persistida). Plan: **`a`** aprobar · **`e`** editar supuesto · **`x`** cancelar. Clarificación: **`1`/`2`/`3`** o texto libre. Evidence: **`[` `]`** cycle · **Tab** panels · **`?`** ayuda por fase · **`r`** reintentar error. Citas **✓** están in the file; **?** is paraphrase. `/export` works on accepted **or** draft.
 
 ### B. Amazon Bedrock
 
@@ -76,8 +78,9 @@ Ollama / local LLMs can come later; they are not the default.
 
 ```
 ┌─ OpenTUI (Bun, @opentui/core) ─────────────┐
-│  chips · sesión · actividad · propuesta    │
-│  evidencia · avisos · plan · puerta s/n/b/c│
+│  home · rumbos · chips · sesión · actividad│
+│  plan card · clarificación · propuesta     │
+│  evidencia ✓/? · avisos · puerta s/n/b/c   │
 └─────────────── JSONL stdin/stdout ─────────┘
                     │
 ┌─ python -m tero bridge  (Strands Agent) ───┐
@@ -93,7 +96,7 @@ Ollama / local LLMs can come later; they are not the default.
 
 HITL is structural: `propose_plan` / `draft_artifact` are **in-memory**. Only `tero.gate` writes files.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md). Adversarial self-critique: [docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md).
+See [ARCHITECTURE.md](ARCHITECTURE.md). Adversarial self-critique: [docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md). Improvement report: [docs/INFORME-MEJORAS.md](docs/INFORME-MEJORAS.md).
 
 ## Encargo chips
 
