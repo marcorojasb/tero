@@ -144,20 +144,27 @@ class Bridge:
         if kind == "encargo.update":
             self.session.set_encargo(Encargo.from_dict(message.get("encargo") or {}))
             self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
-            # Changing tipo/curso/oa mid-flight clears stale proposal context
+            # Changing tipo/curso/oa mid-flight MUST clear stale proposal (not just warn).
             if self.session.phase in {
                 "esperando_criterio",
                 "esperando_plan",
                 "esperando_clarificacion",
+                "escribiendo",
+                "proponiendo_plan",
             }:
+                turn = self.session.turns[-1] if self.session.turns else None
+                if turn is not None:
+                    turn.draft = None
+                self.session.ctx.pending_draft = None
+                self.emit({"type": "proposal_cleared", "reason": "encargo_cambiado"})
                 self.emit(
                     {
                         "type": "warning",
                         "warning": {
                             "code": "encargo_changed",
                             "message": (
-                                "Encargo actualizado. La propuesta anterior puede quedar obsoleta; "
-                                "envía un nuevo prompt o cancela con x."
+                                "Encargo actualizado — propuesta anterior archivada. "
+                                "Envía un nuevo prompt para regenerar el plan (evita contexto mezclado)."
                             ),
                             "blocking": False,
                         },
@@ -214,8 +221,14 @@ class Bridge:
             if source is None:
                 raise ProtocolError(
                     "No hay artefacto para exportar. Acepta con `s` (derivados/) "
-                    "o guarda borrador con `b` (borradores/) primero."
+                    "o guarda borrador con `b` (borradores/) primero. "
+                    "Después: /export md"
                 )
+            kind_src = (
+                "borrador"
+                if "borrador" in source.parts or "borradores" in source.parts
+                else "derivado"
+            )
             fmt = str(message.get("format") or "md")
             dest_raw = message.get("path")
             if fmt == "docx":
@@ -231,6 +244,8 @@ class Bridge:
                     "type": "exported",
                     "path": str(path),
                     "format": fmt,
+                    "source_kind": kind_src,
+                    "source_path": str(source),
                     "feedback": str(feedback) if feedback else None,
                 }
             )

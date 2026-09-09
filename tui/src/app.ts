@@ -100,6 +100,13 @@ export async function launch(opts: LaunchOptions): Promise<void> {
       return
     }
     const name = key.name || key.sequence
+    // Scrollable help: PgUp / PgDn / Shift+↑↓
+    if (state.help && (name === "pageup" || name === "pagedown" || ((name === "up" || name === "down") && key.shift))) {
+      key.preventDefault?.()
+      const delta = name === "pageup" || name === "up" ? -5 : 5
+      shell.scrollHelp(delta)
+      return
+    }
     if (
       name === "q" &&
       !shell.input.value &&
@@ -114,7 +121,7 @@ export async function launch(opts: LaunchOptions): Promise<void> {
       return
     }
     const typing = Boolean(shell.input.value) && state.uiMode === "prompt"
-    const globalKeys = new Set(["?", "tab", "[", "]", "escape"])
+    const globalKeys = new Set(["?", "tab", "[", "]", "escape", "pageup", "pagedown"])
     if (typing && !globalKeys.has(name) && !key.ctrl) {
       return
     }

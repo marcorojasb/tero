@@ -158,8 +158,26 @@ class TeacherSession:
 
     def _plan_phase(self, turn: Turn, prompt: str) -> None:
         self._set_phase("leyendo")
+        self.emit(
+            {
+                "type": "status",
+                "phase": "leyendo",
+                "detail": "leyendo fuentes de la carpeta",
+                "step": "read",
+                "progress": "1/2",
+            }
+        )
         agent = self._agent_for("plan")
         self._set_phase("proponiendo_plan")
+        self.emit(
+            {
+                "type": "status",
+                "phase": "proponiendo_plan",
+                "detail": "armando plan tipado",
+                "step": "plan",
+                "progress": "1/2",
+            }
+        )
         agent(self._user_payload(prompt))
         if self.ctx.pending_plan is None:
             self._set_phase("error")
@@ -292,14 +310,56 @@ class TeacherSession:
 
     def _draft_phase(self, turn: Turn, prompt: str, *, phase: str) -> None:
         self._set_phase("escribiendo")
-        agent = self._agent_for(phase)
-        agent(self._user_payload(prompt))
+        self.emit(
+            {
+                "type": "status",
+                "phase": "escribiendo",
+                "detail": "redactando borrador",
+                "step": "draft",
+                "progress": "2/2",
+            }
+        )
+        # Bedrock sometimes returns tools/text without draft_artifact — retry once.
+        for attempt in (1, 2):
+            self.ctx.pending_draft = None
+            if attempt == 2:
+                self.emit(
+                    {
+                        "type": "status",
+                        "phase": "escribiendo",
+                        "detail": "reintento: el modelo no entregó borrador",
+                        "step": "draft_retry",
+                        "progress": "2/2",
+                    }
+                )
+                self.emit(
+                    {
+                        "type": "activity",
+                        "tool": "draft",
+                        "state": "start",
+                        "detail": "reintento automático",
+                    }
+                )
+            agent = self._agent_for(phase)
+            nudge = prompt
+            if attempt == 2:
+                nudge = (
+                    prompt
+                    + "\n\nIMPORTANTE: Debes llamar a draft_artifact ahora con el markdown completo. "
+                    "No te detengas solo en texto."
+                )
+            agent(self._user_payload(nudge))
+            if self.ctx.pending_draft is not None:
+                break
         if self.ctx.pending_draft is None:
             self._set_phase("error")
             self.emit(
                 {
                     "type": "error",
-                    "message": "El agente no entregó un borrador.",
+                    "message": (
+                        "El agente no entregó un borrador (ni en el reintento). "
+                        "Pulsa r o /retry para volver a intentar."
+                    ),
                     "code": "no_draft",
                     "retryable": True,
                 }

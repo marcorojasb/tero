@@ -37,6 +37,7 @@ export type Shell = {
   input: InputRenderable
   sync: (state: AppState) => void
   setPlaceholder: (text: string) => void
+  scrollHelp: (delta: number) => void
 }
 
 export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => void): Shell {
@@ -530,6 +531,13 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     sync,
     setPlaceholder: (text) => {
       input.placeholder = text
+    },
+    scrollHelp: (delta: number) => {
+      try {
+        helpScroll.scrollBy(delta)
+      } catch {
+        /* ignore if not scrollable yet */
+      }
     },
   }
 }

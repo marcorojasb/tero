@@ -171,9 +171,15 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
           : "Pregunta, explora o crea con tero…"
       }
       break
-    case "status":
+    case "status": {
       next.phase = (event.phase as Phase) || next.phase
-      next.statusLine = String(event.detail ?? PHASE_LABEL[next.phase] ?? next.phase)
+      const detail = event.detail ? String(event.detail) : ""
+      const progress = event.progress ? String(event.progress) : ""
+      const step = event.step ? String(event.step) : ""
+      const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
+        .filter(Boolean)
+        .join(" · ")
+      next.statusLine = label
       if (
         next.phase === "leyendo" ||
         next.phase === "proponiendo_plan" ||
@@ -182,7 +188,9 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
         next.lastError = ""
         next.errorCode = ""
         next.thinking = true
-        next.thinkingLabel = PHASE_LABEL[next.phase]
+        next.thinkingLabel = step === "draft_retry"
+          ? "reintento borrador"
+          : detail || PHASE_LABEL[next.phase]
         next.screen = "workspace"
         next.started = true
       } else if (
@@ -197,6 +205,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
         next.thinkingLabel = ""
       }
       break
+    }
     case "activity": {
       const tool = String(event.tool ?? "")
       const item: Activity = {
@@ -358,12 +367,13 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.uiMode = "prompt"
       next.thinking = false
       break
-    case "exported":
+    case "exported": {
       next.lastExport = String(event.path ?? "")
-      next.statusLine = event.feedback
-        ? `Exportado → ${event.path}  ·  feedback → ${event.feedback}`
-        : `Exportado → ${event.path}`
+      const kind = event.source_kind === "borrador" ? "borrador" : "derivado"
+      const base = `Exportado (${kind}) → ${event.path}`
+      next.statusLine = event.feedback ? `${base}  ·  feedback → ${event.feedback}` : base
       break
+    }
     case "critique_saved":
       next.statusLine = `Crítica guardada (${event.n}) · reescribiendo…`
       next.thinking = true
@@ -890,7 +900,7 @@ export function showChips(state: AppState): boolean {
 }
 
 export function footerFor(state: AppState): string {
-  if (state.help) return "esc cierra ayuda"
+  if (state.help) return "PgUp/PgDn desplaza  esc cierra ayuda"
   if (state.uiMode === "critique") return "crítica → Enter envía · esc cancela"
   if (state.uiMode === "assumption") return "supuesto → Enter · esc cancela"
   if (state.phase === "esperando_clarificacion") return "1/2/3 elige  texto libre  ? ayuda"

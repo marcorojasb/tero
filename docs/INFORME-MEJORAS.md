@@ -47,9 +47,16 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 - Este informe + mitigaciones en `docs/ANALISIS-ADVERSARIAL.md`.
 - README actualizado (flujo home → plan → puerta).
 
-## Invariantes que se mantienen
+## Round 2 (post-CI format fix)
 
-- Strands + HITL: solo el host escribe `derivados/` / `borradores/`; nunca sobreescribe fuentes.
-- Offline honesto: `tero-offline`, etiquetado.
-- `python -m tero demo --offline --yes`, pytest y bun test verdes.
-- Sin Electron.
+Additional adversarial hardening after `style: ruff format` went green:
+
+| Gap | Fix |
+| --- | --- |
+| `/export` after `b` still felt like failure | Export accepts borrador; event carries `source_kind=borrador\|derivado` and copy says so |
+| `/oa` `/tipo` left mixed proposal | `encargo.update` now **clears** pending draft + emits `proposal_cleared` (not only a warning) |
+| Help clipped | Help panel is a ScrollBox; **PgUp/PgDn** (and Shift+↑/↓) scroll; footer hints it |
+| Opaque “thinking” | Status emits `progress`/`step`/`detail` (1/2 read·plan, 2/2 draft, draft_retry) → TUI spinner label |
+| Bedrock empty draft | `_draft_phase` auto-retries once with an explicit `draft_artifact` nudge before `no_draft` error |
+
+Still open (honest): no source-line viewer; warnings never block `s`; Bedrock not in CI.
