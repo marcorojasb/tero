@@ -6,19 +6,21 @@ import json
 from typing import Any
 
 from tero.artifacts import missing_headings
+from tero.coerce import as_text
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan, WarningItem
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
 
 
-def snippet_in_text(text: str, snippet: str) -> bool:
-    needle = snippet.strip()
-    if not needle or not text:
+def snippet_in_text(text: str, snippet: Any) -> bool:
+    needle = as_text(snippet, joiner=" ").strip()
+    haystack = as_text(text)
+    if not needle or not haystack:
         return False
-    if needle in text:
+    if needle in haystack:
         return True
-    compact = " ".join(text.lower().split())
+    compact = " ".join(haystack.lower().split())
     return " ".join(needle.lower().split()) in compact
 
 
@@ -132,7 +134,7 @@ def collect_warnings(
                 )
             )
 
-    body = draft.cuerpo_markdown.strip()
+    body = as_text(draft.cuerpo_markdown).strip()
     if len(body) < THIN_CHARS:
         warnings.append(
             WarningItem(

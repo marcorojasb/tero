@@ -153,6 +153,26 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         )
     if "prompt vacío" in lower or "garbage" in lower:
         return "bad_input", text
+    if any(
+        token in blob
+        for token in (
+            "modelstreamerrorexception",
+            "modelstreamerror",
+            "tooluse",
+            "tool use",
+            "tool_use",
+            "invalid tool",
+            "unexpected tool",
+            "conversationstream",
+            "event stream error",
+        )
+    ):
+        return (
+            "bedrock_stream",
+            "Bedrock interrumpió el stream (ToolUse/Nova Lite). "
+            "tero reintenta el borrador una vez; si sigue, pulsa r o /retry.",
+        )
+
     if "empty" in lower and "response" in lower:
         return (
             "bedrock_empty",

@@ -9,6 +9,7 @@ from typing import Any
 
 from strands import tool
 
+from tero.coerce import as_text
 from tero.curriculum.catalog import get_oa as catalog_get_oa
 from tero.curriculum.catalog import list_oa as catalog_list_oa
 from tero.curriculum.catalog import resolve_oa as catalog_resolve_oa
@@ -75,6 +76,7 @@ def _search_sources(ctx: TurnContext):
     @tool
     def search_sources(query: str) -> str:
         """Busca un texto solo dentro de la carpeta de trabajo."""
+        query = as_text(query, joiner=" ")
         ctx._emit({"type": "activity", "tool": "search_sources", "state": "start", "detail": query})
         hits = ctx.workspace.search(query)
         ctx._emit(
@@ -94,6 +96,7 @@ def _read_source(ctx: TurnContext):
     @tool
     def read_source(path: str) -> str:
         """Lee una fuente original. Comprueba el hash; nunca escribe el archivo."""
+        path = as_text(path, joiner=" ")
         ctx._emit({"type": "activity", "tool": "read_source", "state": "start", "detail": path})
         payload = ctx.workspace.read_source(path)
         ctx._emit({"type": "activity", "tool": "read_source", "state": "end", "detail": path})
@@ -197,6 +200,15 @@ def _propose_plan(ctx: TurnContext):
         asignatura: str = "",
     ) -> str:
         """Registra un plan tipado (card Pteron) en memoria. No escribe archivos."""
+        objetivo = as_text(objetivo, joiner=" ")
+        tipo = as_text(tipo, joiner=" ")
+        oa = as_text(oa, joiner=" ")
+        duracion = as_text(duracion, joiner=" ")
+        notas = as_text(notas, joiner=" ")
+        titulo = as_text(titulo, joiner=" ")
+        tema = as_text(tema, joiner=" ")
+        curso = as_text(curso, joiner=" ")
+        asignatura = as_text(asignatura, joiner=" ")
         ctx._emit({"type": "activity", "tool": "plan", "state": "start"})
         decisiones = {
             "curso": curso or ctx.encargo.curso,
@@ -244,6 +256,9 @@ def _cite_evidence(ctx: TurnContext):
     @tool
     def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
         """Vincula un fragmento de una fuente a una sección de la propuesta. No escribe archivos."""
+        path = as_text(path, joiner=" ")
+        snippet = as_text(snippet, joiner=" ")
+        seccion = as_text(seccion, joiner=" ")
         ctx._emit({"type": "activity", "tool": "cite_evidence", "state": "start", "detail": path})
         try:
             payload = ctx.workspace.read_source(path)
@@ -278,6 +293,9 @@ def _draft_artifact(ctx: TurnContext):
         tipo: str, titulo: str, cuerpo_markdown: str, evidencias_json: str = "[]"
     ) -> str:
         """Entrega un borrador en memoria. No escribe a derivados. El docente decide s/n/b/c."""
+        tipo = as_text(tipo, joiner=" ")
+        titulo = as_text(titulo, joiner=" ")
+        cuerpo_markdown = as_text(cuerpo_markdown, joiner="\n")
         ctx._emit({"type": "activity", "tool": "draft", "state": "start", "detail": titulo})
         parsed = ArtifactType.parse(tipo)
         if parsed is None:

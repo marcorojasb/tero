@@ -17,6 +17,33 @@ from tero.session import TeacherSession
 from tero.types import Encargo
 from tero.workspace import Workspace
 
+_FULL_PLAN_KEYS = (
+    "supuestos",
+    "como_abordare",
+    "questions",
+    "entregables",
+    "resultado_previsto",
+    "decisiones",
+)
+
+
+def _flat_plan_edits(payload: object) -> dict[str, str] | None:
+    """Accept only flat string patches; full plan.as_dict() → None (approve as-is)."""
+    if not isinstance(payload, dict) or not payload:
+        return None
+    if isinstance(payload.get("decisiones"), dict):
+        return None
+    if any(isinstance(payload.get(key), (list, tuple)) for key in _FULL_PLAN_KEYS):
+        return None
+    out: dict[str, str] = {}
+    for key, value in payload.items():
+        if value is None or isinstance(value, (list, tuple, dict)):
+            continue
+        text = str(value).strip()
+        if text:
+            out[str(key)] = text
+    return out or None
+
 
 class Bridge:
     def __init__(
@@ -240,7 +267,9 @@ class Bridge:
                 self.emit({"type": "turn", "turn": turn.as_dict()})
             return
         if kind == "plan.decide":
-            self.session.decide_plan(str(message.get("decision") or "approve"), message.get("plan"))
+            decision = str(message.get("decision") or "approve")
+            edits = _flat_plan_edits(message.get("plan"))
+            self.session.decide_plan(decision, edits)
             return
         if kind == "plan.answer":
             self.session.answer_plan_question(
