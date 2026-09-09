@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tero/latex/planificacion",
+  "title": "Planificación de clase (JSON → LaTeX)",
+  "type": "object",
+  "required": ["tipo", "titulo", "objetivo", "inicio", "desarrollo", "cierre"],
+  "additionalProperties": true,
+  "properties": {
+    "tipo": {"const": "planificacion"},
+    "titulo": {"type": "string"},
+    "curso": {"type": "string"},
+    "asignatura": {"type": "string"},
+    "oa": {"type": "string"},
+    "oa_texto": {"type": "string"},
+    "duracion": {"type": "string"},
+    "objetivo": {"type": "string"},
+    "inicio": {"type": "string"},
+    "desarrollo": {"type": "string"},
+    "cierre": {"type": "string"},
+    "evaluacion": {"type": "string"},
+    "recursos": {"type": "array", "items": {"type": "string"}}
+  }
+}

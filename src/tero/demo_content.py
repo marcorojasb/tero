@@ -14,7 +14,7 @@ def infer_tipo(prompt: str, encargo: Encargo) -> ArtifactType:
 def demo_plan(
     encargo: Encargo, tipo: ArtifactType, *, sources: list[str] | None = None
 ) -> dict[str, str]:
-    oa = encargo.oa or "OA 4"
+    oa = encargo.oa or "LEN-4B-OA04"
     duracion = encargo.duracion or "45 min"
     if uses_demo_story(sources):
         objetivos = {
@@ -57,7 +57,7 @@ def demo_draft_markdown(
 ) -> str:
     curso = encargo.curso or "4° básico"
     asignatura = encargo.asignatura or "Lenguaje"
-    oa = encargo.oa or "OA 4"
+    oa = encargo.oa or "LEN-4B-OA04"
     duracion = encargo.duracion or "45 min"
     note = ""
     if critique:

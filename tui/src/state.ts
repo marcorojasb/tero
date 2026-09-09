@@ -4,6 +4,7 @@ import type {
   Encargo,
   Evidence,
   HostEvent,
+  OAOption,
   Phase,
   Plan,
   PlanQuestion,
@@ -53,6 +54,8 @@ export type AppState = {
   assumptionEditId: string
   lastExport: string
   started: boolean
+  oaOptions: OAOption[]
+  oaHint: string
 }
 
 export function initialState(encargo: Encargo): AppState {
@@ -93,6 +96,8 @@ export function initialState(encargo: Encargo): AppState {
     assumptionEditId: "",
     lastExport: "",
     started: false,
+    oaOptions: [],
+    oaHint: "",
   }
 }
 
@@ -114,6 +119,9 @@ export const TOOL_LABEL: Record<string, string> = {
   list_sources: "fuentes",
   search_sources: "buscar",
   read_source: "leer",
+  list_oa: "OA lista",
+  get_oa: "OA",
+  search_oa: "OA busca",
   propose_plan: "plan",
   plan: "plan",
   cite_evidence: "cita",
@@ -370,8 +378,12 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
     case "exported": {
       next.lastExport = String(event.path ?? "")
       const kind = event.source_kind === "borrador" ? "borrador" : "derivado"
-      const base = `Exportado (${kind}) → ${event.path}`
-      next.statusLine = event.feedback ? `${base}  ·  feedback → ${event.feedback}` : base
+      const fmt = event.format ? String(event.format) : "md"
+      const base = `Exportado ${fmt} (${kind}) → ${event.path}`
+      const pdf = event.pdf ? `  ·  pdf → ${event.pdf}` : ""
+      next.statusLine = event.feedback
+        ? `${base}${pdf}  ·  feedback → ${event.feedback}`
+        : `${base}${pdf}`
       break
     }
     case "critique_saved":
@@ -384,6 +396,25 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
         next.encargo = { ...next.encargo, ...(event.encargo as Encargo) }
       }
       break
+    case "oa_options": {
+      const rows = Array.isArray(event.oas) ? (event.oas as OAOption[]) : []
+      next.oaOptions = rows
+      if (rows.length) {
+        const sample = rows
+          .slice(0, 4)
+          .map((o) => o.codigo || o.id)
+          .join(" · ")
+        next.oaHint = `${rows.length} OA en catálogo: ${sample}${rows.length > 4 ? "…" : ""}`
+        if (!next.encargo.oa) {
+          next.statusLine = `OA disponibles · /oa ${rows[0]?.id || rows[0]?.codigo}`
+        } else if (next.statusLine.startsWith("curso →") || next.statusLine.startsWith("asignatura →")) {
+          next.statusLine = `${next.statusLine}  ·  ${next.oaHint}`
+        }
+      } else {
+        next.oaHint = "sin OA para ese curso/asignatura en el catálogo mínimo"
+      }
+      break
+    }
     case "rumbo":
       next.started = true
       next.statusLine = `Rumbo ${event.rumbo} · escribe el encargo`
@@ -551,9 +582,16 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     }
   }
   if (text.startsWith("/oa ")) {
-    const oa = text.slice(4).trim()
+    const oaRaw = text.slice(4).trim()
+    const match = matchOA(state.oaOptions, oaRaw)
+    const oa = match ? `${match.codigo} (${match.id})` : oaRaw
     const encargo = { ...state.encargo, oa }
     const plan = state.plan ? { ...state.plan, oa } : state.plan
+    const warn = match
+      ? `OA → ${oa}`
+      : state.oaOptions.length
+        ? `OA «${oaRaw}» no está en la lista cargada — se envía igual; el host valida el catálogo`
+        : `OA → ${oa}  ·  fija /curso y /asignatura para cargar opciones`
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
@@ -561,7 +599,7 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
         ...state,
         encargo,
         plan,
-        statusLine: `OA → ${oa}  ·  envía un nuevo encargo para regenerar (evita contexto mezclado)`,
+        statusLine: `${warn}  ·  nuevo encargo para regenerar`,
         proposal: "",
         proposalTitle: "",
         evidence: [],
@@ -597,7 +635,12 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, plan, statusLine: `curso → ${encargo.curso}` },
+      state: {
+        ...state,
+        encargo,
+        plan,
+        statusLine: `curso → ${encargo.curso}`,
+      },
     }
   }
   if (text.startsWith("/asignatura ")) {
@@ -611,7 +654,12 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     return {
       kind: "send",
       message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, plan, statusLine: `asignatura → ${encargo.asignatura}` },
+      state: {
+        ...state,
+        encargo,
+        plan,
+        statusLine: `asignatura → ${encargo.asignatura}`,
+      },
     }
   }
   if (text.startsWith("/tema ")) {
@@ -653,7 +701,10 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     }
   }
   if (text === "/export" || text.startsWith("/export ")) {
-    const format = text.includes("docx") ? "docx" : "md"
+    const rest = text.slice("/export".length).trim().toLowerCase()
+    let format: "md" | "docx" | "latex" | "tex" = "md"
+    if (rest.includes("docx")) format = "docx"
+    else if (rest.includes("latex") || rest.includes("tex")) format = "latex"
     return {
       kind: "send",
       message: { type: "export", format },
@@ -864,18 +915,15 @@ export function gateStrip(state: AppState): string {
     return "clarificación · [1] [2] [3] elige · o escribe abajo · x cancela plan"
   }
   if (state.phase === "esperando_plan") {
-    return "[ a ] aprobar plan     [ e ] editar supuesto     [ x ] cancelar     /objetivo /oa"
+    return "[ a ] aprobar     [ e ] supuesto     [ x ] cancelar     /oa /objetivo"
   }
   if (state.phase === "esperando_criterio") {
     const n = state.evidence.length
-    const mark = n ? `     evidencia ${state.evidenceIndex + 1}/${n}` : "     sin evidencia"
-    return (
-      `[ s ] sí → derivados/     [ n ] no (nada)     [ b ] borrador → borradores/     [ c ] corregir` +
-      mark
-    )
+    const mark = n ? `     evid ${state.evidenceIndex + 1}/${n}` : "     sin evid"
+    return `[ s ] sí→derivados/  [ n ] no  [ b ] borrador  [ c ] corregir${mark}`
   }
   if (state.phase === "error" && state.retryable) {
-    return "[ r ] reintentar último encargo     /home volver al inicio"
+    return "[ r ] reintentar     /home volver al inicio"
   }
   return ""
 }
@@ -908,7 +956,7 @@ export function footerFor(state: AppState): string {
   if (state.phase === "esperando_criterio") return "s sí  n no  b borrador  c corregir  [ ] evid  ?"
   if (state.phase === "error") return state.retryable ? "r reintenta  /home  ? " : "/home  ? "
   if (state.screen === "home") return "1–4 rumbo  Enter envía  ? ayuda  q salir"
-  return "Enter envía  /oa /tipo /export  Tab  ?  q"
+  return "Enter  /oa /curso /export latex  Tab  ?  q"
 }
 
 export function helpFor(state: AppState): string {
@@ -919,7 +967,7 @@ Rumbos
   1 Planificar   2 Crear   3 Evaluar   4 Adaptar
 
 Escribe abajo: «Pregunta, explora o crea…»
-Los chips aparecen cuando hay rumbo o encargo.
+Chips tras rumbo o encargo. Catálogo OA Chile (host).
 
 ? cierra · q sale`
   }
@@ -940,7 +988,7 @@ x cancela el plan y vuelve al inicio.
 a  aprobar y redactar
 e  editar SUPUESTOS (inline)
 x  cancelar → inicio limpio
-/objetivo …  /oa …  /supuesto …
+/objetivo …  /oa LEN-4B-OA04  /supuesto …
 
 El plan queda fijado (p) mientras redacta.
 
@@ -951,7 +999,7 @@ El plan queda fijado (p) mientras redacta.
 
 s  sí → derivados/
 n  no  (no escribe)
-b  borrador → borradores/  (/export también)
+b  borrador → borradores/  (/export md|latex)
 c  corregir (crítica se guarda en .tero/)
 
 [ ] evidencia  ·  ✓ en archivo  ·  ? parafraseo
@@ -983,11 +1031,26 @@ Teclas
   Tab paneles      p fijar plan   ? ayuda   q salir
 
 Comandos
-  /oa /tipo /curso /tema /duracion /objetivo
-  /supuesto …   /export [md|docx]   /retry   /home
+  /oa /tipo /curso /asignatura /tema /duracion
+  /objetivo /supuesto   /export [md|docx|latex]   /retry /home
 
+OA: catálogo host (list_oa). LaTeX: JSON→plantilla, no TeX libre.
 Citas: ✓ en el archivo, ? parafraseo (aviso, no bloquea).
 tero no sobreescribe originales (hash).`
+}
+
+export function matchOA(options: OAOption[], raw: string): OAOption | null {
+  const needle = raw.trim().toLowerCase()
+  if (!needle || !options.length) return null
+  const compact = needle.replace(/[^a-z0-9]/g, "")
+  for (const opt of options) {
+    const id = (opt.id || "").toLowerCase()
+    const codigo = (opt.codigo || "").toLowerCase()
+    if (id === needle || codigo === needle) return opt
+    if (id.replace(/[^a-z0-9]/g, "") === compact) return opt
+    if (codigo.replace(/[^a-z0-9]/g, "") === compact) return opt
+  }
+  return null
 }
 
 /** @deprecated use helpFor(state) */

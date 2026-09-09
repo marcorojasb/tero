@@ -1,0 +1,249 @@
+{
+  "meta": {
+    "pais": "CL",
+    "nivel": "basica",
+    "cursos_cubiertos": ["4b", "5b", "6b"],
+    "asignaturas_cubiertas": ["lenguaje", "matematica", "ciencias"],
+    "disclaimer": "Paráfrasis orientativas para selección de OA en tero. No es texto oficial MINEDUC verbatim. Contrastar con bases curriculares vigentes."
+  },
+  "cursos": [
+    {"id": "4b", "label": "4° básico", "aliases": ["4°", "4o", "4to", "cuarto básico", "4 basico"]},
+    {"id": "5b", "label": "5° básico", "aliases": ["5°", "5o", "5to", "quinto básico", "5 basico"]},
+    {"id": "6b", "label": "6° básico", "aliases": ["6°", "6o", "6to", "sexto básico", "6 basico"]}
+  ],
+  "asignaturas": [
+    {
+      "id": "lenguaje",
+      "label": "Lenguaje y Comunicación",
+      "aliases": ["Lenguaje", "Lengua", "Lenguaje y Comunicación", "Comunicación"]
+    },
+    {
+      "id": "matematica",
+      "label": "Matemática",
+      "aliases": ["Matemática", "Matematicas", "Matemáticas", "Math"]
+    },
+    {
+      "id": "ciencias",
+      "label": "Ciencias Naturales",
+      "aliases": ["Ciencias", "Ciencias Naturales", "CN", "Naturales"]
+    }
+  ],
+  "oas": [
+    {
+      "id": "LEN-4B-OA04",
+      "curso": "4b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 4",
+      "eje": "Lectura",
+      "texto_corto": "Extraer información explícita e implícita de textos literarios y no literarios, con evidencia."
+    },
+    {
+      "id": "LEN-4B-OA05",
+      "curso": "4b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 5",
+      "eje": "Lectura",
+      "texto_corto": "Inferir el sentido global de un texto y relacionarlo con experiencias o conocimientos previos."
+    },
+    {
+      "id": "LEN-4B-OA16",
+      "curso": "4b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 16",
+      "eje": "Escritura",
+      "texto_corto": "Escribir textos breves con propósito claro, organización y revisión básica."
+    },
+    {
+      "id": "LEN-5B-OA03",
+      "curso": "5b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 3",
+      "eje": "Lectura",
+      "texto_corto": "Localizar información relevante y distinguir hechos de opiniones en textos variados."
+    },
+    {
+      "id": "LEN-5B-OA06",
+      "curso": "5b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 6",
+      "eje": "Lectura",
+      "texto_corto": "Interpretar figuras, títulos y recursos gráficos que apoyan la comprensión del texto."
+    },
+    {
+      "id": "LEN-5B-OA12",
+      "curso": "5b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 12",
+      "eje": "Escritura",
+      "texto_corto": "Planificar, escribir y revisar textos expositivos cortos con vocabulario adecuado."
+    },
+    {
+      "id": "LEN-6B-OA02",
+      "curso": "6b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 2",
+      "eje": "Lectura",
+      "texto_corto": "Analizar estructura y propósito de textos literarios y no literarios de mayor complejidad."
+    },
+    {
+      "id": "LEN-6B-OA07",
+      "curso": "6b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 7",
+      "eje": "Lectura",
+      "texto_corto": "Comparar información de dos fuentes y fundamentar una conclusión con citas."
+    },
+    {
+      "id": "LEN-6B-OA15",
+      "curso": "6b",
+      "asignatura": "lenguaje",
+      "codigo": "OA 15",
+      "eje": "Escritura",
+      "texto_corto": "Producir textos argumentativos breves con tesis, razones y cierre."
+    },
+    {
+      "id": "MAT-4B-OA01",
+      "curso": "4b",
+      "asignatura": "matematica",
+      "codigo": "OA 1",
+      "eje": "Números",
+      "texto_corto": "Representar y comparar números hasta 10 000; valor posicional."
+    },
+    {
+      "id": "MAT-4B-OA06",
+      "curso": "4b",
+      "asignatura": "matematica",
+      "codigo": "OA 6",
+      "eje": "Números",
+      "texto_corto": "Resolver problemas de suma y resta con números naturales, explicando la estrategia."
+    },
+    {
+      "id": "MAT-4B-OA09",
+      "curso": "4b",
+      "asignatura": "matematica",
+      "codigo": "OA 9",
+      "eje": "Geometría",
+      "texto_corto": "Identificar y describir figuras 2D y 3D según caras, lados y vértices."
+    },
+    {
+      "id": "MAT-5B-OA04",
+      "curso": "5b",
+      "asignatura": "matematica",
+      "codigo": "OA 4",
+      "eje": "Números",
+      "texto_corto": "Demostrar comprensión de fracciones propias e impropias en contextos cotidianos."
+    },
+    {
+      "id": "MAT-5B-OA08",
+      "curso": "5b",
+      "asignatura": "matematica",
+      "codigo": "OA 8",
+      "eje": "Números",
+      "texto_corto": "Resolver problemas que involucren multiplicación y división, justificando el procedimiento."
+    },
+    {
+      "id": "MAT-5B-OA12",
+      "curso": "5b",
+      "asignatura": "matematica",
+      "codigo": "OA 12",
+      "eje": "Datos y azar",
+      "texto_corto": "Recoger, organizar y representar datos en tablas y gráficos simples."
+    },
+    {
+      "id": "MAT-6B-OA03",
+      "curso": "6b",
+      "asignatura": "matematica",
+      "codigo": "OA 3",
+      "eje": "Números",
+      "texto_corto": "Comparar y ordenar fracciones y decimales; ubicarlos en la recta numérica."
+    },
+    {
+      "id": "MAT-6B-OA07",
+      "curso": "6b",
+      "asignatura": "matematica",
+      "codigo": "OA 7",
+      "eje": "Números",
+      "texto_corto": "Resolver problemas de fracciones (suma/resta y contextos de parte-todo)."
+    },
+    {
+      "id": "MAT-6B-OA11",
+      "curso": "6b",
+      "asignatura": "matematica",
+      "codigo": "OA 11",
+      "eje": "Geometría",
+      "texto_corto": "Calcular perímetros y áreas de figuras planas frecuentes con unidades adecuadas."
+    },
+    {
+      "id": "CIE-4B-OA01",
+      "curso": "4b",
+      "asignatura": "ciencias",
+      "codigo": "OA 1",
+      "eje": "Ciencias de la vida",
+      "texto_corto": "Reconocer estructuras y funciones básicas de plantas y animales del entorno."
+    },
+    {
+      "id": "CIE-4B-OA05",
+      "curso": "4b",
+      "asignatura": "ciencias",
+      "codigo": "OA 5",
+      "eje": "Ciencias de la Tierra",
+      "texto_corto": "Describir el ciclo del agua y su importancia para seres vivos y comunidades."
+    },
+    {
+      "id": "CIE-4B-OA08",
+      "curso": "4b",
+      "asignatura": "ciencias",
+      "codigo": "OA 8",
+      "eje": "Física",
+      "texto_corto": "Explorar fuerzas y movimiento en situaciones cotidianas con observaciones simples."
+    },
+    {
+      "id": "CIE-5B-OA02",
+      "curso": "5b",
+      "asignatura": "ciencias",
+      "codigo": "OA 2",
+      "eje": "Ciencias de la vida",
+      "texto_corto": "Explicar sistemas del cuerpo humano (digestivo/circulatorio) a nivel introductorio."
+    },
+    {
+      "id": "CIE-5B-OA06",
+      "curso": "5b",
+      "asignatura": "ciencias",
+      "codigo": "OA 6",
+      "eje": "Ciencias de la Tierra",
+      "texto_corto": "Relacionar el agua, el suelo y el clima con actividades humanas y cuidado del entorno."
+    },
+    {
+      "id": "CIE-5B-OA09",
+      "curso": "5b",
+      "asignatura": "ciencias",
+      "codigo": "OA 9",
+      "eje": "Física",
+      "texto_corto": "Investigar luz y sonido: fuentes, propagación y ejemplos del aula."
+    },
+    {
+      "id": "CIE-6B-OA01",
+      "curso": "6b",
+      "asignatura": "ciencias",
+      "codigo": "OA 1",
+      "eje": "Ciencias de la vida",
+      "texto_corto": "Analizar ecosistemas locales: componentes, relaciones y perturbaciones."
+    },
+    {
+      "id": "CIE-6B-OA04",
+      "curso": "6b",
+      "asignatura": "ciencias",
+      "codigo": "OA 4",
+      "eje": "Ciencias de la Tierra",
+      "texto_corto": "Explicar el ciclo de la materia y el flujo de energía en un ecosistema simple."
+    },
+    {
+      "id": "CIE-6B-OA10",
+      "curso": "6b",
+      "asignatura": "ciencias",
+      "codigo": "OA 10",
+      "eje": "Química",
+      "texto_corto": "Distinguir mezclas y sustancias; proponer separaciones simples en el laboratorio escolar."
+    }
+  ]
+}

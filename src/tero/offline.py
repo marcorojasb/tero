@@ -73,8 +73,22 @@ class OfflineModel(Model):
         if "read_source" in available and called.count("read_source") < 2:
             path = _read_path_for(listed, called.count("read_source"))
             return {"tool": "read_source", "input": {"path": path}}
+        if "list_oa" in available and "list_oa" not in called:
+            return {
+                "tool": "list_oa",
+                "input": {
+                    "curso": self.encargo.curso or "4° básico",
+                    "asignatura": self.encargo.asignatura or "Lenguaje y Comunicación",
+                },
+            }
+        if "get_oa" in available and "get_oa" not in called:
+            oa_id = _oa_id_from_messages(messages) or "LEN-4B-OA04"
+            return {"tool": "get_oa", "input": {"id": oa_id}}
         if "propose_plan" in available and "propose_plan" not in called:
             plan = demo_plan(self.encargo, tipo, sources=listed)
+            oa_id = _oa_id_from_messages(messages)
+            if oa_id:
+                plan["oa"] = oa_id
             return {"tool": "propose_plan", "input": plan}
         if "cite_evidence" in available and called.count("cite_evidence") < 2:
             citation = _citation_for(listed, reads, called.count("cite_evidence"))
@@ -137,6 +151,20 @@ def _listed_paths(messages: Messages) -> list[str]:
             if paths:
                 return paths
     return []
+
+
+def _oa_id_from_messages(messages: Messages) -> str | None:
+    for payload in _tool_result_payloads(messages):
+        if payload.get("ok") and isinstance(payload.get("oa"), dict):
+            oid = str(payload["oa"].get("id") or "").strip()
+            if oid:
+                return oid
+        oas = payload.get("oas")
+        if isinstance(oas, list) and oas:
+            first = oas[0]
+            if isinstance(first, dict) and first.get("id"):
+                return str(first["id"])
+    return None
 
 
 def _read_payloads(messages: Messages) -> dict[str, str]:

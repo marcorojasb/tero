@@ -81,7 +81,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   header.add(headerLine)
   header.add(chipLine)
 
-  // ── Home (Pteron landing) ───────────────────────────────
+  // ── Home (Pteron landing, denser) ───────────────────────
   const home = new BoxRenderable(renderer, {
     id: "home",
     flexGrow: 1,
@@ -100,7 +100,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   })
   const tagline = new TextRenderable(renderer, {
     id: "tagline",
-    content: "tus fuentes, tu criterio — el agente prepara, tú decides",
+    content: "tus fuentes, tu criterio — prepara, no decide",
     fg: theme.homeMuted,
     wrapMode: "word",
   })
@@ -108,6 +108,12 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     id: "rumbos",
     content: "",
     fg: theme.text,
+    wrapMode: "word",
+  })
+  const homeHint = new TextRenderable(renderer, {
+    id: "home-hint",
+    content: "1–4 elige rumbo · o escribe el encargo abajo",
+    fg: theme.faint,
     wrapMode: "word",
   })
   const recentText = new TextRenderable(renderer, {
@@ -126,6 +132,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     }),
   )
   home.add(rumboRow)
+  home.add(homeHint)
   home.add(recentText)
 
   // ── Workspace body ─────────────────────────────────────
@@ -219,7 +226,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   body.add(center)
   body.add(right)
 
-  // ── Plan card (deep) ───────────────────────────────────
+  // ── Plan card (deep, scrollable) ───────────────────────
   const planBar = new BoxRenderable(renderer, {
     id: "plan-bar",
     height: 14,
@@ -246,7 +253,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   // ── Clarification card ─────────────────────────────────
   const clarifyBar = new BoxRenderable(renderer, {
     id: "clarify-bar",
-    height: 9,
+    height: 8,
     border: true,
     borderStyle: "rounded",
     borderColor: theme.suggested,
@@ -265,7 +272,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   clarifyBar.add(clarifyText)
   clarifyBar.visible = false
 
-  // ── Gate strip ─────────────────────────────────────────
+  // ── Gate strip (dense) ─────────────────────────────────
   const gateBar = new BoxRenderable(renderer, {
     id: "gate-bar",
     height: 3,
@@ -405,12 +412,13 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     body.visible = !isHome && !clarifying
 
     // Home content
-    rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("    ")
+    rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ")
+    homeHint.visible = !state.compact
     if (state.recentSessions.length) {
       recentText.content =
         "\nrecientes\n" +
         state.recentSessions
-          .slice(0, 4)
+          .slice(0, state.compact ? 2 : 4)
           .map((s) => `  · ${s.kind} · ${s.label}`)
           .join("\n")
     } else {
@@ -451,12 +459,16 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     if (showPlan && state.plan) {
       planBar.visible = true
       // Keep evidence panel usable at the gate: shorter plan when drafting/waiting.
+      // Clarification: taller scrollable card so the plan stays readable.
       if (state.phase === "esperando_criterio" || state.phase === "escribiendo") {
-        planBar.height = state.compact ? 6 : 8
+        planBar.height = state.compact ? 5 : 7
+        planScroll.height = state.compact ? 3 : 5
       } else if (state.phase === "esperando_clarificacion") {
-        planBar.height = state.compact ? 12 : 16
-      } else {
         planBar.height = state.compact ? 10 : 14
+        planScroll.height = state.compact ? 8 : 12
+      } else {
+        planBar.height = state.compact ? 9 : 13
+        planScroll.height = state.compact ? 7 : 11
       }
       planText.content = renderPlanCard(state)
     } else {
@@ -465,6 +477,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
 
     if (state.phase === "esperando_clarificacion" && state.question) {
       clarifyBar.visible = true
+      clarifyBar.height = state.compact ? 7 : 8
       clarifyText.content = renderQuestion(state)
     } else {
       clarifyBar.visible = false
@@ -475,7 +488,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     gateText.content = strip
     if (state.phase === "esperando_criterio") {
       gateBar.borderColor = theme.ok
-      gateBar.title = " puerta  s/n/b/c "
+      gateBar.title = " puerta "
       gateBar.titleColor = theme.ok
     } else if (state.phase === "esperando_plan" || state.phase === "esperando_clarificacion") {
       gateBar.borderColor = theme.accent
@@ -676,11 +689,11 @@ function renderQuestion(state: AppState): string {
   const lines = [q.prompt, ""]
   q.options.forEach((opt, i) => {
     const n = opt.id || String(i + 1)
-    const badge = opt.suggested ? "  SUGERIDA" : ""
+    const badge = opt.suggested ? "  ★ SUGERIDA" : ""
     lines.push(`  [${n}]${badge}  ${opt.label}`)
   })
   lines.push("")
-  lines.push("Responde con tus palabras…  (abajo)")
+  lines.push("1/2/3 · o escribe abajo")
   return lines.join("\n")
 }
 

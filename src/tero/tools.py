@@ -9,6 +9,10 @@ from typing import Any
 
 from strands import tool
 
+from tero.curriculum.catalog import get_oa as catalog_get_oa
+from tero.curriculum.catalog import list_oa as catalog_list_oa
+from tero.curriculum.catalog import resolve_oa as catalog_resolve_oa
+from tero.curriculum.catalog import search_oa as catalog_search_oa
 from tero.evidence import parse_evidence_blob, snippet_in_text, verify_evidence
 from tero.plan import build_plan
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
@@ -32,7 +36,14 @@ class TurnContext:
 
 
 def build_tools(ctx: TurnContext, *, phase: str) -> list[Any]:
-    tools: list[Any] = [_list_sources(ctx), _search_sources(ctx), _read_source(ctx)]
+    tools: list[Any] = [
+        _list_sources(ctx),
+        _search_sources(ctx),
+        _read_source(ctx),
+        _list_oa(ctx),
+        _get_oa(ctx),
+        _search_oa(ctx),
+    ]
     if phase == "plan":
         tools.append(_propose_plan(ctx))
     if phase in {"draft", "correct"}:
@@ -91,6 +102,87 @@ def _read_source(ctx: TurnContext):
     return read_source
 
 
+def _list_oa(ctx: TurnContext):
+    @tool
+    def list_oa(curso: str = "", asignatura: str = "") -> str:
+        """Lista OA del catálogo Chile (host). No inventes ids: elige de esta lista."""
+        curso_q = curso or ctx.encargo.curso
+        asig_q = asignatura or ctx.encargo.asignatura
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "list_oa",
+                "state": "start",
+                "detail": f"{curso_q} · {asig_q}".strip(" ·"),
+            }
+        )
+        rows = catalog_list_oa(curso_q, asig_q)
+        payload = [item.as_dict() for item in rows]
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "list_oa",
+                "state": "end",
+                "detail": f"{len(payload)} OA",
+            }
+        )
+        ctx._emit({"type": "oa_options", "oas": payload, "curso": curso_q, "asignatura": asig_q})
+        return json.dumps(
+            {
+                "curso": curso_q,
+                "asignatura": asig_q,
+                "oas": payload,
+                "disclaimer": "Paráfrasis orientativas; no texto oficial MINEDUC verbatim.",
+            },
+            ensure_ascii=False,
+        )
+
+    return list_oa
+
+
+def _get_oa(ctx: TurnContext):
+    @tool
+    def get_oa(id: str) -> str:
+        """Obtiene un OA por id de catálogo (p. ej. LEN-4B-OA04). Falla si el id no existe."""
+        ctx._emit({"type": "activity", "tool": "get_oa", "state": "start", "detail": id})
+        record = catalog_get_oa(id)
+        if record is None:
+            ctx._emit(
+                {"type": "activity", "tool": "get_oa", "state": "end", "detail": "no encontrado"}
+            )
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": f"OA id desconocido: {id}. Usa list_oa o search_oa; no inventes ids.",
+                },
+                ensure_ascii=False,
+            )
+        ctx._emit({"type": "activity", "tool": "get_oa", "state": "end", "detail": record.codigo})
+        return json.dumps({"ok": True, "oa": record.as_dict()}, ensure_ascii=False)
+
+    return get_oa
+
+
+def _search_oa(ctx: TurnContext):
+    @tool
+    def search_oa(q: str) -> str:
+        """Busca OA en el catálogo Chile por texto (eje, código, palabras del OA)."""
+        ctx._emit({"type": "activity", "tool": "search_oa", "state": "start", "detail": q})
+        rows = catalog_search_oa(q)
+        payload = [item.as_dict() for item in rows]
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "search_oa",
+                "state": "end",
+                "detail": f"{len(payload)} hallazgos",
+            }
+        )
+        return json.dumps({"query": q, "oas": payload}, ensure_ascii=False)
+
+    return search_oa
+
+
 def _propose_plan(ctx: TurnContext):
     @tool
     def propose_plan(
@@ -111,10 +203,17 @@ def _propose_plan(ctx: TurnContext):
             "asignatura": asignatura or ctx.encargo.asignatura,
             "tema": tema or ctx.encargo.tema,
         }
+        # Prefer catalog id / código when the model passes a known OA.
+        resolved = catalog_resolve_oa(
+            oa or ctx.encargo.oa,
+            curso=decisiones["curso"],
+            asignatura=decisiones["asignatura"],
+        )
+        oa_value = resolved.chip() if resolved else (oa or ctx.encargo.oa)
         plan = build_plan(
             objetivo=objetivo,
             tipo=tipo,
-            oa=oa,
+            oa=oa_value,
             duracion=duracion,
             notas=notas,
             encargo=ctx.encargo,

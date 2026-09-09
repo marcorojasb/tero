@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tero/latex/beamer",
+  "title": "Beamer outline (JSON → LaTeX)",
+  "type": "object",
+  "required": ["tipo", "titulo", "slides"],
+  "additionalProperties": true,
+  "properties": {
+    "tipo": {"const": "beamer"},
+    "titulo": {"type": "string"},
+    "subtitulo": {"type": "string"},
+    "autor": {"type": "string"},
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titulo": {"type": "string"},
+          "bullets": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["titulo"]
+      }
+    }
+  }
+}

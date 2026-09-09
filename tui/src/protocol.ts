@@ -22,6 +22,17 @@ export type Encargo = {
   tema?: string
 }
 
+export type OAOption = {
+  id: string
+  curso: string
+  asignatura: string
+  codigo: string
+  eje?: string
+  texto_corto: string
+  curso_label?: string
+  asignatura_label?: string
+}
+
 export type PlanOption = {
   id: string
   label: string
@@ -131,6 +142,7 @@ export type ClientMessage =
     }
   | { type: "plan.edit_assumption"; id: string; text: string }
   | { type: "gate"; decision: "s" | "n" | "b" | "c"; note?: string }
-  | { type: "export"; format: "md" | "docx"; path?: string }
+  | { type: "export"; format: "md" | "docx" | "latex" | "tex"; path?: string; pdf?: boolean }
+  | { type: "curriculum.list"; curso?: string; asignatura?: string }
   | { type: "retry" }
   | { type: "shutdown" }

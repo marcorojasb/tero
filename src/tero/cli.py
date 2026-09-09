@@ -41,6 +41,32 @@ def main(argv: list[str] | None = None) -> int:
     init = sub.add_parser("init-carpeta", help="Copia la carpeta demo a una ruta nueva.")
     init.add_argument("dest", type=Path)
 
+    export = sub.add_parser(
+        "export",
+        help="Exporta un artefacto .md a md|docx|latex (JSON→plantilla; sin TeX libre).",
+    )
+    export.add_argument("source", type=Path, help="Markdown aceptado/borrador.")
+    export.add_argument(
+        "--format",
+        dest="fmt",
+        default="latex",
+        choices=["md", "docx", "latex", "tex"],
+        help="Formato de salida (default latex).",
+    )
+    export.add_argument("--out", type=Path, default=None, help="Ruta destino.")
+    export.add_argument("--tipo", default=None, help="guia|evaluacion|planificacion|pauta|beamer")
+    export.add_argument(
+        "--pdf",
+        action="store_true",
+        help="Intentar latexmk -pdf -no-shell-escape si está instalado.",
+    )
+    export.add_argument(
+        "--payload",
+        type=Path,
+        default=None,
+        help="JSON schema (Nova Lite) en vez de inferir desde markdown.",
+    )
+
     args = parser.parse_args(argv)
     if args.cmd == "demo":
         return cmd_demo(args)
@@ -50,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_tui(args)
     if args.cmd == "init-carpeta":
         return cmd_init(args.dest)
+    if args.cmd == "export":
+        return cmd_export(args)
     return 1
 
 
@@ -85,7 +113,7 @@ def _encargo(args: argparse.Namespace, *, demo_defaults: bool = False) -> Encarg
             {
                 "curso": args.curso or "4° básico",
                 "asignatura": args.asignatura or "Lenguaje y Comunicación",
-                "oa": args.oa or "OA 4",
+                "oa": args.oa or "LEN-4B-OA04",
                 "duracion": args.duracion or "45 min",
                 "tipo": args.tipo or "planificacion",
             }
@@ -249,4 +277,40 @@ def cmd_init(dest: Path) -> int:
         return 2
     shutil.copytree(EXAMPLE_CARPETA, dest, dirs_exist_ok=True)
     print(f"carpeta lista: {dest}")
+    return 0
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    from tero.export import export_docx, export_latex, export_markdown
+
+    source = Path(args.source).expanduser().resolve()
+    if not source.exists() and not args.payload:
+        print(f"No existe: {source}", file=sys.stderr)
+        return 2
+    fmt = str(args.fmt or "latex").lower()
+    out = Path(args.out).expanduser().resolve() if args.out else None
+    payload = None
+    if args.payload:
+        import json
+
+        payload = json.loads(Path(args.payload).read_text(encoding="utf-8"))
+    if fmt == "docx":
+        dest = out or source.with_suffix(".docx")
+        path = export_docx(source, dest)
+    elif fmt in {"latex", "tex"}:
+        dest = out or (source.with_suffix(".tex") if source.exists() else Path("artefacto.tex"))
+        path = export_latex(
+            source if source.exists() else dest,
+            dest,
+            tipo=args.tipo,
+            payload=payload,
+            try_pdf=bool(args.pdf),
+        )
+    else:
+        dest = out or source.with_name(source.stem + ".export.md")
+        path = export_markdown(source, dest)
+    print(f"exportado: {path}", flush=True)
+    pdf = path.with_suffix(".pdf")
+    if pdf.exists():
+        print(f"pdf: {pdf}", flush=True)
     return 0

@@ -70,7 +70,8 @@ Default model: `amazon.nova-lite-v1:0` (`TERO_MODEL` or alias `TERO_MODEL_ID`). 
 | Artifact types: planificación, guía, evaluación, pauta/rúbrica, actividad | iPhone companion |
 | Evidence panel (path + snippet + section) | SQLite session DB as product |
 | Streaming activity (list_sources, read, plan, draft) | Ollama as default |
-| Export `.md` and optional `.docx` | Secrets in git |
+| Export `.md`, optional `.docx`, **LaTeX via JSON→plantilla** | Secrets in git |
+| Catálogo OA Chile host-side (`list_oa` / `get_oa`) | Currículum oficial MINEDUC completo |
 
 Ollama / local LLMs can come later; they are not the default.
 
@@ -85,8 +86,10 @@ Ollama / local LLMs can come later; they are not the default.
                     │
 ┌─ python -m tero bridge  (Strands Agent) ───┐
 │  tools: list/search/read (sandbox)         │
+│         list_oa/get_oa/search_oa (catálogo)│
 │         propose_plan, cite_evidence, draft │
 │  host: hash check, warnings, gate, write   │
+│         export md|docx|latex (templates)   │
 └────────────────────────────────────────────┘
                     │
          carpeta originales  (read-only, hashed)
@@ -96,15 +99,30 @@ Ollama / local LLMs can come later; they are not the default.
 
 HITL is structural: `propose_plan` / `draft_artifact` are **in-memory**. Only `tero.gate` writes files.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md). Adversarial self-critique: [docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md). Improvement report: [docs/INFORME-MEJORAS.md](docs/INFORME-MEJORAS.md).
+See [ARCHITECTURE.md](ARCHITECTURE.md). Adversarial self-critique: [docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md). LaTeX + currículo: [docs/ADVERSARIAL-LATEX-CURRICULO.md](docs/ADVERSARIAL-LATEX-CURRICULO.md). Improvement report: [docs/INFORME-MEJORAS.md](docs/INFORME-MEJORAS.md).
 
-## Encargo chips
+## Encargo chips + OA de catálogo
 
 ```bash
-python -m tero tui --offline --curso "4° básico" --oa "OA 4" --duracion "45 min" --tipo planificacion
+python -m tero tui --offline --curso "4° básico" --oa "LEN-4B-OA04" --duracion "45 min" --tipo planificacion
 ```
 
-TUI commands: `/oa OA 6` · `/tipo guia` · `/export md`.
+TUI: `/curso 4° básico` · `/asignatura Lenguaje` carga OA reales del catálogo · `/oa LEN-4B-OA04` (valida) · `/tipo guia` · `/export latex`.
+
+Catálogo mínimo (4°–6° Lenguaje/Matemática/Ciencias): `curriculum/chile/` — **no** es texto oficial MINEDUC verbatim. Lineamientos de evaluación (resumen de aula): `curriculum/chile/evaluacion/lineamientos.md`.
+
+## Export LaTeX (JSON → plantilla)
+
+Nova Lite (y el offline) **no** emiten TeX libre. El host rellena plantillas en `templates/latex/` desde un JSON schema (o desde el markdown del borrador):
+
+```bash
+# tras demo / gate:
+python -m tero export --format latex path/al/artefacto.md
+# o payload schema directo (smoke Nova Lite-safe):
+python -m tero export --format latex --payload guia.json --out /tmp/guia.tex /tmp/noop.md
+```
+
+PDF opcional si hay `latexmk` (`--pdf` / sin shell-escape). Si no, queda el `.tex`.
 
 Extra classroom pack from the first MVP (agua / 5° básico, includes a PDF): `fixtures/aula-5basico-agua/`.
 
