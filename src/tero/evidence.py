@@ -103,12 +103,34 @@ def collect_warnings(
 
     plan_oa = (plan.oa if plan else "") or encargo.oa
     if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
-        warnings.append(
-            WarningItem(
-                code="oa_mismatch",
-                message=f"OA del encargo ({encargo.oa}) no coincide con el plan ({plan_oa}).",
+        # Allow "OA 4" vs "OA 4 (LEN-4B-OA04)" when same catalog id / codigo
+        from tero.curriculum.catalog import resolve_oa
+
+        a = resolve_oa(encargo.oa, curso=encargo.curso, asignatura=encargo.asignatura)
+        b = resolve_oa(plan_oa, curso=encargo.curso, asignatura=encargo.asignatura)
+        if not (a and b and a.id == b.id):
+            warnings.append(
+                WarningItem(
+                    code="oa_mismatch",
+                    message=f"OA del encargo ({encargo.oa}) no coincide con el plan ({plan_oa}).",
+                )
             )
-        )
+
+    # Unknown OA relative to catalog (non-blocking)
+    if encargo.oa or (plan and plan.oa):
+        from tero.curriculum.catalog import resolve_oa
+
+        check = (plan.oa if plan and plan.oa else "") or encargo.oa
+        if check and resolve_oa(check, curso=encargo.curso, asignatura=encargo.asignatura) is None:
+            warnings.append(
+                WarningItem(
+                    code="oa_unknown",
+                    message=(
+                        f"OA «{check}» no está en el catálogo Chile host-side. "
+                        "El agente no debería inventar ids; usa list_oa/get_oa."
+                    ),
+                )
+            )
 
     body = draft.cuerpo_markdown.strip()
     if len(body) < THIN_CHARS:

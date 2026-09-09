@@ -18,6 +18,7 @@ ALLOWED_IN = {
     "plan.edit_assumption",
     "gate",
     "export",
+    "curriculum.list",
     "retry",
     "shutdown",
 }

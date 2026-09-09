@@ -1,9 +1,10 @@
-"""Export accepted artifacts. Markdown always; DOCX if python-docx is installed."""
+"""Export accepted artifacts. Markdown always; DOCX/LaTeX optional paths."""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 from tero.errors import TeroError
 
@@ -61,3 +62,23 @@ def export_docx(source: Path, dest: Path) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     document.save(dest)
     return dest
+
+
+def export_latex(
+    source: Path,
+    dest: Path,
+    *,
+    tipo: str | None = None,
+    payload: dict[str, Any] | None = None,
+    try_pdf: bool = False,
+) -> Path:
+    """Markdown/JSON → deterministic .tex template (no free-form TeX from the model)."""
+    from tero.latex.render import export_latex as _export_latex
+
+    return _export_latex(source, dest, tipo=tipo, payload=payload, try_pdf=try_pdf)
+
+
+def render_latex(payload: dict[str, Any] | str, *, tipo: str | None = None) -> str:
+    from tero.latex.render import render_latex as _render
+
+    return _render(payload, tipo=tipo)

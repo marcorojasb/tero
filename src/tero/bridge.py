@@ -7,9 +7,10 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from tero.config import Settings
+from tero.curriculum.catalog import catalog_summary, list_oa, resolve_oa
 from tero.encargo_sync import apply_rumbo
 from tero.errors import ProtocolError, TeroError, humanize_exception
-from tero.export import export_docx, export_markdown
+from tero.export import export_docx, export_latex, export_markdown
 from tero.offline import model_label
 from tero.protocol import decode, encode
 from tero.session import TeacherSession
@@ -138,12 +139,47 @@ class Bridge:
                     "fuentes": len(sources),
                     "changed": sum(1 for item in sources if item.changed),
                     "sessions": _recent_sessions(self.workspace),
+                    "curriculum": catalog_summary(),
                 }
             )
+            _emit_oa_options(self, self.session.encargo)
             return
         if kind == "encargo.update":
-            self.session.set_encargo(Encargo.from_dict(message.get("encargo") or {}))
+            encargo = Encargo.from_dict(message.get("encargo") or {})
+            # Validate /oa against catalog when possible; keep chip but warn if unknown.
+            if encargo.oa:
+                resolved = resolve_oa(
+                    encargo.oa, curso=encargo.curso, asignatura=encargo.asignatura
+                )
+                if resolved:
+                    encargo = Encargo(
+                        curso=encargo.curso,
+                        asignatura=encargo.asignatura,
+                        oa=resolved.chip(),
+                        duracion=encargo.duracion,
+                        tipo=encargo.tipo,
+                        notas=encargo.notas,
+                        rumbo=encargo.rumbo,
+                        tema=encargo.tema,
+                    )
+                else:
+                    self.emit(
+                        {
+                            "type": "warning",
+                            "warning": {
+                                "code": "oa_unknown",
+                                "message": (
+                                    f"OA «{encargo.oa}» no está en el catálogo Chile. "
+                                    "Usa /curso + /asignatura y elige un id de la lista, "
+                                    "o list_oa en el agente."
+                                ),
+                                "blocking": False,
+                            },
+                        }
+                    )
+            self.session.set_encargo(encargo)
             self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
+            _emit_oa_options(self, self.session.encargo)
             # Changing tipo/curso/oa mid-flight MUST clear stale proposal (not just warn).
             if self.session.phase in {
                 "esperando_criterio",
@@ -171,11 +207,25 @@ class Bridge:
                     }
                 )
             return
+        if kind == "curriculum.list":
+            curso = str(message.get("curso") or self.session.encargo.curso or "")
+            asignatura = str(message.get("asignatura") or self.session.encargo.asignatura or "")
+            rows = [item.as_dict() for item in list_oa(curso, asignatura)]
+            self.emit(
+                {
+                    "type": "oa_options",
+                    "oas": rows,
+                    "curso": curso,
+                    "asignatura": asignatura,
+                }
+            )
+            return
         if kind == "rumbo":
             rumbo = str(message.get("rumbo") or "")
             self.session.set_encargo(apply_rumbo(self.session.encargo, rumbo))
             self.emit({"type": "encargo", "encargo": self.session.encargo.as_dict()})
             self.emit({"type": "rumbo", "rumbo": self.session.encargo.rumbo})
+            _emit_oa_options(self, self.session.encargo)
             return
         if kind == "prompt":
             text = str(message.get("text") or "").strip()
@@ -222,35 +272,59 @@ class Bridge:
                 raise ProtocolError(
                     "No hay artefacto para exportar. Acepta con `s` (derivados/) "
                     "o guarda borrador con `b` (borradores/) primero. "
-                    "Después: /export md"
+                    "Después: /export md|latex"
                 )
             kind_src = (
                 "borrador"
                 if "borrador" in source.parts or "borradores" in source.parts
                 else "derivado"
             )
-            fmt = str(message.get("format") or "md")
+            fmt = str(message.get("format") or "md").lower()
             dest_raw = message.get("path")
+            pdf_path = None
             if fmt == "docx":
                 dest = Path(dest_raw) if dest_raw else source.with_suffix(".docx")
                 path = export_docx(source, dest)
+            elif fmt in {"latex", "tex"}:
+                dest = Path(dest_raw) if dest_raw else source.with_suffix(".tex")
+                try_pdf = bool(message.get("pdf"))
+                path = export_latex(source, dest, try_pdf=try_pdf)
+                maybe_pdf = path.with_suffix(".pdf")
+                if maybe_pdf.exists():
+                    pdf_path = str(maybe_pdf)
+                fmt = "tex"
             else:
                 dest = Path(dest_raw) if dest_raw else source.with_name(source.stem + ".export.md")
                 path = export_markdown(source, dest)
             # Also offer a feedback sidecar summarizing session critiques
             feedback = _write_feedback(self.workspace, self.session)
-            self.emit(
-                {
-                    "type": "exported",
-                    "path": str(path),
-                    "format": fmt,
-                    "source_kind": kind_src,
-                    "source_path": str(source),
-                    "feedback": str(feedback) if feedback else None,
-                }
-            )
+            event = {
+                "type": "exported",
+                "path": str(path),
+                "format": fmt,
+                "source_kind": kind_src,
+                "source_path": str(source),
+                "feedback": str(feedback) if feedback else None,
+            }
+            if pdf_path:
+                event["pdf"] = pdf_path
+            self.emit(event)
             return
         raise ProtocolError(f"no implementado: {kind}")
+
+
+def _emit_oa_options(bridge: Bridge, encargo: Encargo) -> None:
+    if not (encargo.curso or encargo.asignatura):
+        return
+    rows = [item.as_dict() for item in list_oa(encargo.curso, encargo.asignatura)]
+    bridge.emit(
+        {
+            "type": "oa_options",
+            "oas": rows,
+            "curso": encargo.curso,
+            "asignatura": encargo.asignatura,
+        }
+    )
 
 
 def _recent_sessions(workspace: Workspace) -> list[dict[str, str]]:

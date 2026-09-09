@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tero/latex/guia",
+  "title": "Guía de aprendizaje (JSON → LaTeX)",
+  "type": "object",
+  "required": ["tipo", "titulo", "proposito", "actividades"],
+  "additionalProperties": true,
+  "properties": {
+    "tipo": {"const": "guia"},
+    "titulo": {"type": "string"},
+    "curso": {"type": "string"},
+    "asignatura": {"type": "string"},
+    "oa": {"type": "string"},
+    "oa_texto": {"type": "string"},
+    "tiempo": {"type": "string"},
+    "proposito": {"type": "string"},
+    "materiales": {"type": "array", "items": {"type": "string"}},
+    "instrucciones": {"type": "array", "items": {"type": "string"}},
+    "sm_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "enunciado": {"type": "string"},
+          "opciones": {"type": "array", "items": {"type": "string"}},
+          "clave": {"type": "string"}
+        },
+        "required": ["enunciado"]
+      }
+    },
+    "desarrollo_prompts": {"type": "array", "items": {"type": "string"}},
+    "actividades": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titulo": {"type": "string"},
+          "inicio": {"type": "string"},
+          "desarrollo": {"type": "string"},
+          "cierre": {"type": "string"}
+        },
+        "required": ["titulo"]
+      }
+    },
+    "cierre": {"type": "string"}
+  }
+}

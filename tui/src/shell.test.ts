@@ -182,7 +182,7 @@ describe("shell frames", () => {
       const frame = setup.captureCharFrame()
       expect(frame).toContain("sí")
       expect(frame).toContain("derivados")
-      expect(frame).toContain("evidencia 1/2")
+      expect(frame).toContain("evid 1/2")
       expect(frame).toContain("4 fuentes")
       expect(frame).toContain("aviso")
     } finally {

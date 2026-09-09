@@ -1,0 +1,61 @@
+% Auto-generado por tero — NO editar a mano el flujo del modelo (JSON → plantilla).
+% Compilar: latexmk -pdf -no-shell-escape archivo.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.2em}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=0.25em}
+\title{{{titulo}}}
+\author{tero · guía de aprendizaje}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Curso} & {{curso}} \\
+\textbf{Asignatura} & {{asignatura}} \\
+\textbf{OA} & {{oa}} \\
+\textbf{Tiempo} & {{tiempo}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.6em}
+\noindent\textit{{{oa_texto}}}
+
+\section*{Propósito}
+{{proposito}}
+
+\section*{Materiales}
+\begin{itemize}
+{{materiales_items}}
+\end{itemize}
+
+\section*{Instrucciones}
+\begin{enumerate}
+{{instrucciones_items}}
+\end{enumerate}
+
+\section*{Selección múltiple}
+{{sm_block}}
+
+\section*{Desarrollo}
+{{desarrollo_block}}
+
+\section*{Actividades}
+{{actividades_block}}
+
+\section*{Cierre}
+{{cierre}}
+
+\vfill
+{\footnotesize Generado con tero (JSON→LaTeX). El docente decide. Catálogo curricular no oficial MINEDUC.}
+\end{document}

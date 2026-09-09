@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tero/latex/evaluacion",
+  "title": "Evaluación (JSON → LaTeX)",
+  "type": "object",
+  "required": ["tipo", "titulo", "instrucciones", "items"],
+  "additionalProperties": true,
+  "properties": {
+    "tipo": {"const": "evaluacion"},
+    "titulo": {"type": "string"},
+    "curso": {"type": "string"},
+    "asignatura": {"type": "string"},
+    "oa": {"type": "string"},
+    "oa_texto": {"type": "string"},
+    "puntaje_total": {"type": ["string", "number"]},
+    "instrucciones": {"type": "array", "items": {"type": "string"}},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tipo_item": {"type": "string"},
+          "enunciado": {"type": "string"},
+          "puntaje": {"type": ["string", "number"]},
+          "opciones": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["enunciado"]
+      }
+    },
+    "criterios": {"type": "array", "items": {"type": "string"}},
+    "nota_docente": {"type": "string"}
+  }
+}

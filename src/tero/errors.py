@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tero import DEFAULT_MODEL_ID
+
 
 class TeroError(Exception):
     def __init__(self, message: str, *, code: str = "tero_error") -> None:
@@ -39,7 +41,11 @@ class ProtocolError(TeroError):
 
 
 def humanize_exception(exc: BaseException) -> tuple[str, str]:
-    """Return (code, Spanish message) for Bedrock / network / generic failures."""
+    """Return (code, Spanish message) for Bedrock / network / generic failures.
+
+    Lean path: one Strands + Bedrock stack. No AgentCore. Messages must tell the
+    teacher what to fix (creds, region, model enablement) without raw boto dumps.
+    """
     if isinstance(exc, TeroError):
         return exc.code, exc.message
 
@@ -48,23 +54,47 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
     lower = text.lower()
     blob = f"{name} {text}".lower()
 
+    # Model access denials first (often AccessDeniedException + model id wording).
+    # Do not treat IAM InvokeModel denials as model-access (substring "InvokeModel").
+    model_denied = any(
+        token in blob
+        for token in (
+            "you don't have access to the model",
+            "access to the model with the specified",
+            "model is not authorized",
+            "has no access to model",
+        )
+    ) or ("accessdenied" in blob and "model id" in blob)
+    if model_denied:
+        return (
+            "bedrock_model",
+            f"Sin acceso al modelo en esta cuenta/región ({text[:120]}). "
+            f"En Bedrock → Model access habilita Nova Lite; "
+            f"TERO_MODEL={DEFAULT_MODEL_ID}; región us-east-1.",
+        )
     if any(
         token in blob
         for token in (
             "expiredtoken",
             "unrecognizedclient",
             "invalidclienttokenid",
+            "accessdeniedexception",
             "accessdenied",
+            "unauthorized",
+            "not authorized to perform",
             "credentials",
             "unable to locate credentials",
             "nofilecredentials",
+            "invalidsecuritytoken",
+            "security token",
         )
     ):
         return (
             "bedrock_auth",
-            "Amazon Bedrock no aceptó las credenciales. "
-            "Revisa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / "
-            "AWS_BEARER_TOKEN_BEDROCK o `aws configure`, y vuelve a intentar.",
+            "Amazon Bedrock no aceptó las credenciales o el IAM. "
+            "Revisa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY "
+            "(o AWS_BEARER_TOKEN_BEDROCK / `aws configure`), "
+            "permisos bedrock:InvokeModel* y región us-east-1.",
         )
     if any(
         token in blob
@@ -74,11 +104,14 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
             "rate exceeded",
             "service unavailable",
             "modeltimeout",
+            "model is getting throttled",
+            "too many tokens",
+            "limitexceeded",
         )
     ):
         return (
             "bedrock_throttle",
-            "Bedrock está saturado o limitó la cuota. Espera unos segundos y reintenta (Enter).",
+            "Bedrock limitó la cuota o está saturado. Espera unos segundos y reintenta (r).",
         )
     if any(
         token in blob
@@ -87,22 +120,46 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
             "resourcenotfound",
             "model not ready",
             "isn't supported",
+            "is not supported",
             "access to the model",
+            "you don't have access",
+            "modelidentifier",
+            "on-demand throughput",
+            "inference profile",
         )
     ):
         return (
             "bedrock_model",
-            f"El modelo no está disponible en esta cuenta/región ({text[:160]}). "
-            "Prueba amazon.nova-lite-v1:0 en us-east-1 o cambia TERO_MODEL.",
+            f"El modelo no está disponible en esta cuenta/región ({text[:140]}). "
+            f"En la consola Bedrock habilita Nova Lite, usa región us-east-1, "
+            f"y deja TERO_MODEL={DEFAULT_MODEL_ID} (o TERO_MODEL_ID).",
         )
-    if any(token in blob for token in ("endpoint", "connect", "timeout", "network", "resolve")):
+    if any(
+        token in blob
+        for token in (
+            "endpoint",
+            "connect",
+            "timeout",
+            "timed out",
+            "network",
+            "resolve",
+            "name or service not known",
+            "temporary failure in name resolution",
+        )
+    ):
         return (
             "network",
-            "No hubo red hacia Bedrock. Comprueba conexión/VPN/región y reintenta.",
+            "No hubo red hacia Bedrock. Comprueba conexión/VPN/región (us-east-1) y reintenta.",
         )
     if "prompt vacío" in lower or "garbage" in lower:
         return "bad_input", text
+    if "empty" in lower and "response" in lower:
+        return (
+            "bedrock_empty",
+            "Bedrock devolvió una respuesta vacía. tero reintenta el borrador una vez; "
+            "si sigue fallando, pulsa r o /retry.",
+        )
     return (
         "host_error",
-        f"Algo falló en el host: {text[:240]}. Puedes reintentar el último encargo.",
+        f"Algo falló en el host: {text[:240]}. Puedes reintentar el último encargo (r).",
     )

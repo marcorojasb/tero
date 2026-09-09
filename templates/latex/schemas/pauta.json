@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tero/latex/pauta",
+  "title": "Pauta / rúbrica (JSON → LaTeX)",
+  "type": "object",
+  "required": ["tipo", "titulo", "criterios"],
+  "additionalProperties": true,
+  "properties": {
+    "tipo": {"const": "pauta"},
+    "titulo": {"type": "string"},
+    "curso": {"type": "string"},
+    "asignatura": {"type": "string"},
+    "oa": {"type": "string"},
+    "oa_texto": {"type": "string"},
+    "niveles": {"type": "array", "items": {"type": "string"}},
+    "criterios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {"type": "string"},
+          "descriptores": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["nombre"]
+      }
+    },
+    "lineamientos_nota": {"type": "string"}
+  }
+}

@@ -97,6 +97,39 @@ Stress + Pteron/OpenCode overhaul. Lo que cambió de verdad:
 | Bedrock falla en crudo | `humanize_exception` → mensajes de auth/throttle/modelo/red + `retryable`. |
 | Cancelar plan deja sucio | `plan_cancelled` → idle/home, limpia plan/propuesta/evidencia. |
 
+## Mitigaciones currículum + LaTeX (`feat/curriculum-latex-nova-lite`)
+
+| Riesgo / gap | Mitigación |
+| --- | --- |
+| Alucinación de OA / ids inventados (Nova Lite) | Catálogo host `curriculum/chile/catalogo.json` + tools `list_oa` / `get_oa` / `search_oa`. `get_oa` falla cerrado. `/oa` resuelve contra catálogo; warning `oa_unknown`. Offline llama `list_oa`→`get_oa` antes de `propose_plan`. |
+| Dump del currículum en el prompt | El system prompt **no** pega el JSON; el modelo consulta tools. Disclaimer: no es texto oficial MINEDUC verbatim. |
+| Nova Lite emite LaTeX roto / `\write18` | El modelo rellena **JSON schema**; host `repair_payload` + `escape_latex` + plantillas en `templates/latex/`. Nunca se pide TeX libre. |
+| Export LaTeX sin control | `tero export latex` / `/export latex` sobre aceptado o borrador; PDF opcional con `latexmk -no-shell-escape`. |
+| Evaluación / pauta sin criterio | `curriculum/chile/evaluacion/lineamientos.md` (resumen de aula, no asesoría legal) alimenta plantillas pauta/evaluación. |
+
+Detalle adversarial: [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md).
+
+## Mitigaciones lean AWS (`feat/curriculum-latex-nova-lite`)
+
+| Riesgo / gap | Mitigación |
+| --- | --- |
+| Credenciales / IAM / región opacos | `humanize_exception`: auth vs model-access vs throttle vs network en español; tip `TERO_MODEL` / Nova Lite / `us-east-1`. |
+| Nova Lite entrega tools/texto sin `draft_artifact` | `_draft_phase` reintenta **una** vez con nudge explícito (`step=draft_retry`); luego `r`/`/retry`. |
+| Juez sin AWS | Offline `tero-offline` intacto; README reserva video day al demo offline. |
+| Confusión de env vars | `.env.example` + README checklist free tier; `TERO_MODEL` canónico, alias `TERO_MODEL_ID`. |
+| Tentación de “completar AWS” con infra | **Defer explícito:** no AgentCore, no multi-agent, no servicios cloud nuevos. Un solo path Strands→Bedrock. |
+
+## Diferido (a propósito, ~video day)
+
+- AgentCore / runtime managed / multi-agent orchestration
+- Live Bedrock en CI (hace falta secret + smoke barato)
+- Source viewer con highlight de línea
+- Catálogo curricular MINEDUC completo (el JSON es mínimo 4°–6°)
+- PDF LaTeX obligatorio en CI (`.tex` basta; `latexmk` opcional en host)
+- Ollama / local LLM como default
+
+Ver [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md).
+
 Sigue siendo verdad (no mitigué del todo):
 
 - Warnings no bloquean `s` (diseño).
@@ -104,6 +137,7 @@ Sigue siendo verdad (no mitigué del todo):
 - No hay source viewer con highlight de línea.
 - Bedrock no corre en CI.
 - OpenTUI ≠ paridad con OpenCode ni con el desktop Pteron.
+- Catálogo Chile es mínimo (4°–6°, tres asignaturas), no bases curriculares completas.
 
 Ver también [docs/INFORME-MEJORAS.md](INFORME-MEJORAS.md).
 
@@ -149,12 +183,14 @@ eligibility and taste.
   viewer. Today `start_line` exists on the type and is almost unused.
 - Persist session + crítica (`c`) next to the artifact.
 - Live Bedrock CI (needs secrets + a cheap smoke, not a full lesson).
-- Pedagogical eval: OA alignment is a string compare, not a curriculum
-  expert.
+- Pedagogical eval: OA alignment is a string compare **plus** host catalog
+  resolve (`curriculum/chile/`). Still not a curriculum expert; unknown ids
+  warn, they do not block `s`.
 - `search_sources` is naive substring. Fine for a 5-file carpeta; not a
   retrieval stack.
 - Export docx depends on `python-docx` (in the `dev` extra). A judge who
   `pip install -e .` without extras cannot `/export docx`.
+- Export latex needs no extra deps for `.tex`; PDF needs `latexmk` on PATH.
 - Spanish-only UI. That is a product choice, not i18n debt we pretend
   to have paid.
 

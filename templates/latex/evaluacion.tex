@@ -1,0 +1,47 @@
+% Auto-generado por tero — JSON → plantilla (sin TeX libre del modelo).
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\title{{{titulo}}}
+\author{tero · evaluación}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Curso} & {{curso}} \\
+\textbf{Asignatura} & {{asignatura}} \\
+\textbf{OA} & {{oa}} \\
+\textbf{Puntaje total} & {{puntaje_total}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{{{oa_texto}}}
+
+\section*{Instrucciones}
+\begin{enumerate}
+{{instrucciones_items}}
+\end{enumerate}
+
+\section*{Ítems}
+{{items_block}}
+
+\section*{Criterios}
+\begin{itemize}
+{{criterios_items}}
+\end{itemize}
+
+\section*{Nota al docente}
+{{nota_docente}}
+
+\vfill
+{\footnotesize tero · alineación formativa/sumativa orientativa (ver curriculum/chile/evaluacion/lineamientos.md).}
+\end{document}

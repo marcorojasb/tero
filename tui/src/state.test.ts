@@ -242,6 +242,51 @@ describe("commands", () => {
       expect(action.state.proposal).toBe("")
     }
   })
+  test("/oa matches catalog option id", () => {
+    const state = {
+      ...initialState(encargo),
+      oaOptions: [
+        {
+          id: "LEN-4B-OA04",
+          curso: "4b",
+          asignatura: "lenguaje",
+          codigo: "OA 4",
+          texto_corto: "Extraer info",
+        },
+      ],
+    }
+    const action = handleCommand(state, "/oa LEN-4B-OA04")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send" && action.message.type === "encargo.update") {
+      expect(action.message.encargo.oa).toContain("LEN-4B-OA04")
+    }
+  })
+  test("/export latex sends format latex", () => {
+    const action = handleCommand(initialState(encargo), "/export latex")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send" && action.message.type === "export") {
+      expect(action.message.format).toBe("latex")
+    }
+  })
+  test("oa_options event fills hint", () => {
+    let state = initialState(encargo)
+    state = applyHostEvent(state, {
+      type: "oa_options",
+      curso: "4° básico",
+      asignatura: "Lenguaje",
+      oas: [
+        {
+          id: "LEN-4B-OA04",
+          curso: "4b",
+          asignatura: "lenguaje",
+          codigo: "OA 4",
+          texto_corto: "Extraer",
+        },
+      ],
+    })
+    expect(state.oaOptions).toHaveLength(1)
+    expect(state.oaHint).toContain("OA")
+  })
   test("/objetivo edits the pending plan locally", () => {
     const state = {
       ...initialState(encargo),
