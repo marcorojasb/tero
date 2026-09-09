@@ -6,12 +6,15 @@ function env(name: string, fallback = ""): string {
   return (process.env[name] ?? fallback).trim()
 }
 
+// Home-first: empty encargo unless the teacher (or CLI flags) set chips.
 const encargo: Encargo = {
-  curso: env("TERO_CURSO", "4° básico"),
-  asignatura: env("TERO_ASIGNATURA", "Lenguaje y Comunicación"),
-  oa: env("TERO_OA", "OA 4"),
-  duracion: env("TERO_DURACION", "45 min"),
-  tipo: env("TERO_TIPO", "planificacion"),
+  curso: env("TERO_CURSO", ""),
+  asignatura: env("TERO_ASIGNATURA", ""),
+  oa: env("TERO_OA", ""),
+  duracion: env("TERO_DURACION", ""),
+  tipo: env("TERO_TIPO", "") || null,
+  rumbo: env("TERO_RUMBO", ""),
+  tema: env("TERO_TEMA", ""),
 }
 
 const repoRoot = resolve(import.meta.dir, "../..")

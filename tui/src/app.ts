@@ -1,7 +1,13 @@
-import { createCliRenderer } from "@opentui/core"
+import { CliRenderEvents, createCliRenderer } from "@opentui/core"
 import { startBridge, type Bridge } from "./bridge.ts"
 import type { Encargo } from "./protocol.ts"
-import { applyHostEvent, handleCommand, handleHotkey, initialState, type AppState } from "./state.ts"
+import {
+  applyHostEvent,
+  handleCommand,
+  handleHotkey,
+  initialState,
+  type AppState,
+} from "./state.ts"
 import { mountShell } from "./shell.ts"
 import { theme } from "./theme.ts"
 
@@ -22,16 +28,42 @@ export async function launch(opts: LaunchOptions): Promise<void> {
     consoleMode: "disabled",
   })
 
-  let state: AppState = initialState(opts.encargo)
+  let state: AppState = {
+    ...initialState(opts.encargo),
+    compact: renderer.width < 100,
+  }
   let bridge: Bridge | null = null
+  let spinnerTimer: ReturnType<typeof setInterval> | null = null
 
   const apply = (next: AppState) => {
     state = next
     shell.sync(state)
+    if (state.thinking) startSpinner()
+    else stopSpinner()
+  }
+
+  const startSpinner = () => {
+    if (spinnerTimer) return
+    spinnerTimer = setInterval(() => {
+      if (!state.thinking) {
+        stopSpinner()
+        return
+      }
+      state = { ...state, spinnerFrame: state.spinnerFrame + 1 }
+      shell.sync(state)
+    }, 80)
+  }
+
+  const stopSpinner = () => {
+    if (spinnerTimer) {
+      clearInterval(spinnerTimer)
+      spinnerTimer = null
+    }
   }
 
   const dispatch = (action: ReturnType<typeof handleCommand>) => {
     if (action.kind === "quit") {
+      stopSpinner()
       bridge?.close()
       renderer.destroy()
       process.exit(0)
@@ -53,29 +85,62 @@ export async function launch(opts: LaunchOptions): Promise<void> {
   })
   shell.sync(state)
 
+  renderer.on(CliRenderEvents.RESIZE, () => {
+    const compact = renderer.width < 100 || renderer.height < 28
+    if (compact !== state.compact) {
+      apply({ ...state, compact })
+    } else {
+      shell.sync(state)
+    }
+  })
+
   renderer.keyInput.on("keypress", (key) => {
     if (key.ctrl && key.name === "c") {
       dispatch({ kind: "quit" })
       return
     }
     const name = key.name || key.sequence
-    if (name === "q" && !shell.input.value && state.uiMode !== "critique" && state.phase !== "esperando_criterio" && state.phase !== "esperando_plan") {
+    if (
+      name === "q" &&
+      !shell.input.value &&
+      state.uiMode !== "critique" &&
+      state.uiMode !== "assumption" &&
+      state.uiMode !== "clarify" &&
+      state.phase !== "esperando_criterio" &&
+      state.phase !== "esperando_plan" &&
+      state.phase !== "esperando_clarificacion"
+    ) {
       dispatch({ kind: "quit" })
       return
     }
-    const typing = Boolean(shell.input.value) && state.uiMode !== "critique"
+    const typing = Boolean(shell.input.value) && state.uiMode === "prompt"
     const globalKeys = new Set(["?", "tab", "[", "]", "escape"])
     if (typing && !globalKeys.has(name) && !key.ctrl) {
       return
     }
-    const busyInput =
-      (state.uiMode === "critique" || (state.phase !== "esperando_plan" && state.phase !== "esperando_criterio")) &&
-      name.length === 1 &&
-      !key.ctrl
-    if (busyInput && !globalKeys.has(name) && state.uiMode !== "critique") {
+    // Allow 1-4 on home / clarify even when not typing in special modes
+    if (
+      state.uiMode === "critique" ||
+      state.uiMode === "assumption"
+    ) {
+      if (name !== "escape" && name !== "?") return
+    }
+
+    const busyPhases =
+      state.phase === "esperando_plan" ||
+      state.phase === "esperando_criterio" ||
+      state.phase === "esperando_clarificacion" ||
+      state.phase === "error" ||
+      state.screen === "home"
+
+    const single = name.length === 1 && !key.ctrl
+    if (!busyPhases && single && !globalKeys.has(name) && state.uiMode === "prompt") {
       return
     }
-    if (state.uiMode === "critique" && name !== "escape" && name !== "?") return
+    if (shell.input.value && !globalKeys.has(name) && state.uiMode === "prompt" && !["1", "2", "3", "4"].includes(name)) {
+      // Let the input widget handle characters while typing an encargo
+      if (state.phase !== "esperando_plan" && state.phase !== "esperando_criterio") return
+    }
 
     const action = handleHotkey(state, key.ctrl ? `ctrl+${name}` : name)
     if (action.kind !== "none") {
@@ -95,13 +160,20 @@ export async function launch(opts: LaunchOptions): Promise<void> {
     },
     onExit(code) {
       if (code && code !== 0) {
-        apply({ ...state, lastError: `bridge salió ${code}`, phase: "error", statusLine: `bridge salió ${code}` })
+        apply({
+          ...state,
+          lastError: `bridge salió ${code}`,
+          phase: "error",
+          statusLine: `bridge salió ${code}`,
+          retryable: true,
+        })
       }
     },
   })
   bridge.send({ type: "hello", encargo: opts.encargo, carpeta: opts.carpeta })
 
   renderer.on("destroy", () => {
+    stopSpinner()
     bridge?.close()
   })
 }

@@ -20,6 +20,7 @@ export function startBridge(opts: {
   const args = ["-m", "tero", "bridge"]
   if (opts.offline) args.push("--offline")
   if (opts.carpeta) args.push("--carpeta", opts.carpeta)
+  // Prefer empty defaults for home-first UX unless explicitly set
   if (opts.encargo.curso) args.push("--curso", opts.encargo.curso)
   if (opts.encargo.asignatura) args.push("--asignatura", opts.encargo.asignatura)
   if (opts.encargo.oa) args.push("--oa", opts.encargo.oa)
