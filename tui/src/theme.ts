@@ -1,4 +1,4 @@
-/** Calm, dense palette — closer to OpenCode than to a neon demo. */
+/** Dense OpenCode-adjacent tokens — high contrast, calm, keyboard-first. */
 
 export const theme = {
   bg: "#0b0d10",
@@ -6,10 +6,12 @@ export const theme = {
   panelAlt: "#161a20",
   border: "#2c333c",
   borderFocus: "#6cb6ff",
+  borderSoft: "#3d4450",
   text: "#d8dee9",
   muted: "#7a8490",
   faint: "#4b5563",
   accent: "#82aaff",
+  accentSoft: "#3d5a80",
   ok: "#9ece6a",
   warn: "#c9a227",
   err: "#e06c75",
@@ -18,6 +20,9 @@ export const theme = {
   cursor: "#82aaff",
   inputBg: "#0e1116",
   overlay: "#0f141c",
+  brand: "#9aa4b2",
+  suggested: "#c9a227",
+  homeMuted: "#6b7380",
 } as const
 
 export type Theme = typeof theme

@@ -62,19 +62,42 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--skip-plan", action="store_true", help="Saltar el plan tipado (no recomendado)."
     )
-    parser.add_argument("--curso", default="4° básico")
-    parser.add_argument("--asignatura", default="Lenguaje y Comunicación")
-    parser.add_argument("--oa", default="OA 4")
-    parser.add_argument("--duracion", default="45 min")
+    parser.add_argument("--curso", default=None, help="Chip curso (vacío = home limpio en TUI).")
+    parser.add_argument("--asignatura", default=None)
+    parser.add_argument("--oa", default=None)
+    parser.add_argument("--duracion", default=None)
     parser.add_argument(
         "--tipo",
-        default="planificacion",
+        default=None,
         help="planificacion | guia | evaluacion | pauta | actividad",
     )
     parser.add_argument(
         "--quiet",
         action="store_true",
         help="Menos ruido en stdout (sigue imprimiendo escrito:/listo.).",
+    )
+
+
+def _encargo(args: argparse.Namespace, *, demo_defaults: bool = False) -> Encargo:
+    """CLI encargo. Demo keeps classroom defaults; TUI starts empty (home-first)."""
+    if demo_defaults:
+        return Encargo.from_dict(
+            {
+                "curso": args.curso or "4° básico",
+                "asignatura": args.asignatura or "Lenguaje y Comunicación",
+                "oa": args.oa or "OA 4",
+                "duracion": args.duracion or "45 min",
+                "tipo": args.tipo or "planificacion",
+            }
+        )
+    return Encargo.from_dict(
+        {
+            "curso": args.curso or "",
+            "asignatura": args.asignatura or "",
+            "oa": args.oa or "",
+            "duracion": args.duracion or "",
+            "tipo": args.tipo or "",
+        }
     )
 
 
@@ -90,24 +113,14 @@ def _settings(args: argparse.Namespace) -> Settings:
     return settings
 
 
-def _encargo(args: argparse.Namespace) -> Encargo:
-    return Encargo.from_dict(
-        {
-            "curso": args.curso,
-            "asignatura": args.asignatura,
-            "oa": args.oa,
-            "duracion": args.duracion,
-            "tipo": args.tipo,
-        }
-    )
-
-
 def cmd_demo(args: argparse.Namespace) -> int:
     settings = _settings(args)
     workspace = Workspace(settings.carpeta)
     before = workspace.fingerprint_sources()
     events: list[dict] = []
-    session = TeacherSession(workspace, settings, encargo=_encargo(args), emit=events.append)
+    session = TeacherSession(
+        workspace, settings, encargo=_encargo(args, demo_defaults=True), emit=events.append
+    )
     prompt = args.prompt.strip() or (
         "Prepara una planificación de 45 minutos sobre el cuento de la carpeta, "
         "alineada al OA de comprensión lectora. Usa solo las fuentes locales."
@@ -126,6 +139,15 @@ def cmd_demo(args: argparse.Namespace) -> int:
     if not settings.offline and not args.yes:
         say("Bedrock requiere credenciales de entorno (nunca en git). Ctrl+C para salir.")
     turn = session.start_turn(prompt)
+    # Autocomplete clarification questions in --yes (suggested option).
+    while session.phase == "esperando_clarificacion" and turn.plan:
+        pending = turn.plan.pending_question()
+        if pending is None:
+            break
+        suggested = next((opt for opt in pending.options if opt.suggested), None)
+        option_id = suggested or (pending.options[0] if pending.options else None)
+        session.answer_plan_question(option_id=option_id.id if option_id else "1")
+        turn = session.turns[-1]
     if session.phase == "esperando_plan":
         if args.yes:
             session.decide_plan("approve")
@@ -133,6 +155,8 @@ def cmd_demo(args: argparse.Namespace) -> int:
             print("\nPLAN (a=aprobar / x=cancelar):", flush=True)
             assert turn.plan is not None
             for key, value in turn.plan.as_dict().items():
+                if key in {"questions", "como_abordare", "supuestos", "entregables"}:
+                    continue
                 print(f"  {key}: {value}", flush=True)
             choice = input("¿Aprobar plan? [a/x]: ").strip().lower()
             if choice in {"x", "n", "cancel"}:
@@ -202,11 +226,11 @@ def cmd_tui(args: argparse.Namespace) -> int:
     env["TERO_AWS_REGION"] = settings.region
     env["TERO_PYTHON"] = sys.executable
     env["TERO_SKIP_PLAN"] = "1" if settings.skip_plan else "0"
-    env["TERO_CURSO"] = args.curso
-    env["TERO_ASIGNATURA"] = args.asignatura
-    env["TERO_OA"] = args.oa
-    env["TERO_DURACION"] = args.duracion
-    env["TERO_TIPO"] = args.tipo
+    env["TERO_CURSO"] = args.curso or ""
+    env["TERO_ASIGNATURA"] = args.asignatura or ""
+    env["TERO_OA"] = args.oa or ""
+    env["TERO_DURACION"] = args.duracion or ""
+    env["TERO_TIPO"] = args.tipo or ""
     cmd = [bun, str(entry)]
     try:
         return subprocess.call(cmd, cwd=tui_dir, env=env)

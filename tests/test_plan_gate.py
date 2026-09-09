@@ -65,6 +65,8 @@ def test_approve_plan_applies_host_edits(workspace: Workspace):
         encargo=Encargo(oa="OA 4", tipo=None),
     )
     session.start_turn("planificación del cuento")
+    while session.phase == "esperando_clarificacion":
+        session.answer_plan_question(option_id="1")
     assert session.turns[-1].plan is not None
     session.decide_plan("approve", {"oa": "OA 6", "duracion": "90 min"})
     assert session.turns[-1].plan is not None

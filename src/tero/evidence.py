@@ -85,9 +85,21 @@ def collect_warnings(
     encargo: Encargo,
     plan: Plan | None,
     draft: ArtifactDraft,
+    prompt: str = "",
 ) -> list[WarningItem]:
     warnings: list[WarningItem] = []
-    sources = {item.relative_path for item in workspace.list_sources()}
+    source_records = workspace.list_sources()
+    sources = {item.relative_path for item in source_records}
+
+    from tero.rumbos import domain_mismatch
+
+    source_blob = " ".join(sources)
+    mismatch = domain_mismatch(
+        f"{prompt} {encargo.tema} {encargo.asignatura} {encargo.curso}",
+        source_blob,
+    )
+    if mismatch:
+        warnings.append(WarningItem(code="domain_mismatch", message=mismatch))
 
     plan_oa = (plan.oa if plan else "") or encargo.oa
     if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
