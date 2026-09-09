@@ -216,3 +216,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# tero / bun / OpenTUI
+node_modules/
+tui/node_modules/
+*.env
+.env.*
+!.env.example
+.tero/
+examples/**/derivados/**
+!examples/**/derivados/.gitkeep
+examples/**/borradores/**
+!examples/**/borradores/.gitkeep
+examples/**/.tero/
+*.docx
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/

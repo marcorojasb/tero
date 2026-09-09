@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tero"
+version = "0.1.0"
+description = "tero — agente docente (Agents for Humans). El agente prepara; el profesor decide."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Marco Rojas" }]
+keywords = ["strands", "bedrock", "opentui", "teacher", "hitl"]
+dependencies = [
+  "strands-agents>=1.0.0",
+]
+
+[project.optional-dependencies]
+docx = ["python-docx>=1.1.0"]
+dev = ["pytest>=8.0", "ruff>=0.8", "python-docx>=1.1.0"]
+
+[project.scripts]
+tero = "tero.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/marcorojasb/tero"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tero = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
