@@ -14,7 +14,8 @@
 - TUI: Bun + `@opentui/core`. Frame tests use `@opentui/core/testing`.
 - JSONL protocol versioned (`v: 1`). Unknown inbound types are errors, not silent drops.
 - No secrets in the tree. `.env` is gitignored; `.env.example` lists names only.
-- Commit style: conventional commits, small diffs, no drive-by refactors.
+- Commit style: conventional commits, small diffs, no drive-by refactors. No `Co-authored-by` trailers.
+- PR titles are conventional (`fix:`, `feat:`, …) and must not contain the word `cursor`. Each PR is one concern; another agent analyzes and merges it independently. Do not merge your own PR.
 - HITL invariant: tools must not write teacher artifacts. `tero.gate` writes after a decision.
 - Citations are host-checked: a snippet that is not in the file is `verified: false` and a non-blocking warning. Do not treat paraphrases as quotes.
 

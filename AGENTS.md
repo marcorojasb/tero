@@ -30,5 +30,10 @@ pytest && (cd tui && bun test src)
 
 ## Style
 - Python: ruff (`E,F,I,W,UP`), format with ruff.
-- Commits: conventional, present tense, one concern each (`feat:`, `fix:`, `docs:`, `test:`, `ci:`).
+- Commits: conventional, present tense, one concern each (`feat:`, `fix:`, `docs:`, `test:`, `ci:`). **Sin `Co-authored-by`.**
 - Prefer depth on the teacher loop over new gadgets.
+
+## Pull requests
+- El título del PR es conventional (`fix:`, `feat:`, `docs:`, `test:`, `ci:`) y **no puede contener la palabra `cursor`**. El PR no se llama cursor.
+- Los commits **no llevan `Co-authored-by`**. Sin coautoría de Cursor, bots ni otras personas.
+- Cada PR es un solo concern. En cuanto se abre, **otro agente lo analiza y lo mergea de forma independiente**. No mergees tu propio PR. No juntes trabajo no relacionado en el mismo PR.
