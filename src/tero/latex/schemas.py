@@ -628,15 +628,15 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
         line = raw.strip()
         if not line or line in {"---", "***"}:
             continue
-        numbered = re.match(r"^\d+[.)]\s+(.*)$", line)
+        numbered = re.match(r"^(?:\*{0,2})(\d+)[.)](?:\*{0,2})\s+(.*)$", line)
         if numbered:
             if current and current.get("enunciado"):
                 items.append(current)
-            current = {"enunciado": numbered.group(1).strip(), "opciones": [], "clave": ""}
+            current = {"enunciado": numbered.group(2).strip(), "opciones": [], "clave": ""}
             continue
-        option = re.match(r"^[a-dA-D][.)]\s+(.*)$", line)
+        option = re.match(r"^([a-dA-D])[.)]\s+(.*)$", line)
         if option and current is not None:
-            current["opciones"].append(option.group(1).strip())
+            current["opciones"].append(option.group(2).strip())
             continue
         clave = re.match(r"^(?:clave|correcta|respuesta)\s*[:\-]\s*(.+)$", line, flags=re.I)
         if clave and current is not None:

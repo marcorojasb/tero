@@ -292,6 +292,19 @@ Autochequeo del par ordenado.
     assert vf
     assert any("verifica" in p.lower() for p in payload["desarrollo_prompts"])
     assert "Autochequeo" in payload["cierre"]
+    md_bold = """# Guía
+## Propósito
+Practicar.
+## Selección múltiple
+**1.** ¿Qué es un sistema 2×2?
+A) Una ecuación
+B) Dos ecuaciones lineales
+C) Un gráfico
+"""
+    sm = extract_payload_from_markdown(md_bold, tipo="guia")["sm_items"]
+    assert sm
+    assert "sistema 2" in sm[0]["enunciado"].lower()
+    assert len(sm[0]["opciones"]) == 3
 
 
 def test_extract_guia_sm_vf_and_desarrollo_sections():
