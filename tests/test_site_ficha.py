@@ -13,8 +13,12 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_ficha_landing_is_the_github_page():
-    html = _read(SITE / "index.html")
+    html = _flat(_read(SITE / "index.html"))
     css = _read(SITE / "styles.css")
     js = _read(SITE / "ficha.js")
 
