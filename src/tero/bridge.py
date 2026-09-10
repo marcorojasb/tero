@@ -143,6 +143,7 @@ class Bridge:
                             "no_plan",
                             "no_draft",
                             "evidence_blocked",
+                            "turn_timeout",
                             "host_error",
                         },
                     }

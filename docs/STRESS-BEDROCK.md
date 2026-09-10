@@ -77,4 +77,9 @@ python -m tero demo --yes --carpeta fixtures/aula-5basico-agua \
 - `s` bloqueado ante `thin_evidence` / `unknown_source` salvo nota `forzar…`; `--yes`/bridge → `borradores/`.
 - Prompt de corrección `c` exige citas con paths reales.
 
-Post-fix smoke: concurrent ×3 pasó sin EventStream en logs; agua escribió pese a stream; demo carpeta-demo aún puede colgar (>240s) — timeout de turno CLI pendiente.
+## Mitigaciones (ciclo 2026-09-10c)
+
+- `TERO_TURN_TIMEOUT` (default **120s** online, 0 offline): SIGALRM corta llamadas agent colgadas; reintenta hasta agotar intentos.
+- Warnings `thin_evidence` / `unknown_source` con `blocking=True` (tests alineados).
+
+Post-fix: concurrent ×3 OK; empty → borradores; hang >240s del demo → ahora debería cortar por timeout de turno.

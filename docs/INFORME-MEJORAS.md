@@ -43,6 +43,7 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 - Retry de plan + borrador (hasta 3) con backoff; token `EventStreamError` / `event loop cycle failed`.
 - `s` → `derivados/` bloqueado si `thin_evidence` / `unknown_source` (salvo nota `forzar…`); `--yes` y bridge autogate caen a `borradores/`.
 - Prompt de `c` exige `cite_evidence` con paths reales de la carpeta.
+- `TERO_TURN_TIMEOUT` (120s online): corta agent calls colgados vía SIGALRM y reintenta.
 
 ### Robustez
 - Sync de chips desde el prompt (curso/asignatura/tema/tipo/rumbo).

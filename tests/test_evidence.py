@@ -29,7 +29,11 @@ def test_warnings_oa_and_thin(workspace: Workspace):
     assert "thin_skeleton" in codes
     assert "missing_rubric" in codes
     assert "unknown_source" in codes
-    assert all(item.blocking is False for item in warnings)
+    # thin_evidence / unknown_source block s→derivados (teacher can still use b/c/forzar).
+    by_code = {item.code: item for item in warnings}
+    assert by_code["unknown_source"].blocking is True
+    assert by_code["thin_evidence"].blocking is True
+    assert by_code["thin_skeleton"].blocking is False
     assert "unverified_citation" not in codes or "unknown_source" in codes
 
 

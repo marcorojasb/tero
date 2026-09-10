@@ -18,6 +18,7 @@ from tero.gate import GateResult, apply_gate, persist_critique
 from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
+from tero.timeoututil import TurnTimeoutError, call_with_timeout
 from tero.tools import TurnContext, build_tools
 from tero.types import ArtifactType, Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
@@ -176,6 +177,16 @@ class TeacherSession:
                 self._draft_phase(turn, cleaned, phase="draft")
             else:
                 self._plan_phase(turn, cleaned)
+        except TeroError as exc:
+            self._set_phase("error")
+            self.emit(
+                {
+                    "type": "error",
+                    "message": exc.message,
+                    "code": exc.code,
+                    "retryable": True,
+                }
+            )
         except Exception as exc:  # noqa: BLE001
             code, message = humanize_exception(exc)
             self._set_phase("error")
@@ -232,7 +243,21 @@ class TeacherSession:
                     "No te detengas solo en texto."
                 )
             try:
-                agent(nudge)
+                self._invoke_agent(agent, nudge)
+            except TurnTimeoutError:
+                if attempt < max_attempts:
+                    self.emit(
+                        {
+                            "type": "status",
+                            "phase": "proponiendo_plan",
+                            "detail": f"timeout plan — reintento ({attempt}/{max_attempts})",
+                            "step": "plan_timeout_retry",
+                            "progress": "1/2",
+                            "attempt": attempt,
+                        }
+                    )
+                    continue
+                raise
             except Exception as exc:  # noqa: BLE001
                 if attempt < max_attempts and _is_retryable_stream_error(exc):
                     continue
@@ -415,7 +440,21 @@ class TeacherSession:
                     "No cites IDs de OA como si fueran paths. No te detengas solo en texto."
                 )
             try:
-                agent(self._user_payload(nudge))
+                self._invoke_agent(agent, self._user_payload(nudge))
+            except TurnTimeoutError:
+                if attempt < max_attempts:
+                    self.emit(
+                        {
+                            "type": "status",
+                            "phase": "escribiendo",
+                            "detail": f"timeout borrador — reintento ({attempt}/{max_attempts})",
+                            "step": "draft_timeout_retry",
+                            "progress": "2/2",
+                            "attempt": attempt,
+                        }
+                    )
+                    continue
+                raise
             except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
                 if attempt < max_attempts and _is_retryable_stream_error(exc):
                     self.emit(
@@ -552,6 +591,11 @@ class TeacherSession:
         chips = ", ".join(self.encargo.chips())
         header = f"Encargo: {chips}\n" if chips else ""
         return header + prompt
+
+    def _invoke_agent(self, agent: Any, payload: str) -> None:
+        """Call the Strands agent with an optional wall-clock timeout."""
+        budget = float(self.settings.turn_timeout_s or 0.0)
+        call_with_timeout(budget, agent, payload)
 
 
 def _looks_garbage(text: str) -> bool:
