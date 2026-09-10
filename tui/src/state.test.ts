@@ -3,6 +3,8 @@ import {
   applyHostEvent,
   chips,
   footerFor,
+  gateStrip,
+  hasKeyLegend,
   handleCommand,
   handleHotkey,
   helpFor,
@@ -35,9 +37,30 @@ describe("chips y pie", () => {
   })
   test("footer stays quiet at the gate (actions live in gate strip)", () => {
     const state = { ...initialState(encargo), phase: "esperando_criterio" as const, screen: "workspace" as const }
-    expect(footerFor(state)).toContain("?")
-    expect(footerFor(state)).not.toMatch(/s sí/)
-    expect(footerFor(state)).not.toMatch(/c corregir/)
+    expect(footerFor(state)).toBe("")
+    expect(footerFor(state)).not.toMatch(/s sí|c corregir|a aprobar/)
+  })
+})
+
+describe("HITL chrome quiet", () => {
+  test("no key legends in footer/status during HITL", () => {
+    for (const phase of ["esperando_plan", "esperando_clarificacion", "esperando_criterio"] as const) {
+      const state = {
+        ...initialState(encargo),
+        phase,
+        screen: "workspace" as const,
+        plan: {
+          objetivo: "x",
+          tipo: "guia",
+          oa: "OA 4",
+          duracion: "45 min",
+          notas: "",
+        },
+      }
+      expect(gateStrip(state).length).toBeGreaterThan(0)
+      expect(footerFor(state)).toBe("")
+      expect(hasKeyLegend(footerFor(state))).toBe(false)
+    }
   })
 })
 

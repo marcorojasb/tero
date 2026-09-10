@@ -149,6 +149,13 @@ export function spinnerGlyph(frame: number): string {
 export function shortPath(path: string): string {
   const parts = path.split("/").filter(Boolean)
   if (parts.length <= 2) return path
+  // Keep export filenames readable (…/derivados/20240910-….tex).
+  const leaf = parts[parts.length - 1] || ""
+  const parent = parts[parts.length - 2] || ""
+  if (parent === "derivados" || parent === "borradores" || parent === "exports") {
+    return `…/${parent}/${leaf}`
+  }
+  if (leaf.length > 28) return `…/${leaf.slice(0, 12)}…${leaf.slice(-10)}`
   return `…/${parts.slice(-2).join("/")}`
 }
 
@@ -204,10 +211,24 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       const detail = event.detail ? String(event.detail) : ""
       const progress = event.progress ? String(event.progress) : ""
       const step = event.step ? String(event.step) : ""
-      const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
-        .filter(Boolean)
-        .join(" · ")
-      next.statusLine = label
+      // Quiet status during HITL waits — action keys live in the gate strip.
+      if (
+        next.phase === "esperando_plan" ||
+        next.phase === "esperando_clarificacion" ||
+        next.phase === "esperando_criterio"
+      ) {
+        next.statusLine =
+          next.phase === "esperando_plan"
+            ? "plan listo"
+            : next.phase === "esperando_clarificacion"
+              ? "clarificar"
+              : "tu turno"
+      } else {
+        const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
+          .filter(Boolean)
+          .join(" · ")
+        next.statusLine = label
+      }
       if (
         next.phase === "leyendo" ||
         next.phase === "proponiendo_plan" ||
@@ -840,7 +861,7 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
         ...state,
         uiMode: "prompt",
         assumptionEditId: "",
-        statusLine: "a aprobar · e supuesto · x cancelar",
+        statusLine: "plan listo",
       },
     }
   }
@@ -976,10 +997,28 @@ export function showChips(state: AppState): boolean {
   return chips(state.encargo).length > 0
 }
 
+/** True if text repeats HITL key legends (should not appear in footer/status). */
+export function hasKeyLegend(text: string): boolean {
+  const t = text.toLowerCase()
+  return (
+    /\ba\s*aprobar\b/.test(t) ||
+    /\be\s*supuesto\b/.test(t) ||
+    /\bx\s*cancelar\b/.test(t) ||
+    /\bs\s*sí\b/.test(t) ||
+    /\bn\s*no\b/.test(t) ||
+    /\bb\s*borrador\b/.test(t) ||
+    /\bc\s*corregir\b/.test(t) ||
+    /\[\s*a\s*\]/.test(t) ||
+    /\[\s*s\s*\]/.test(t)
+  )
+}
+
 export function footerFor(state: AppState): string {
   if (state.help) return "PgUp/PgDn  esc cierra"
-  // Primary actions live in the gate strip — don't repeat them here.
-  if (gateStrip(state)) return "? ayuda"
+  // Primary actions live in the gate strip — keep footer quiet (no key echo).
+  if (gateStrip(state)) return ""
+  if (state.uiMode === "critique") return "Enter envía · esc cancela"
+  if (state.uiMode === "assumption") return "Enter guarda · esc cancela"
   if (state.screen === "home") return "1–4 rumbo  Enter  ?  q"
   return "/export  Tab  ?  q"
 }

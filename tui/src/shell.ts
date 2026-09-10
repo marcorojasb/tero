@@ -416,18 +416,22 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     header.height = showChips(state) || state.screen !== "home" ? 4 : 3
 
     const isHome = state.screen === "home" && !state.thinking && !state.plan && !state.proposal
-    const planFocus =
-      !state.proposal &&
-      (state.phase === "esperando_plan" ||
-        state.phase === "esperando_clarificacion" ||
-        state.phase === "proponiendo_plan")
+    const awaitingPlan =
+      state.phase === "esperando_plan" ||
+      state.phase === "esperando_clarificacion" ||
+      state.phase === "proponiendo_plan"
+    // Hide empty propuesta/evidencia chrome during plan/clarify — plan card + strip dominate.
+    const planFocus = awaitingPlan && !state.proposal
     const gateFocus =
       state.phase === "esperando_criterio" ||
       state.phase === "listo" ||
       (state.phase === "escribiendo" && Boolean(state.proposal))
     home.visible = isHome
-    // Plan wait: lead with plan card. Gate: lead with propuesta + evidencia.
     body.visible = !isHome && !planFocus
+    // Belt-and-suspenders: collapse child panels too (visible=false alone can leave flex gap).
+    left.visible = !isHome && !planFocus && !state.compact && !gateFocus
+    center.visible = !isHome && !planFocus
+    right.visible = !isHome && !planFocus
 
     rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ")
     homeHint.visible = !state.compact
@@ -442,9 +446,10 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       recentText.content = ""
     }
 
-    // Compact / gate: hide session column to give propuesta room.
-    left.visible = !state.compact && !gateFocus
-    right.width = state.compact ? 28 : gateFocus ? 36 : 34
+    // Compact / gate: evidence column width.
+    if (!planFocus) {
+      right.width = state.compact ? 28 : gateFocus ? 36 : 34
+    }
 
     left.borderColor = state.focusPanel === "session" ? theme.borderFocus : theme.border
     center.borderColor = state.focusPanel === "proposal" ? theme.borderFocus : theme.border
@@ -746,16 +751,22 @@ function renderEvidence(state: AppState): string {
       const trustLabel = item.verified ? "en archivo" : "parafraseo"
       const mark = selected ? "▸" : " "
       const path = shortPath(item.path)
+      const sec = (item.seccion || "").replace(/\s+/g, " ").trim()
       if (selected) {
-        const sec = item.seccion ? wrapLine(item.seccion, 42) : ""
-        const snippet = wrapLine(item.snippet.replace(/\s+/g, " "), 44)
         const lines = [`${mark} ${i + 1}/${total}  ${trust} ${trustLabel}`, `  ${path}`]
-        if (sec) lines.push(`  ${sec}`)
-        lines.push(`  “${snippet}”`)
+        if (sec) {
+          // Wrap OA/sección on its own lines — never mid-word truncate on one row.
+          for (const row of wrapLines(sec, 28)) lines.push(`  ${row}`)
+        }
+        const snippet = (item.snippet || "").replace(/\s+/g, " ").trim().slice(0, 160)
+        if (snippet) {
+          for (const row of wrapLines(`“${snippet}”`, 28)) lines.push(`  ${row}`)
+        }
         return lines.join("\n")
       }
-      const secShort = item.seccion ? ` · ${clipChip(item.seccion, 28)}` : ""
-      return `${mark} ${i + 1}/${total}  ${trust}  ${path}${secShort}`
+      // Compact rows: path only; sección on next line if present (avoids mid-OA clip).
+      if (sec) return `${mark} ${i + 1}/${total}  ${trust}  ${path}\n    ${clipChip(sec, 28)}`
+      return `${mark} ${i + 1}/${total}  ${trust}  ${path}`
     })
     .join("\n\n")
 }
@@ -771,8 +782,8 @@ function placeholderFor(state: AppState): string {
   if (state.uiMode === "clarify" || state.phase === "esperando_clarificacion") {
     return "Responde con tus palabras…"
   }
-  if (state.phase === "esperando_criterio") return "c + crítica · o teclas arriba"
-  if (state.phase === "esperando_plan") return "/objetivo · /oa · teclas arriba"
+  if (state.phase === "esperando_criterio") return "teclas arriba · o crítica con c"
+  if (state.phase === "esperando_plan") return "teclas arriba · /objetivo /oa"
   if (state.phase === "error" && state.retryable) return "r reintenta · o otro encargo"
   if (state.screen === "home") return "Pregunta, explora o crea…"
   return "Describe el material…  Enter envía"
@@ -791,11 +802,20 @@ function clipChip(text: string, max = 22): string {
   return `${t.slice(0, Math.max(1, max - 1))}…`
 }
 
-function wrapLine(text: string, width: number): string {
-  const words = text.replace(/\s+/g, " ").trim().split(" ")
+function wrapLines(text: string, width: number): string[] {
+  const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean)
   const lines: string[] = []
   let row = ""
   for (const w of words) {
+    // Prefer breaking before a too-long token rather than mid-word clip.
+    if (w.length > width) {
+      if (row) {
+        lines.push(row)
+        row = ""
+      }
+      for (let i = 0; i < w.length; i += width) lines.push(w.slice(i, i + width))
+      continue
+    }
     const next = row ? `${row} ${w}` : w
     if (next.length > width && row) {
       lines.push(row)
@@ -805,7 +825,11 @@ function wrapLine(text: string, width: number): string {
     }
   }
   if (row) lines.push(row)
-  return lines.join("\n  ")
+  return lines
+}
+
+function wrapLine(text: string, width: number): string {
+  return wrapLines(text, width).join("\n  ")
 }
 
 function shortPlanTitle(plan: NonNullable<AppState["plan"]>, state: AppState): string {
