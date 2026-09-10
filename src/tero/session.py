@@ -85,6 +85,7 @@ class TeacherSession:
         self._agent: Agent | None = None
         self.last_prompt: str = ""
         self._stream_buf: list[str] = []
+        self._last_tool_activity: tuple[str, str] | None = None
 
     def _emit(self, event: dict[str, Any]) -> None:
         self.transcript.append(event)
@@ -118,15 +119,22 @@ class TeacherSession:
             self._stream_buf.append(chunk)
             self.emit({"type": "delta", "text": chunk})
         tool = kwargs.get("current_tool_use") or {}
-        if tool.get("name"):
-            self.emit(
-                {
-                    "type": "activity",
-                    "tool": tool["name"],
-                    "state": "delta",
-                    "detail": str(tool.get("name") or ""),
-                }
-            )
+        name = str(tool.get("name") or "").strip()
+        if not name:
+            return
+        tool_id = str(tool.get("toolUseId") or tool.get("tool_use_id") or "")
+        key = (name, tool_id)
+        if key == self._last_tool_activity:
+            return
+        self._last_tool_activity = key
+        self.emit(
+            {
+                "type": "activity",
+                "tool": name,
+                "state": "start",
+                "detail": name,
+            }
+        )
 
     def start_turn(self, prompt: str) -> Turn:
         cleaned = (prompt or "").strip()
@@ -237,6 +245,7 @@ class TeacherSession:
             }
         )
         self._stream_buf = []
+        self._last_tool_activity = None
         agent(self._user_payload(prompt), limits={"turns": PLAN_AGENT_TURNS})
         if self.ctx.pending_plan is None:
             salvaged = salvage_plan_from_text(
@@ -414,6 +423,7 @@ class TeacherSession:
         for attempt in (1, 2):
             self.ctx.pending_draft = None
             self._stream_buf = []
+            self._last_tool_activity = None
             self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
             if attempt == 2:
                 self.emit(
