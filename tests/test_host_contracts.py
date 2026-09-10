@@ -81,6 +81,31 @@ def test_list_oa_media_catalog_covers_false(workspace: Workspace):
     assert searched["oas"] == []
 
 
+def test_draft_keeps_encargo_chips_over_payload(workspace: Workspace):
+    ctx, tools = _draft_tools(
+        workspace,
+        Encargo(curso="8° básico", asignatura="Ciencias Naturales", oa="conservación de la masa"),
+    )
+    result = json.loads(
+        tools["draft_artifact"](
+            tipo="pauta",
+            titulo="Pauta lab",
+            cuerpo_markdown="# Pauta\n\n## Criterios\n- Evidencia\n## Niveles\n- Logrado\n"
+            + "x" * 200,
+            payload_json=(
+                '{"tipo":"pauta","titulo":"Pauta lab",'
+                '"asignatura":"Lenguaje y Comunicación","curso":"4° básico",'
+                '"criterios":[{"nombre":"Evidencia"}]}'
+            ),
+        )
+    )
+    assert result["ok"] is True
+    assert ctx.pending_draft is not None
+    assert ctx.pending_draft.payload is not None
+    assert ctx.pending_draft.payload["asignatura"] == "Ciencias Naturales"
+    assert ctx.pending_draft.payload["curso"] == "8° básico"
+
+
 def test_tipo_desviado_keeps_plan_tipo(workspace: Workspace):
     plan = build_plan(
         objetivo="Evaluar comprensión lectora",

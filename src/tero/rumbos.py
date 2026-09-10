@@ -89,7 +89,10 @@ _DURATION_UNIT_RE = re.compile(
 _ASIGNATURA_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("matem", "fracción", "fraccion", "númer", "numer", "álgebra", "algebra"), "Matemática"),
     (("lengua", "lectura", "cuento", "literat", "comprensi"), "Lenguaje y Comunicación"),
-    (("cienc", "agua", "glaciar", "naturalez", "biolog"), "Ciencias Naturales"),
+    (
+        ("cienc", "biolog", "qu[ií]mic", "f[ií]sic", "ecosistem", "laboratorio"),
+        "Ciencias Naturales",
+    ),
     (("histori", "geograf", "civica", "cívica"), "Historia y Geografía"),
     (("ingl[eé]s", "english"), "Inglés"),
 )
@@ -207,8 +210,20 @@ def tipo_for_rumbo(rumbo: Rumbo | None, text: str = "") -> ArtifactType:
 
 DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
     "matemática": ("fraccion", "fracción", "numero", "número", "matem", "algebra", "álgebra"),
-    "lenguaje": ("cuento", "lectura", "lengua", "literat", "condor", "huemul", "vocabulario"),
-    "ciencias": ("agua", "glaciar", "ciencia", "ciclo", "naturalez"),
+    "lenguaje": ("cuento", "lectura", "lengua", "literat", "vocabulario", "poema", "noticia"),
+    "ciencias": (
+        "ciencia",
+        "biolog",
+        "quimic",
+        "químic",
+        "fisic",
+        "físic",
+        "ecosistem",
+        "laboratorio",
+        "naturalez",
+        "fotosint",
+    ),
+    "historia": ("histori", "geograf", "civica", "cívica"),
 }
 
 
