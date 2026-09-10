@@ -46,6 +46,7 @@ class TurnContext:
     tool_calls: int = 0
     tool_budget: int | None = None
     budget_exhausted: bool = False
+    last_chance_used: set[str] = field(default_factory=set)
 
     def _emit(self, event: dict[str, Any]) -> None:
         if self.emit:
@@ -55,6 +56,7 @@ class TurnContext:
         self.tool_calls = 0
         self.tool_budget = n
         self.budget_exhausted = False
+        self.last_chance_used = set()
 
     def consume_tool(self, name: str) -> str | None:
         """Return an error JSON if the host tool budget is spent or a deliverable exists."""
@@ -91,7 +93,9 @@ class TurnContext:
         last_chance = name in {"draft_artifact", "propose_plan"}
         if self.tool_calls >= self.tool_budget:
             self.budget_exhausted = True
-            if last_chance:
+            # One extra propose_plan / draft_artifact after the cap — not an unbounded loop.
+            if last_chance and name not in self.last_chance_used:
+                self.last_chance_used.add(name)
                 return None
             return json.dumps(
                 {
@@ -542,6 +546,9 @@ def _cite_evidence_plan_stub(ctx: TurnContext):
     def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
         """En fase plan no cites aún: primero propose_plan."""
         del path, snippet, seccion
+        blocked = _blocked(ctx, "cite_evidence")
+        if blocked:
+            return blocked
         return json.dumps(
             {
                 "ok": False,
@@ -565,6 +572,9 @@ def _draft_artifact_plan_stub(ctx: TurnContext):
     ) -> str:
         """En fase plan no redactes aún: primero propose_plan."""
         del tipo, titulo, cuerpo_markdown, evidencias_json, payload_json
+        blocked = _blocked(ctx, "draft_artifact")
+        if blocked:
+            return blocked
         ctx._emit(
             {
                 "type": "activity",

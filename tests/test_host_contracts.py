@@ -10,7 +10,7 @@ from tero.export import export_latex
 from tero.latex.schemas import extract_payload_from_markdown, parse_payload_json
 from tero.plan import build_plan
 from tero.salvage import salvage_draft_from_text
-from tero.tools import DRAFT_TOOL_BUDGET, TurnContext, build_tools
+from tero.tools import DRAFT_TOOL_BUDGET, PLAN_TOOL_BUDGET, TurnContext, build_tools
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence
 from tero.workspace import Workspace
 
@@ -126,6 +126,54 @@ def test_draft_tool_budget_blocks_then_allows_draft(workspace: Workspace):
     )
     assert drafted["ok"] is True
     assert ctx.pending_draft is not None
+
+
+def test_last_chance_draft_is_once(workspace: Workspace):
+    ctx, tools = _draft_tools(workspace)
+    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
+    for _ in range(DRAFT_TOOL_BUDGET + 2):
+        json.loads(tools["list_sources"]())
+    empty = json.loads(tools["draft_artifact"](tipo="", titulo="x", cuerpo_markdown="# x\n"))
+    assert empty.get("ok") is False
+    again = json.loads(
+        tools["draft_artifact"](
+            tipo="guia",
+            titulo="Sigue",
+            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
+        )
+    )
+    assert again.get("error") == "presupuesto_herramientas_agotado"
+    assert ctx.pending_draft is None
+
+
+def test_plan_stubs_consume_budget(workspace: Workspace):
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
+    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
+    ctx.reset_tool_budget(PLAN_TOOL_BUDGET)
+    errors: list[str] = []
+    for _ in range(PLAN_TOOL_BUDGET + 8):
+        row = json.loads(
+            tools["draft_artifact"](
+                tipo="evaluacion",
+                titulo="Temprano",
+                cuerpo_markdown="# No aún",
+            )
+        )
+        errors.append(str(row.get("error") or ""))
+    assert "fase_plan" in errors
+    assert errors.count("presupuesto_herramientas_agotado") >= 3
+    assert ctx.budget_exhausted is True
+    cite = json.loads(tools["cite_evidence"](path="fuentes/x.md", snippet="agua"))
+    assert cite.get("error") == "presupuesto_herramientas_agotado"
+    planned = json.loads(
+        tools["propose_plan"](
+            objetivo="Planificar el agua dulce",
+            tipo="planificacion",
+            oa="CIE-5B-OA06",
+        )
+    )
+    assert planned.get("ok") is True
+    assert ctx.pending_plan is not None
 
 
 def test_second_draft_artifact_is_noop(workspace: Workspace):
