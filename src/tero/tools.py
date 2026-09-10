@@ -26,6 +26,8 @@ EmitFn = Callable[[dict[str, Any]], None]
 # Draft-phase host cap: Qwen-style cite_evidence loops are not "esmerado".
 DRAFT_TOOL_BUDGET = 16
 DRAFT_AGENT_TURNS = 18
+PLAN_TOOL_BUDGET = 12
+PLAN_AGENT_TURNS = 12
 
 _UNCOVERED_HINT = (
     "Este curso no está en el catálogo Chile de tero. "
@@ -55,11 +57,42 @@ class TurnContext:
         self.budget_exhausted = False
 
     def consume_tool(self, name: str) -> str | None:
-        """Return an error JSON if the draft-phase tool budget is spent."""
-        if self.tool_budget is None or name == "draft_artifact":
+        """Return an error JSON if the host tool budget is spent or a deliverable exists."""
+        if self.tool_budget is None:
             return None
+        if self.pending_draft is not None:
+            if name == "draft_artifact":
+                return json.dumps(
+                    {
+                        "ok": True,
+                        "already": True,
+                        "titulo": self.pending_draft.titulo,
+                        "hint": "Ya hay un borrador en memoria. Detente; el docente decide s/n/b/c.",
+                    },
+                    ensure_ascii=False,
+                )
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "borrador_ya_entregado",
+                    "hint": "Ya hay un borrador. No llames más tools.",
+                },
+                ensure_ascii=False,
+            )
+        if name == "propose_plan" and self.pending_plan is not None:
+            return json.dumps(
+                {
+                    "ok": True,
+                    "already": True,
+                    "hint": "El plan ya está registrado. Detente y espera al docente.",
+                },
+                ensure_ascii=False,
+            )
+        last_chance = name in {"draft_artifact", "propose_plan"}
         if self.tool_calls >= self.tool_budget:
             self.budget_exhausted = True
+            if last_chance:
+                return None
             return json.dumps(
                 {
                     "ok": False,
@@ -67,6 +100,8 @@ class TurnContext:
                     "hint": (
                         "Llama draft_artifact ahora con cuerpo_markdown y, "
                         "si puedes, payload_json del schema."
+                        if name != "propose_plan"
+                        else "Llama propose_plan ahora y detente."
                     ),
                 },
                 ensure_ascii=False,
@@ -94,7 +129,9 @@ def build_tools(ctx: TurnContext, *, phase: str) -> list[Any]:
         _search_oa(ctx),
     ]
     if phase == "plan":
-        tools.append(_propose_plan(ctx))
+        tools.extend(
+            [_propose_plan(ctx), _cite_evidence_plan_stub(ctx), _draft_artifact_plan_stub(ctx)]
+        )
     if phase in {"draft", "correct"}:
         tools.extend([_cite_evidence(ctx), _draft_artifact(ctx)])
     return tools
@@ -335,6 +372,9 @@ def _propose_plan(ctx: TurnContext):
         tema = as_text(tema, joiner=" ")
         curso = as_text(curso, joiner=" ")
         asignatura = as_text(asignatura, joiner=" ")
+        blocked = _blocked(ctx, "propose_plan")
+        if blocked:
+            return blocked
         ctx._emit({"type": "activity", "tool": "plan", "state": "start"})
         decisiones = {
             "curso": curso or ctx.encargo.curso,
@@ -434,6 +474,9 @@ def _draft_artifact(ctx: TurnContext):
         titulo = as_text(titulo, joiner=" ")
         cuerpo_markdown = as_text(cuerpo_markdown, joiner="\n")
         payload_json = as_text(payload_json, joiner="\n")
+        blocked = _blocked(ctx, "draft_artifact")
+        if blocked:
+            return blocked
         ctx._emit({"type": "activity", "tool": "draft", "state": "start", "detail": titulo})
         parsed = ArtifactType.parse(tipo)
         if parsed is None:
@@ -451,6 +494,8 @@ def _draft_artifact(ctx: TurnContext):
             seen.add(key)
             merged.append(checked)
         schema = parse_payload_json(parsed.value, payload_json)
+        if schema:
+            _fill_payload_from_encargo(schema, ctx.encargo)
         ctx.pending_draft = ArtifactDraft(
             tipo=parsed,
             titulo=titulo.strip() or parsed.label,
@@ -466,6 +511,70 @@ def _draft_artifact(ctx: TurnContext):
                 "evidencias": len(merged),
                 "payload": bool(schema),
                 "mensaje": "Borrador en memoria. El docente revisa; tero no escribió archivos.",
+            },
+            ensure_ascii=False,
+        )
+
+    return draft_artifact
+
+
+def _fill_payload_from_encargo(payload: dict[str, Any], encargo: Encargo) -> None:
+    if not payload.get("curso") and encargo.curso:
+        payload["curso"] = encargo.curso
+    if not payload.get("asignatura") and encargo.asignatura:
+        payload["asignatura"] = encargo.asignatura
+    if not payload.get("oa") and encargo.oa:
+        payload["oa"] = encargo.oa
+    if not payload.get("tiempo") and encargo.duracion:
+        payload["tiempo"] = encargo.duracion
+    if not payload.get("duracion") and encargo.duracion:
+        payload["duracion"] = encargo.duracion
+
+
+def _cite_evidence_plan_stub(ctx: TurnContext):
+    @tool
+    def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
+        """En fase plan no cites aún: primero propose_plan."""
+        del path, snippet, seccion
+        return json.dumps(
+            {
+                "ok": False,
+                "error": "fase_plan",
+                "hint": "Ahora solo propose_plan. Cita evidencia después de que el docente apruebe.",
+            },
+            ensure_ascii=False,
+        )
+
+    return cite_evidence
+
+
+def _draft_artifact_plan_stub(ctx: TurnContext):
+    @tool
+    def draft_artifact(
+        tipo: str,
+        titulo: str,
+        cuerpo_markdown: str,
+        evidencias_json: str = "[]",
+        payload_json: str = "",
+    ) -> str:
+        """En fase plan no redactes aún: primero propose_plan."""
+        del tipo, titulo, cuerpo_markdown, evidencias_json, payload_json
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "draft_artifact",
+                "state": "end",
+                "detail": "fase plan",
+            }
+        )
+        return json.dumps(
+            {
+                "ok": False,
+                "error": "fase_plan",
+                "hint": (
+                    "Ahora solo propose_plan. El docente aprueba y después "
+                    "redactas con draft_artifact."
+                ),
             },
             ensure_ascii=False,
         )

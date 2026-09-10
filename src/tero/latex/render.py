@@ -13,6 +13,7 @@ from tero.artifacts import slugify
 from tero.config import PACKAGE_ROOT
 from tero.errors import TeroError
 from tero.latex.schemas import (
+    _apply_meta,
     _vf_from_section,
     extract_payload_from_markdown,
     repair_payload,
@@ -684,6 +685,7 @@ def export_latex(
     art_tipo = tipo or meta.get("tipo") or ""
     if payload is not None:
         data = repair_payload(art_tipo or str(payload.get("tipo") or "guia"), payload)
+        _apply_meta(data, meta, body)
     else:
         data = extract_payload_from_markdown(body, tipo=art_tipo or None, meta=meta)
     tex = render_latex(data, tipo=str(data.get("tipo") or art_tipo or "guia"))

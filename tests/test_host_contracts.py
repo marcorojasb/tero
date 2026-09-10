@@ -128,6 +128,93 @@ def test_draft_tool_budget_blocks_then_allows_draft(workspace: Workspace):
     assert ctx.pending_draft is not None
 
 
+def test_second_draft_artifact_is_noop(workspace: Workspace):
+    ctx, tools = _draft_tools(workspace)
+    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
+    first = json.loads(
+        tools["draft_artifact"](
+            tipo="guia",
+            titulo="Uno",
+            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
+        )
+    )
+    assert first["ok"] is True
+    second = json.loads(
+        tools["draft_artifact"](
+            tipo="pauta",
+            titulo="Dos",
+            cuerpo_markdown="# Otra",
+        )
+    )
+    assert second.get("already") is True
+    assert ctx.pending_draft is not None
+    assert ctx.pending_draft.titulo == "Uno"
+
+
+def test_plan_phase_exposes_draft_stub(workspace: Workspace):
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
+    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
+    assert "draft_artifact" in tools
+    assert "propose_plan" in tools
+    refused = json.loads(
+        tools["draft_artifact"](
+            tipo="evaluacion",
+            titulo="Temprano",
+            cuerpo_markdown="# No aún",
+        )
+    )
+    assert refused["ok"] is False
+    assert refused["error"] == "fase_plan"
+
+
+def test_criterios_objects_render_as_prose():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Prueba",
+            "criterios": [
+                {
+                    "id": "c1",
+                    "nombre": "Evidencia",
+                    "descripcion": "Ancla la inferencia a una cita.",
+                }
+            ],
+        },
+    )
+    assert payload["criterios"]
+    assert "Evidencia" in payload["criterios"][0]
+    assert "{" not in payload["criterios"][0]
+
+
+def test_export_payload_fills_curso_from_front_matter(tmp_path):
+    source = tmp_path / "eval.md"
+    source.write_text(
+        """---
+generado_por: tero
+tipo: evaluacion
+titulo: Prueba
+curso: 4° básico
+asignatura: Lenguaje
+oa: LEN-4B-OA04
+---
+
+# Prueba
+""",
+        encoding="utf-8",
+    )
+    dest = tmp_path / "eval.tex"
+    export_latex(
+        source,
+        dest,
+        tipo="evaluacion",
+        payload={"tipo": "evaluacion", "titulo": "Prueba", "items": []},
+    )
+    tex = dest.read_text(encoding="utf-8")
+    assert "4° básico" in tex or "4\\textdegree" in tex or "básico" in tex
+
+
 def test_parse_payload_json_garbage_is_none():
     assert parse_payload_json("guia", "") is None
     assert parse_payload_json("guia", "no-json") is None

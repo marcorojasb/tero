@@ -18,7 +18,14 @@ from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
 from tero.salvage import salvage_draft_from_text
-from tero.tools import DRAFT_AGENT_TURNS, DRAFT_TOOL_BUDGET, TurnContext, build_tools
+from tero.tools import (
+    DRAFT_AGENT_TURNS,
+    DRAFT_TOOL_BUDGET,
+    PLAN_AGENT_TURNS,
+    PLAN_TOOL_BUDGET,
+    TurnContext,
+    build_tools,
+)
 from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
@@ -211,6 +218,7 @@ class TeacherSession:
             }
         )
         agent = self._agent_for("plan")
+        self.ctx.reset_tool_budget(PLAN_TOOL_BUDGET)
         self._set_phase("proponiendo_plan")
         self.emit(
             {
@@ -221,7 +229,7 @@ class TeacherSession:
                 "progress": "1/2",
             }
         )
-        agent(self._user_payload(prompt))
+        agent(self._user_payload(prompt), limits={"turns": PLAN_AGENT_TURNS})
         if self.ctx.pending_plan is None:
             self._set_phase("error")
             self.emit(

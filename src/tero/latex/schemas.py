@@ -439,7 +439,20 @@ def _as_str_list(value: Any) -> list[str]:
         out: list[str] = []
         for item in value:
             if isinstance(item, dict):
-                out.append(str(item.get("texto") or item.get("label") or item))
+                name = str(
+                    item.get("nombre")
+                    or item.get("texto")
+                    or item.get("label")
+                    or item.get("criterio")
+                    or ""
+                ).strip()
+                desc = str(
+                    item.get("descripcion") or item.get("descriptor") or item.get("detalle") or ""
+                ).strip()
+                if name and desc and desc != name:
+                    out.append(f"{name}: {desc}")
+                elif name or desc:
+                    out.append(name or desc)
             else:
                 text = str(item).strip()
                 if text:
