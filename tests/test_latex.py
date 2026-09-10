@@ -94,6 +94,54 @@ Observación formativa.
     assert "45° básico" not in text
 
 
+def test_export_latex_reads_h4_sections_from_nova_markdown(tmp_path):
+    """Nova Lite drafts use #### for body sections; parser must not drop them."""
+    source = tmp_path / "plan.md"
+    source.write_text(
+        """---
+generado_por: tero
+tipo: planificacion
+titulo: Planificación del Cuento
+curso: 4° básico
+asignatura: Lenguaje y Comunicación
+oa: OA 4 (LEN-4B-OA04)
+duracion: 45 min
+---
+
+# Planificación del Cuento
+
+### Planificación del Cuento
+
+#### Objetivo
+Los estudiantes planificarán un cuento breve utilizando la comprensión lectora.
+
+#### Inicio
+- Activación y foco del OA en pocos minutos.
+
+#### Desarrollo
+- Lectura / práctica con evidencia de la carpeta.
+
+#### Cierre
+- Síntesis y chequeo formativo breve.
+
+#### Evaluación
+- Los estudiantes presentarán su planificación del cuento.
+""",
+        encoding="utf-8",
+    )
+    payload = extract_payload_from_markdown(
+        source.read_text(encoding="utf-8"), tipo="planificacion"
+    )
+    assert "cuento breve" in payload["objetivo"]
+    assert "Activación" in payload["inicio"]
+    assert "Lectura" in payload["desarrollo"]
+    dest = tmp_path / "plan.tex"
+    text = export_latex(source, dest).read_text(encoding="utf-8")
+    assert "cuento breve" in text
+    assert "Activación" in text
+    assert r"\section*{Objetivo}" in text
+
+
 def test_grado_4_survives_markdown_and_schema_to_latex():
     """4° básico + duracion 45 min must not become 45° básico in LaTeX."""
     md = """---

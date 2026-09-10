@@ -479,7 +479,8 @@ def _split_sections(markdown: str) -> dict[str, str]:
     current = "_preamble"
     chunks: dict[str, list[str]] = {current: []}
     for line in markdown.splitlines():
-        heading = re.match(r"^#{1,3}\s+(.*)$", line.strip())
+        # ATX headings are 1–6 hashes. Nova Lite drafts often use #### for body sections.
+        heading = re.match(r"^#{1,6}\s+(.*?)(?:\s+#*)?$", line.strip())
         if heading:
             current = heading.group(1).strip().lower()
             chunks.setdefault(current, [])
