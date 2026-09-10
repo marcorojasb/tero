@@ -463,11 +463,10 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     const proposalBody = state.proposal
       ? `# ${state.proposalTitle || "propuesta"}\n\n${state.proposal}`
       : emptyProposal(state)
-    const hasDraft = Boolean(state.proposal)
-    proposalMd.visible = hasDraft
-    proposalText.visible = !hasDraft
-    if (hasDraft) proposalMd.content = proposalBody
-    else proposalText.content = proposalBody
+    // Text path is reliable in OpenTUI frames; Markdown was painting blank.
+    proposalMd.visible = false
+    proposalText.visible = true
+    proposalText.content = proposalBody
     evidenceText.content = renderEvidence(state)
     warnText.content = renderWarnings(state)
 
