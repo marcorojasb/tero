@@ -131,12 +131,18 @@ def collect_warnings(
                 )
             )
 
-    # Unknown OA relative to catalog (non-blocking)
+    # Unknown OA relative to catalog (non-blocking). Skip when the course
+    # is not in the catalog: free-text OA is the honest path (1° medio).
     if encargo.oa or (plan and plan.oa):
-        from tero.curriculum.catalog import resolve_oa
+        from tero.curriculum.catalog import catalog_covers_curso, resolve_oa
 
         check = (plan.oa if plan and plan.oa else "") or encargo.oa
-        if check and resolve_oa(check, curso=encargo.curso, asignatura=encargo.asignatura) is None:
+        covers = catalog_covers_curso(encargo.curso)
+        if (
+            check
+            and covers
+            and resolve_oa(check, curso=encargo.curso, asignatura=encargo.asignatura) is None
+        ):
             warnings.append(
                 WarningItem(
                     code="oa_unknown",

@@ -527,7 +527,9 @@ def _fill_payload_from_encargo(payload: dict[str, Any], encargo: Encargo) -> Non
         payload["curso"] = encargo.curso
     if not payload.get("asignatura") and encargo.asignatura:
         payload["asignatura"] = encargo.asignatura
-    if not payload.get("oa") and encargo.oa:
+    oa = str(payload.get("oa") or "").strip()
+    essay = len(oa) > 80 or "catálogo" in oa.lower() or "catalog" in oa.lower()
+    if encargo.oa and (not oa or essay):
         payload["oa"] = encargo.oa
     if not payload.get("tiempo") and encargo.duracion:
         payload["tiempo"] = encargo.duracion
