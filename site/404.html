@@ -4,25 +4,53 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>tero — esta hoja no está en la carpeta</title>
+    <link rel="icon" href="./assets/tero-mark.svg" type="image/svg+xml" />
     <link rel="icon" href="./assets/tero-stamp.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-offline-model="tero-offline">
-    <div class="desk" style="grid-template-columns: minmax(0, 40rem); justify-content: center">
-      <main class="sheet" id="ficha">
-        <img class="stamp" src="./assets/tero-stamp.png" alt="Sello REVISAR" width="220" height="220" />
-        <p class="stamp-label">EXTRAVIADA</p>
-        <header class="sheet-head">
-          <p class="brand">tero — agente docente</p>
+    <div class="term not-found">
+      <header class="term-chrome">
+        <span class="term-mark" aria-hidden="true">▲*</span>
+        <span class="term-title">tero@carpeta:~</span>
+        <span class="term-tty">tty1 · unknown_source</span>
+      </header>
+      <section class="banner">
+        <pre class="ascii-tero" aria-hidden="true">           ▲
+          ╱│
+   ▄▄▄▄▄ ╱(<span class="ascii-eye">?</span>)
+  █     █▀
+  █      █
+   ▀▄▄▄▄▄▀
+     <span class="ascii-legs">║  ║
+    ─┘  └─</span></pre>
+        <div class="banner-id">
+          <p class="brand">tero</p>
+          <p class="species">Vanellus chilensis · queltehue</p>
           <p class="tag">tus fuentes, tu criterio</p>
-        </header>
+          <p class="motto">El tero avisa. Tú decides.</p>
+        </div>
+      </section>
+      <main class="pane sheet" id="ficha">
+        <p class="pane-title">
+          ~/sesión
+          <span class="stamp-label">EXTRAVIADA</span>
+        </p>
+        <p class="err-code">$ ls esa/ruta</p>
         <h1>Esta hoja no está en la carpeta</h1>
         <p>
-          tero no inventa fuentes. Si la ruta no está en <code>fuentes/</code>, el host avisa
-          <code>unknown_source</code> y <strong>no bloquea</strong> la puerta: tú decides
+          tero no inventa fuentes. Si la ruta no está en <code>fuentes/</code>,
+          el host avisa <code>unknown_source</code> y <strong>no bloquea</strong>
+          la puerta: tú decides
           <kbd>s</kbd> / <kbd>n</kbd> / <kbd>b</kbd> / <kbd>c</kbd>.
         </p>
-        <p><a href="./">Volver a la ficha</a></p>
+        <p><a href="./">cd ~</a> — volver a la sesión</p>
       </main>
     </div>
     <div class="tui" role="status">

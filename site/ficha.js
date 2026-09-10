@@ -1,5 +1,6 @@
-/* Interactive photocopied ficha. Warnings never block s.
-   Consultation timings are compressed; corrida real is the measured run. */
+/* Terminal consulta. Warnings never block s.
+   Consultation timings are compressed; corrida real is the measured run.
+   Photocopied pages appear only after s / b (#archivo). */
 (function () {
   "use strict";
 
@@ -26,20 +27,20 @@
     <figure class="plano">
       <figcaption>Lectura gráfica · x + y = 4 y x = 1 se cortan en (1, 3)</figcaption>
       <svg viewBox="0 0 240 180" role="img" aria-label="Rectas x+y=4 y x=1, punto (1,3)">
-        <g stroke="#d8c9a8" stroke-width="0.4" fill="none">
+        <g stroke="#2c333c" stroke-width="0.4" fill="none">
           <path d="M40 15 V155 M60 15 V155 M80 15 V155 M100 15 V155 M120 15 V155 M140 15 V155 M160 15 V155 M180 15 V155 M200 15 V155"/>
           <path d="M20 35 H220 M20 55 H220 M20 75 H220 M20 95 H220 M20 115 H220 M20 135 H220"/>
         </g>
-        <line x1="20" y1="155" x2="228" y2="155" stroke="#1c1712" stroke-width="1.2"/>
-        <line x1="20" y1="155" x2="20" y2="12" stroke="#1c1712" stroke-width="1.2"/>
-        <line x1="20" y1="75" x2="100" y2="155" stroke="#1f4e79" stroke-width="2.2"/>
-        <line x1="40" y1="12" x2="40" y2="155" stroke="#b42318" stroke-width="2.2"/>
-        <circle cx="40" cy="95" r="3.4" fill="#1c1712"/>
-        <text x="48" y="92" font-size="11" fill="#1c1712">(1,3)</text>
-        <text x="104" y="150" font-size="11" fill="#1f4e79">x+y=4</text>
-        <text x="46" y="22" font-size="11" fill="#b42318">x=1</text>
-        <text x="222" y="168" font-size="10" fill="#1c1712">x</text>
-        <text x="8" y="16" font-size="10" fill="#1c1712">y</text>
+        <line x1="20" y1="155" x2="228" y2="155" stroke="#d8dee9" stroke-width="1.2"/>
+        <line x1="20" y1="155" x2="20" y2="12" stroke="#d8dee9" stroke-width="1.2"/>
+        <line x1="20" y1="75" x2="100" y2="155" stroke="#82aaff" stroke-width="2.2"/>
+        <line x1="40" y1="12" x2="40" y2="155" stroke="#e06c75" stroke-width="2.2"/>
+        <circle cx="40" cy="95" r="3.4" fill="#9ece6a"/>
+        <text x="48" y="92" font-size="11" fill="#d8dee9">(1,3)</text>
+        <text x="104" y="150" font-size="11" fill="#82aaff">x+y=4</text>
+        <text x="46" y="22" font-size="11" fill="#e06c75">x=1</text>
+        <text x="222" y="168" font-size="10" fill="#7a8490">x</text>
+        <text x="8" y="16" font-size="10" fill="#7a8490">y</text>
       </svg>
     </figure>`;
 
@@ -47,20 +48,20 @@
     <figure class="plano">
       <figcaption>x + y = 10 y x − y = 4 se cortan en (7, 3)</figcaption>
       <svg viewBox="0 0 280 210" role="img" aria-label="Rectas x+y=10 y x-y=4, punto (7,3)">
-        <g stroke="#d8c9a8" stroke-width="0.4" fill="none">
+        <g stroke="#2c333c" stroke-width="0.4" fill="none">
           <path d="M41 20 V178 M54 20 V178 M67 20 V178 M80 20 V178 M93 20 V178 M106 20 V178 M119 20 V178 M132 20 V178 M145 20 V178 M158 20 V178 M171 20 V178 M184 20 V178"/>
           <path d="M28 35 H250 M28 48 H250 M28 61 H250 M28 74 H250 M28 87 H250 M28 100 H250 M28 113 H250 M28 126 H250 M28 139 H250 M28 152 H250 M28 165 H250"/>
         </g>
-        <line x1="28" y1="178" x2="255" y2="178" stroke="#1c1712" stroke-width="1.2"/>
-        <line x1="28" y1="178" x2="28" y2="18" stroke="#1c1712" stroke-width="1.2"/>
-        <line x1="28" y1="48" x2="158" y2="178" stroke="#1f4e79" stroke-width="2.2"/>
-        <line x1="80" y1="178" x2="184" y2="74" stroke="#b42318" stroke-width="2.2"/>
-        <circle cx="119" cy="139" r="3.4" fill="#1c1712"/>
-        <text x="126" y="136" font-size="11" fill="#1c1712">(7,3)</text>
-        <text x="162" y="174" font-size="11" fill="#1f4e79">x+y=10</text>
-        <text x="188" y="72" font-size="11" fill="#b42318">x−y=4</text>
-        <text x="250" y="192" font-size="10" fill="#1c1712">x</text>
-        <text x="10" y="22" font-size="10" fill="#1c1712">y</text>
+        <line x1="28" y1="178" x2="255" y2="178" stroke="#d8dee9" stroke-width="1.2"/>
+        <line x1="28" y1="178" x2="28" y2="18" stroke="#d8dee9" stroke-width="1.2"/>
+        <line x1="28" y1="48" x2="158" y2="178" stroke="#82aaff" stroke-width="2.2"/>
+        <line x1="80" y1="178" x2="184" y2="74" stroke="#e06c75" stroke-width="2.2"/>
+        <circle cx="119" cy="139" r="3.4" fill="#9ece6a"/>
+        <text x="126" y="136" font-size="11" fill="#d8dee9">(7,3)</text>
+        <text x="162" y="174" font-size="11" fill="#82aaff">x+y=10</text>
+        <text x="188" y="72" font-size="11" fill="#e06c75">x−y=4</text>
+        <text x="250" y="192" font-size="10" fill="#7a8490">x</text>
+        <text x="10" y="22" font-size="10" fill="#7a8490">y</text>
       </svg>
     </figure>`;
 
@@ -171,7 +172,7 @@
         <p>Resuelve por sustitución, con despeje, ambos valores y verificación: 2x + y = 8, x − y = 1.</p>
         <h2>Aplicación</h2>
         <p>12 vehículos y 34 ruedas (moto 2, auto 4). Plantea, resuelve, verifica.</p>
-        <p class="muted">Al pulsar <kbd>s</kbd> se fotocopian las tres páginas LaTeX (tablas + gráficos, sin pipes ni fences).</p>
+        <p class="muted">Al pulsar <kbd>s</kbd> se muestran las tres páginas LaTeX (tablas + gráficos, sin pipes ni fences).</p>
       `,
       warnings: [
         {
@@ -404,7 +405,7 @@
     const li = document.createElement("li");
     if (kind) li.dataset.kind = kind;
     const t = (performance.now() - state.startedAt) / 1000;
-    li.textContent = `${t.toFixed(1)}s  ${text}`;
+    li.textContent = `${t.toFixed(1)}s  $ ${text}`;
     $("bitacora").appendChild(li);
     $("bitacora").scrollTop = $("bitacora").scrollHeight;
   }

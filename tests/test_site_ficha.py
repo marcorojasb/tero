@@ -1,4 +1,4 @@
-"""The public GitHub page is a photocopied ficha, not an AgentCore hero."""
+"""The public GitHub page is a TUI session, not an AgentCore hero."""
 
 from __future__ import annotations
 
@@ -44,7 +44,15 @@ def test_ficha_landing_is_the_github_page():
 
     assert "--tui-bg: #0b0d10" in css
     assert "--tui-accent: #82aaff" in css
-    assert "photocopied" in css.splitlines()[0].lower() or "photocopied" in css[:400].lower()
+    assert "ascii-tero" in html
+    assert "Vanellus chilensis" in html
+    assert "queltehue" in html
+    assert "El tero avisa" in html
+    assert "IBM Plex Mono" in css
+    assert ".hoja-frame" in css
+    assert "photocopied" in css.lower()
+    header = "\n".join(css.splitlines()[:6]).lower()
+    assert "tui" in header or "terminal" in header
 
     assert "WARNINGS_BLOCK_S = false" in js
     assert "function canAccept" in js
@@ -70,6 +78,11 @@ def test_ficha_landing_is_the_github_page():
 def test_ficha_assets_and_pages_workflow():
     assert (SITE / "assets" / "tero-og.png").is_file()
     assert (SITE / "assets" / "tero-stamp.png").is_file()
+    assert (SITE / "assets" / "tero-mark.svg").is_file()
+    assert (SITE / "assets" / "tero.txt").is_file()
+    mark = _read(SITE / "assets" / "tero.txt")
+    assert "Vanellus chilensis" in mark
+    assert "queltehue" in mark
     for folder, n in (
         ("plan", 3),
         ("guia-sistemas", 3),
@@ -85,6 +98,7 @@ def test_ficha_assets_and_pages_workflow():
     not_found = _read(SITE / "404.html")
     assert "unknown_source" in not_found
     assert "no bloquea" in not_found
+    assert "ascii-tero" in not_found
     workflow = _read(ROOT / ".github" / "workflows" / "pages.yml")
     assert "path: site" in workflow
     assert "deploy-pages" in workflow
@@ -95,6 +109,7 @@ def test_ficha_assets_and_pages_workflow():
     assert "settings/pages" in sitio
     assert "Resource not accessible by integration" in sitio
     assert "marcorojasb.github.io/tero" in sitio
+    assert "queltehue" in sitio.lower()
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
 
