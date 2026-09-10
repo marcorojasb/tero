@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tero — tus fuentes, tu criterio</title>
+    <meta
+      name="description"
+      content="tero prepara material de aula en tu carpeta. Tú decides: s sí, n no, b borrador, c corregir. Offline honesto (tero-offline). Sin AgentCore como producto."
+    />
+    <meta name="theme-color" content="#0b0d10" />
+    <link rel="icon" href="./assets/tero-stamp.png" type="image/png" />
+    <meta property="og:title" content="tero — tus fuentes, tu criterio" />
+    <meta
+      property="og:description"
+      content="Agente docente: prepara, no decide. La landing es una fotocopia."
+    />
+    <meta property="og:image" content="./assets/tero-og.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="./assets/tero-og.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-warnings-block-s="false" data-offline-model="tero-offline">
+    <a class="skip" href="#ficha">Saltar a la ficha</a>
+
+    <div class="desk">
+      <aside class="carpeta" aria-label="Carpeta de trabajo">
+        <p class="carpeta-tab">carpeta</p>
+        <p class="carpeta-lead">Sistema de registro. Los originales no se pisan.</p>
+        <ul id="fuentes" class="files">
+          <li data-kind="dir">fuentes/</li>
+          <li>01-oa-curriculo.md</li>
+          <li>02-apuntes-docente.md</li>
+          <li>03-contexto-chile.md</li>
+        </ul>
+        <ul id="derivados" class="files">
+          <li data-kind="dir">derivados/</li>
+          <li data-empty="true" class="empty">(vacío hasta que pulses s)</li>
+        </ul>
+        <ul id="borradores" class="files">
+          <li data-kind="dir">borradores/</li>
+          <li data-empty="true" class="empty">(vacío hasta que pulses b)</li>
+        </ul>
+        <p class="hash">SHA-256 de las fuentes: intacto</p>
+      </aside>
+
+      <div class="stage">
+        <figure class="hero-shot">
+          <img
+            src="./assets/tero-og.png"
+            alt="Fotocopia de ficha tero sobre un escritorio, sello rojo REVISAR, lapicera, teclas s n b c al pie."
+            width="1280"
+            height="720"
+          />
+          <figcaption>
+            Así se muestra tero: una hoja, no un dashboard. El sello lo pone la
+            persona.
+          </figcaption>
+        </figure>
+
+        <main class="sheet" id="ficha" tabindex="-1">
+          <img
+            class="stamp"
+            id="stamp-img"
+            src="./assets/tero-stamp.png"
+            alt="Sello REVISAR"
+            width="220"
+            height="220"
+          />
+          <p class="stamp-label" id="stamp-label">REVISAR</p>
+
+          <header class="sheet-head">
+            <p class="brand">tero — agente docente</p>
+            <p class="tag">tus fuentes, tu criterio</p>
+            <p class="meta" id="chips">5° básico · Ciencias Naturales · 90 min</p>
+          </header>
+
+          <label class="nombre-row">
+            Nombre:
+            <input
+              id="nombre"
+              name="nombre"
+              maxlength="40"
+              placeholder="________________"
+              autocomplete="name"
+              aria-label="Nombre en la ficha"
+            />
+            <span class="fecha" id="fecha"></span>
+          </label>
+
+          <nav class="rumbos" aria-label="Rumbos">
+            <p class="rumbo-lead">Elige un rumbo (teclas 1–4). tero prepara; tú decides.</p>
+            <ol>
+              <li>
+                <button type="button" data-rumbo="1" aria-keyshortcuts="1">
+                  1 Planificar
+                </button>
+              </li>
+              <li>
+                <button type="button" data-rumbo="2" aria-keyshortcuts="2">
+                  2 Crear
+                </button>
+              </li>
+              <li>
+                <button type="button" data-rumbo="3" aria-keyshortcuts="3">
+                  3 Evaluar
+                </button>
+              </li>
+              <li>
+                <button type="button" data-rumbo="4" aria-keyshortcuts="4">
+                  4 Adaptar
+                </button>
+              </li>
+            </ol>
+          </nav>
+
+          <section class="cuerpo" id="cuerpo" aria-live="polite">
+            <p class="home-copy">
+              tero lee <strong>tu carpeta</strong>, propone un plan y deja un
+              borrador en la puerta. No escribe en <code>fuentes/</code>. El
+              modelo de esta hoja es <code>tero-offline</code>: un Strands
+              <code>Model</code> scripted, no un Bedrock disfrazado. AgentCore no es el producto.
+            </p>
+            <p class="home-copy">
+              Avisos a la vista — parafraseo, evidencia flaca, OA raro — y
+              <strong>s sigue abierto</strong>. Eso no es un bug. Es la tesis.
+            </p>
+          </section>
+
+          <aside class="avisos" id="avisos" hidden>
+            <p class="avisos-title">Avisos (no bloquean s)</p>
+            <ul id="aviso-list"></ul>
+          </aside>
+
+          <footer class="gate" id="gate">
+            <p class="gate-lead">Puerta docente</p>
+            <div class="keys">
+              <button type="button" data-gate="s" title="aceptar → derivados/">
+                <kbd>s</kbd> sí → derivados/
+              </button>
+              <button type="button" data-gate="n" title="descartar">
+                <kbd>n</kbd> no
+              </button>
+              <button type="button" data-gate="b" title="guardar borrador">
+                <kbd>b</kbd> borrador
+              </button>
+              <button type="button" data-gate="c" title="corregir">
+                <kbd>c</kbd> corregir
+              </button>
+            </div>
+            <p class="gate-note" id="gate-note">
+              Espera un rumbo. Después la puerta se enciende.
+            </p>
+          </footer>
+        </main>
+      </div>
+
+      <aside class="leyenda" aria-label="Cómo correrlo">
+        <p class="leyenda-kicker">20 minutos, juez o docente</p>
+        <pre class="cmd">python -m tero demo --offline --yes</pre>
+        <p>
+          Loop completo: tools, plan, evidencia, puerta, <code>derivados/</code>.
+          Sin AWS. Con Bedrock, Nova Lite
+          (<code>amazon.nova-lite-v1:0</code>) es el default de README, no el
+          techo de calidad.
+        </p>
+        <p>
+          Código:
+          <a href="https://github.com/marcorojasb/tero">github.com/marcorojasb/tero</a>
+        </p>
+        <p class="fine">
+          MIT. Inspirado en la tesis de Pteron, sin copiar Electron / Solid /
+          Meridian. UI en español de aula, no de marketing.
+        </p>
+      </aside>
+    </div>
+
+    <div class="tui" role="status" aria-live="polite">
+      <span class="tui-brand">tero</span>
+      <span class="tui-sep">·</span>
+      <span id="tui-model">tero-offline</span>
+      <span class="tui-sep">·</span>
+      <span id="tui-phase">home</span>
+      <span class="tui-sep">·</span>
+      <span id="tui-activity">rumbos 1–4 · puerta s n b c · ? ayuda</span>
+    </div>
+
+    <dialog id="critica" aria-labelledby="critica-title">
+      <form method="dialog">
+        <p id="critica-title">Crítica (c)</p>
+        <p>Queda en <code>.tero/criticas/</code> y tero reescribe el borrador.</p>
+        <textarea
+          id="critica-text"
+          rows="4"
+          placeholder="Más evidencia, menos adorno. Cerrar con ticket de salida."
+        ></textarea>
+        <menu>
+          <button value="cancel">cancelar</button>
+          <button value="ok" id="critica-ok">reescribir</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="./ficha.js"></script>
+  </body>
+</html>

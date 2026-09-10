@@ -3,6 +3,21 @@
 Corridas con `amazon.nova-lite-v1:0` / `us-east-1` y el path offline como control.
 Objetivo: **romper** el loop docente y dejar material accionable (no checklist verde).
 
+## Decisión (corridas 1–8, evidencia suficiente)
+
+El stress de abajo **sí pasó**. El PR que nació de él ([#8](https://github.com/marcorojasb/tero/pull/8))
+proponía bloquear `s` → `derivados/` si había `thin_evidence` /
+`unknown_source`, más `SIGALRM` y 3 reintentos.
+
+Eso **no se mergea**. Los avisos se muestran; `s` sigue abierto. El
+`--yes` del juez escribe `derivados/`. El sucesor en `main` es reintento
+de borrador + salvage + tope de tools + un `activity` por tool, no un
+candado en la puerta.
+
+Detalle: [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md). Loops MiniMax / GLM / Qwen:
+fichas usables con `unverified_citation` a la vista. Bloquear `s` las
+habría mandado a `borradores/` y el demo mentiría.
+
 ## Resumen
 
 | Área | Resultado |
@@ -34,7 +49,11 @@ Ejemplos observados en propuestas Bedrock:
 - `path: "OA 4 (LEN-4B-OA04)"` → `unknown_source`.
 - Tras `c` (corregir), el rewrite a veces **empeora** (pierde citas).
 
-**Mejora:** en puerta, si `thin_evidence` / `unknown_source`, exigir confirmación explícita o impedir `s` hasta citar ≥2 rutas reales de la carpeta (política de producto a decidir).
+**Mejora (cerrada):** no impedir `s`. Mostrar el costo (`thin_evidence`,
+`unknown_source`, `unverified_citation`) en la puerta. El docente
+acepta, descarta, deja borrador o pide `c`. Un `forzar` mágico o un
+autogate a `borradores/` rompe la tesis y el camino `--yes`.
+Ver [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
 
 ### P1 — Demo flaky en carpetas “difíciles”
 

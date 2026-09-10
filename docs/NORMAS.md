@@ -5,6 +5,9 @@
 - tero es un agente docente: el modelo prepara, la persona decide (`s` sí, `n` no, `b` borrador, `c` corregir).
 - La carpeta de trabajo es la fuente de verdad. `derivados/` y `borradores/` son las únicas escrituras de artefacto. Los originales se indexan con SHA-256; si cambian, se avisa, no se pisan.
 - UI en español, teclado primero, avisos que **no bloquean**.
+  `thin_evidence` / `unknown_source` / `unverified_citation` se ven en la
+  puerta; `s` sigue siendo de la persona. No hay palabra mágica `forzar`.
+  Ver [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
 - Modelo por defecto: Bedrock `amazon.nova-lite-v1:0`. Offline = modelo scripted de Strands, nunca un disfraz de API.
 
 ## Engineering (en)

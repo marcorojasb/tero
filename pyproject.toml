@@ -25,7 +25,9 @@ dev = ["pytest>=8.0", "ruff>=0.8", "python-docx>=1.1.0"]
 tero = "tero.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/marcorojasb/tero"
+Homepage = "https://marcorojasb.github.io/tero/"
+Repository = "https://github.com/marcorojasb/tero"
+Documentation = "https://github.com/marcorojasb/tero/tree/main/docs"
 
 [tool.setuptools.packages.find]
 where = ["src"]

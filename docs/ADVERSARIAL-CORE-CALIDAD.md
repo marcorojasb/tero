@@ -140,7 +140,8 @@ Ataque cierto. Es el thesis: prepare, don’t decide.
 Respuesta: no bloquees `s`. **Sí** haz que la puerta muestre el costo
 de aceptar: tipo ≠ rumbo, OA de otro nivel, SM vacío al exportar
 evaluación, 0 citas verificadas. El docente sigue siendo el gate; tero
-deja de sonreírle al esqueleto.
+deja de sonreírle al esqueleto. Evidencia de las corridas y cierre del
+PR que bloqueaba `s`: [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
 
 ## Disposición (lo que hay que construir, en orden)
 
