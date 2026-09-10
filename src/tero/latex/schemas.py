@@ -220,6 +220,30 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
     return merged
 
 
+_PLAN_CARD_KEYS = frozenset(
+    {
+        "como_abordare",
+        "supuestos",
+        "decisiones",
+        "resultado_previsto",
+        "entregables",
+        "questions",
+    }
+)
+
+
+def _is_plan_card_dump(data: dict[str, Any]) -> bool:
+    """True when GLM/Qwen pasted Plan.as_dict() into payload_json."""
+    if len(_PLAN_CARD_KEYS & data.keys()) < 2:
+        return False
+    body = any(str(data.get(field) or "").strip() for field in ("inicio", "desarrollo", "cierre"))
+    for field in ("items", "sm_items", "actividades", "vf_items"):
+        value = data.get(field)
+        if isinstance(value, list) and value:
+            return False
+    return not body
+
+
 def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
     """Parse optional draft_artifact payload_json. Empty or garbage → None (markdown stays)."""
     if raw is None or raw == "":
@@ -236,6 +260,20 @@ def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
         data = _parse_json_blob(text)
     if not data:
         return None
+    if _is_plan_card_dump(data):
+        return None
+    raw_tipo = data.get("tipo")
+    if raw_tipo:
+        json_key = _schema_key(str(raw_tipo))
+        req_key = _schema_key(tipo)
+        aliases = {"guia", "actividad"}
+        if (
+            json_key in SCHEMA_TYPES
+            and req_key in SCHEMA_TYPES
+            and json_key != req_key
+            and not ({json_key, req_key} <= aliases)
+        ):
+            return None
     return repair_payload(tipo, data)
 
 

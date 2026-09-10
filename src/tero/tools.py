@@ -403,13 +403,17 @@ def _propose_plan(ctx: TurnContext):
         if plan.pending_question():
             detail = f"{detail} · clarificación"
         ctx._emit({"type": "activity", "tool": "plan", "state": "end", "detail": detail})
+        # Do not echo Plan.as_dict(): GLM pastes that card into payload_json.
         return json.dumps(
             {
                 "ok": True,
-                "plan": plan.as_dict(),
+                "tipo": plan.tipo.value,
+                "titulo": plan.titulo,
+                "n_preguntas": len(plan.questions),
                 "mensaje": (
                     "Plan registrado. Si hay preguntas, el docente responde; "
-                    "luego aprueba, edita supuestos o cancela. No redactes aún."
+                    "luego aprueba, edita supuestos o cancela. No redactes aún. "
+                    "payload_json de draft_artifact es el schema de la ficha, no este plan."
                 ),
             },
             ensure_ascii=False,

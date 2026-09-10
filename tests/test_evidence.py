@@ -68,6 +68,10 @@ def test_snippet_must_appear_in_source(workspace: Workspace):
         draft=draft,
     )
     assert "unverified_citation" in {item.code for item in warnings}
+    unverified = [item for item in warnings if item.code == "unverified_citation"]
+    assert len(unverified) == 1
+    assert "cuento-el-condor-y-el-huemul.md" in unverified[0].message
+    assert "notas-curso.md" in unverified[0].message
 
 
 def test_planificacion_structure_ok():

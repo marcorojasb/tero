@@ -223,6 +223,52 @@ def test_parse_payload_json_garbage_is_none():
     assert parsed["titulo"] == "Ficha"
 
 
+def test_parse_payload_json_rejects_plan_card_dump():
+    card = {
+        "tipo": "planificacion",
+        "titulo": "Plan agua",
+        "objetivo": "Describir el agua",
+        "inicio": "",
+        "desarrollo": "",
+        "cierre": "",
+        "meta": "Plan de trabajo",
+        "resultado_previsto": ["Planificación"],
+        "decisiones": {"curso": "5° básico"},
+        "como_abordare": [{"titulo": "Inicio", "detalle": "Activación"}],
+        "supuestos": [{"id": "s1", "text": "Solo la carpeta"}],
+    }
+    assert parse_payload_json("planificacion", card) is None
+    assert parse_payload_json("evaluacion", card) is None
+    eval_ok = parse_payload_json(
+        "evaluacion",
+        {
+            "tipo": "evaluacion",
+            "titulo": "Prueba",
+            "items": [{"tipo_item": "sm", "enunciado": "¿x+y?", "opciones": ["1", "2"]}],
+        },
+    )
+    assert eval_ok is not None
+    assert eval_ok["items"]
+
+
+def test_propose_plan_does_not_echo_card(workspace: Workspace):
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
+    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
+    result = json.loads(
+        tools["propose_plan"](
+            objetivo="Evaluar sistemas 2x2",
+            tipo="evaluacion",
+            oa="sistemas 2x2",
+            duracion="45 min",
+        )
+    )
+    assert result["ok"] is True
+    assert "como_abordare" not in result
+    assert result.get("plan") is None or "como_abordare" not in (result.get("plan") or {})
+    assert ctx.pending_plan is not None
+    assert ctx.pending_plan.objetivo.startswith("Evaluar")
+
+
 def test_salvage_payload_json():
     blob = """
 draft_artifact(
