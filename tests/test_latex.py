@@ -329,7 +329,7 @@ def test_prose_latex_lists_are_host_itemize_not_raw_tex():
     table = prose_latex(
         "| Término | Definición |\n|---------|------------|\n| Incógnita | Valor x |"
     )
-    assert r"\begin{tabular}" in table
+    assert r"\begin{tabular" in table
     assert "Incógnita" in table
     assert "Definición" in table
     assert r"\write18" not in body

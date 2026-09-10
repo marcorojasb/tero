@@ -662,7 +662,7 @@ def _bullets(text: str) -> list[str]:
     for line in text.splitlines():
         cleaned = re.sub(r"^[-*•]\s+", "", line.strip())
         cleaned = re.sub(r"^\d+\.\s+", "", cleaned)
-        if cleaned:
+        if cleaned and cleaned not in {"---", "***", "___", "-", "—", "–"}:
             items.append(cleaned)
     return items
 

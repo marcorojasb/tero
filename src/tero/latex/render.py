@@ -158,13 +158,14 @@ def _md_table_latex(rows: list[str]) -> str:
     if not parsed:
         return ""
     width = max(len(r) for r in parsed)
-    spec = "|" + "l|" * width
-    lines = [rf"\begin{{tabular}}{{{spec}}}", r"\hline"]
+    col = r">{\raggedright\arraybackslash}X"
+    spec = "|" + f"{col}|" * width
+    lines = [rf"\begin{{tabularx}}{{\textwidth}}{{{spec}}}", r"\hline"]
     for row in parsed:
         padded = row + [""] * (width - len(row))
         lines.append(" & ".join(escape_latex(_strip_md_inline(c)) for c in padded) + r" \\")
         lines.append(r"\hline")
-    lines.append(r"\end{tabular}")
+    lines.append(r"\end{tabularx}")
     lines.append(r"\par")
     return "\n".join(lines)
 
