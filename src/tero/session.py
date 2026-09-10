@@ -474,7 +474,7 @@ class TeacherSession:
                         "warning": {
                             "code": "draft_salvaged",
                             "message": (
-                                "El modelo escribió draft_artifact como texto. "
+                                "El modelo escribió el borrador como texto. "
                                 "tero armó el borrador igual para que puedas decidir s/n/b/c."
                             ),
                             "blocking": False,
