@@ -109,3 +109,26 @@ def test_callback_emits_one_activity_per_tool_use(workspace: Workspace):
     activities = [row for row in events if row.get("type") == "activity"]
     assert [row["tool"] for row in activities] == ["draft_artifact", "cite_evidence"]
     assert all(row.get("state") == "start" for row in activities)
+
+
+def test_delta_events_coalesce_before_flush(workspace: Workspace):
+    events: list[dict] = []
+    session = TeacherSession(
+        workspace, Settings(offline=True, carpeta=workspace.root), emit=events.append
+    )
+    session._callback(data="aaaa")
+    session._callback(data="bbbb")
+    assert [row for row in events if row.get("type") == "delta"] == []
+    session._callback(data="c" * 80)
+    deltas = [row["text"] for row in events if row.get("type") == "delta"]
+    assert len(deltas) == 1
+    assert deltas[0] == "aaaa" + "bbbb" + ("c" * 80)
+    events.clear()
+    session._callback(data="hola\n")
+    deltas = [row["text"] for row in events if row.get("type") == "delta"]
+    assert deltas == ["hola\n"]
+    events.clear()
+    session._callback(data="xyz")
+    session._callback(current_tool_use={"name": "list_sources", "toolUseId": "t1", "input": "{}"})
+    deltas = [row["text"] for row in events if row.get("type") == "delta"]
+    assert deltas == ["xyz"]

@@ -31,6 +31,7 @@ from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
 
+_DELTA_FLUSH = 80
 EmitFn = Callable[[dict[str, Any]], None]
 
 
@@ -85,6 +86,7 @@ class TeacherSession:
         self._agent: Agent | None = None
         self.last_prompt: str = ""
         self._stream_buf: list[str] = []
+        self._delta_buf: str = ""
         self._last_tool_activity: tuple[str, str] | None = None
 
     def _emit(self, event: dict[str, Any]) -> None:
@@ -113,15 +115,25 @@ class TeacherSession:
             callback_handler=self._callback,
         )
 
+    def _flush_delta(self) -> None:
+        text = self._delta_buf
+        if not text:
+            return
+        self._delta_buf = ""
+        self.emit({"type": "delta", "text": text})
+
     def _callback(self, **kwargs: Any) -> None:
         if "data" in kwargs and kwargs["data"]:
             chunk = str(kwargs["data"])
             self._stream_buf.append(chunk)
-            self.emit({"type": "delta", "text": chunk})
+            self._delta_buf += chunk
+            if len(self._delta_buf) >= _DELTA_FLUSH or "\n" in chunk:
+                self._flush_delta()
         tool = kwargs.get("current_tool_use") or {}
         name = str(tool.get("name") or "").strip()
         if not name:
             return
+        self._flush_delta()
         tool_id = str(tool.get("toolUseId") or tool.get("tool_use_id") or "")
         key = (name, tool_id)
         if key == self._last_tool_activity:
@@ -245,8 +257,10 @@ class TeacherSession:
             }
         )
         self._stream_buf = []
+        self._delta_buf = ""
         self._last_tool_activity = None
         agent(self._user_payload(prompt), limits={"turns": PLAN_AGENT_TURNS})
+        self._flush_delta()
         if self.ctx.pending_plan is None:
             salvaged = salvage_plan_from_text(
                 "".join(self._stream_buf),
@@ -423,6 +437,7 @@ class TeacherSession:
         for attempt in (1, 2):
             self.ctx.pending_draft = None
             self._stream_buf = []
+            self._delta_buf = ""
             self._last_tool_activity = None
             self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
             if attempt == 2:
@@ -457,6 +472,7 @@ class TeacherSession:
                     limits={"turns": DRAFT_AGENT_TURNS},
                 )
             except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
+                self._flush_delta()
                 if attempt == 1 and _is_retryable_stream_error(exc):
                     self.emit(
                         {
@@ -469,6 +485,7 @@ class TeacherSession:
                     )
                     continue
                 raise
+            self._flush_delta()
             if self.ctx.pending_draft is not None:
                 break
             salvaged = salvage_draft_from_text(
