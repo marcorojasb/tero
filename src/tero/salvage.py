@@ -29,6 +29,13 @@ _FICHA_HINTS = (
     "evaluacion",
     "opción",
     "opcion",
+    "criterio",
+    "pauta",
+    "nivel",
+    "rúbrica",
+    "rubrica",
+    "descriptor",
+    "momento",
 )
 
 

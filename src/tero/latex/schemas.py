@@ -123,18 +123,110 @@ def _schema_key(tipo: str) -> str:
     aliases = {
         "guía": "guia",
         "guia": "guia",
+        "worksheet": "guia",
         "evaluación": "evaluacion",
         "evaluacion": "evaluacion",
+        "quiz": "evaluacion",
+        "prueba": "evaluacion",
         "planificación": "planificacion",
         "planificacion": "planificacion",
         "plan": "planificacion",
+        "lesson_plan": "planificacion",
         "pauta": "pauta",
         "rúbrica": "pauta",
         "rubrica": "pauta",
+        "rubric": "pauta",
         "beamer": "beamer",
+        "slides": "beamer",
         "actividad": "actividad",
     }
     return aliases.get(raw, raw if raw in SCHEMA_TYPES else "guia")
+
+
+def _value_filled(value: Any) -> bool:
+    return not (value is None or value == "" or value == [] or value == {})
+
+
+_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "titulo": ("title",),
+    "objetivo": ("objective", "goal"),
+    "inicio": ("start", "opening", "apertura"),
+    "desarrollo": ("development", "main"),
+    "cierre": ("close", "closing", "closure", "sintesis", "síntesis"),
+    "evaluacion": ("evaluation", "formative"),
+    "proposito": ("purpose",),
+    "instrucciones": ("instructions",),
+    "materiales": ("materials",),
+    "recursos": ("resources",),
+    "criterios": ("criteria",),
+    "niveles": ("levels",),
+    "slides": ("diapositivas",),
+    "actividades": ("activities",),
+    "curso": ("grade", "course"),
+    "asignatura": ("subject",),
+}
+
+
+def _apply_field_aliases(data: dict[str, Any], key: str) -> dict[str, Any]:
+    """Copy English / alternate keys onto schema fields when the canonical key is empty."""
+    out = dict(data)
+    aliases = dict(_FIELD_ALIASES)
+    if key == "evaluacion":
+        aliases["items"] = ("questions", "preguntas")
+    for dest, alts in aliases.items():
+        if _value_filled(out.get(dest)):
+            continue
+        for alt in alts:
+            if alt in out and _value_filled(out.get(alt)):
+                out[dest] = out[alt]
+                break
+    return out
+
+
+def _fold_label(text: str) -> str:
+    return (
+        (text or "")
+        .strip()
+        .lower()
+        .replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+
+
+def _lift_plan_momentos(merged: dict[str, Any]) -> None:
+    """Map momentos/secuencia lists onto inicio/desarrollo/cierre/evaluacion."""
+    raw = merged.get("momentos") or merged.get("moments") or merged.get("secuencia")
+    if not isinstance(raw, list):
+        return
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        label = _fold_label(
+            str(
+                row.get("nombre")
+                or row.get("titulo")
+                or row.get("momento")
+                or row.get("fase")
+                or ""
+            )
+        )
+        body = _as_plan_prose(row)
+        if not body:
+            continue
+        target = ""
+        if any(token in label for token in ("inicio", "apertura", "inicial", "warm")):
+            target = "inicio"
+        elif any(token in label for token in ("cierre", "sintesis")):
+            target = "cierre"
+        elif any(token in label for token in ("desarrollo", "central")):
+            target = "desarrollo"
+        elif any(token in label for token in ("evalua", "ticket", "salida")):
+            target = "evaluacion"
+        if target and not _value_filled(merged.get(target)):
+            merged[target] = body
 
 
 def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any]:
@@ -153,10 +245,15 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
     # nested under payload/data common mistake
     for nest in ("payload", "data", "artifact", "json"):
         inner = data.get(nest)
-        if isinstance(inner, dict) and "titulo" in inner:
+        if isinstance(inner, dict) and (
+            "titulo" in inner or "title" in inner or "items" in inner or "inicio" in inner
+        ):
             data = inner
             break
+    data = _apply_field_aliases(data, key)
     merged = {**base, **{k: v for k, v in data.items() if v is not None}}
+    if key == "planificacion":
+        _lift_plan_momentos(merged)
     merged["tipo"] = "guia" if key == "actividad" else key
     oa = str(merged.get("oa") or "").strip()
     if _oa_looks_like_catalog_essay(oa):
@@ -339,6 +436,8 @@ def extract_payload_from_markdown(
         art = ArtifactType.parse(fm_tipo) or ArtifactType.GUIA
     key = art.value
     body = _strip_host_appendix(body)
+    if art == ArtifactType.EVALUACION:
+        body = _strip_answer_key_blocks(body)
     sections = _split_sections(body)
     titulo = _first_heading(body) or meta.get("titulo") or art.label.capitalize()
 
@@ -546,15 +645,19 @@ def _as_str_list(value: Any) -> list[str]:
         for item in value:
             if isinstance(item, dict):
                 name = str(
-                    item.get("nombre")
+                    item.get("text")
                     or item.get("texto")
-                    or item.get("label")
+                    or item.get("enunciado")
+                    or item.get("nombre")
                     or item.get("criterio")
                     or ""
                 ).strip()
                 desc = str(
                     item.get("descripcion") or item.get("descriptor") or item.get("detalle") or ""
                 ).strip()
+                if not name:
+                    label = str(item.get("label") or item.get("letra") or "").strip()
+                    name = label if len(label) > 3 else ""
                 if name and desc and desc != name:
                     out.append(f"{name}: {desc}")
                 elif name or desc:
@@ -571,6 +674,53 @@ def _as_str_list(value: Any) -> list[str]:
     return [str(value)]
 
 
+def _row_enunciado(row: dict[str, Any]) -> str:
+    """Read the stem from any key small models actually emit."""
+    for key in (
+        "enunciado",
+        "stem",
+        "question",
+        "pregunta",
+        "prompt",
+        "consigna",
+        "texto",
+        "afirmacion",
+        "afirmación",
+    ):
+        value = row.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _row_opciones(row: dict[str, Any]) -> list[str]:
+    for key in ("opciones", "options", "alternativas", "choices"):
+        if key in row and row.get(key) not in (None, "", []):
+            return _as_str_list(row.get(key))
+    return []
+
+
+def _row_clave(row: dict[str, Any]) -> str:
+    if row.get("clave"):
+        return str(row.get("clave") or "").strip()
+    for key in ("correcta", "correct", "answer", "respuesta"):
+        value = row.get(key)
+        if isinstance(value, bool):
+            return "V" if value else "F"
+        if isinstance(value, int) and not isinstance(value, bool):
+            return chr(ord("A") + value) if 0 <= value < 26 else str(value)
+        text = str(value or "").strip()
+        if not text:
+            continue
+        folded = text.lower()
+        if folded in {"true", "verdadero", "v", "si", "sí"}:
+            return "V"
+        if folded in {"false", "falso", "f", "no"}:
+            return "F"
+        return text[:8]
+    return ""
+
+
 def _as_vf_items(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
@@ -583,13 +733,12 @@ def _as_vf_items(value: Any) -> list[dict[str, Any]]:
             continue
         if not isinstance(row, dict):
             continue
-        parsed = _vf_statement(str(row.get("enunciado") or row.get("texto") or "").strip())
+        parsed = _vf_statement(_row_enunciado(row))
         if not parsed:
             continue
-        if row.get("clave"):
-            parsed["clave"] = str(row.get("clave") or "").strip()[:8]
-        elif isinstance(row.get("correcta"), bool):
-            parsed["clave"] = "V" if row["correcta"] else "F"
+        clave = _row_clave(row)
+        if clave:
+            parsed["clave"] = clave[:8]
         items.append(parsed)
     return [item for item in items if item["enunciado"]]
 
@@ -606,11 +755,9 @@ def _as_sm_items(value: Any) -> list[dict[str, Any]]:
             continue
         items.append(
             {
-                "enunciado": _plain_math(
-                    str(row.get("enunciado") or row.get("pregunta") or "").strip()
-                ),
-                "opciones": _as_str_list(row.get("opciones")),
-                "clave": str(row.get("clave") or "").strip(),
+                "enunciado": _plain_math(_row_enunciado(row)),
+                "opciones": _row_opciones(row),
+                "clave": _row_clave(row),
             }
         )
     return [item for item in items if item["enunciado"]]
@@ -628,10 +775,16 @@ def _as_actividades(value: Any) -> list[dict[str, str]]:
             continue
         out.append(
             {
-                "titulo": str(row.get("titulo") or "Actividad").strip(),
-                "inicio": str(row.get("inicio") or "").strip(),
-                "desarrollo": str(row.get("desarrollo") or "").strip(),
-                "cierre": str(row.get("cierre") or "").strip(),
+                "titulo": str(
+                    row.get("titulo") or row.get("title") or row.get("nombre") or "Actividad"
+                ).strip(),
+                "inicio": str(
+                    row.get("inicio") or row.get("start") or row.get("apertura") or ""
+                ).strip(),
+                "desarrollo": str(
+                    row.get("desarrollo") or row.get("development") or row.get("detalle") or ""
+                ).strip(),
+                "cierre": str(row.get("cierre") or row.get("close") or "").strip(),
             }
         )
     return out
@@ -654,16 +807,23 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
             continue
         if not isinstance(row, dict):
             continue
+        opciones = _row_opciones(row)
         out.append(
             {
                 "tipo_item": _canonical_tipo_item(
-                    str(row.get("tipo_item") or row.get("tipo") or ""),
-                    opciones=_as_str_list(row.get("opciones")),
+                    str(
+                        row.get("tipo_item")
+                        or row.get("tipo")
+                        or row.get("type")
+                        or row.get("kind")
+                        or ""
+                    ),
+                    opciones=opciones,
                 ),
-                "enunciado": _plain_math(str(row.get("enunciado") or "").strip()),
-                "puntaje": str(row.get("puntaje") or ""),
-                "opciones": _as_str_list(row.get("opciones")),
-                "clave": str(row.get("clave") or "").strip(),
+                "enunciado": _plain_math(_row_enunciado(row)),
+                "puntaje": str(row.get("puntaje") or row.get("points") or row.get("puntos") or ""),
+                "opciones": opciones,
+                "clave": _row_clave(row),
             }
         )
     return [item for item in out if item["enunciado"] and not _is_answer_chrome(item["enunciado"])]
@@ -680,11 +840,13 @@ def _canonical_tipo_item(raw: str, *, opciones: list[str] | None = None) -> str:
         .replace("ó", "o")
         .replace("ú", "u")
     )
-    if "seleccion" in folded or folded in {"sm", "opcion_multiple"}:
+    if "seleccion" in folded or folded in {"sm", "opcion_multiple", "mcq", "multiple_choice"}:
         return "sm"
-    if folded in {"vf"} or ("verdadero" in folded and "falso" in folded):
+    if folded in {"vf", "true_false", "truefalse", "verdaderofalso"} or (
+        "verdadero" in folded and "falso" in folded
+    ):
         return "vf"
-    if "desarrollo" in folded:
+    if "desarrollo" in folded or folded in {"development", "open", "abierta"}:
         return "desarrollo"
     if opciones:
         return "sm"
@@ -727,10 +889,8 @@ def _as_desarrollo_items(data: dict[str, Any]) -> list[dict[str, Any]]:
             if isinstance(row, str):
                 prompt, pts = row, ""
             elif isinstance(row, dict):
-                prompt = str(
-                    row.get("enunciado") or row.get("prompt") or row.get("consigna") or ""
-                ).strip()
-                pts = str(row.get("puntos") or row.get("puntaje") or "")
+                prompt = _row_enunciado(row)
+                pts = str(row.get("puntos") or row.get("puntaje") or row.get("points") or "")
             else:
                 continue
             prompt = _plain_math(prompt)
@@ -782,8 +942,16 @@ def _as_pauta_criterios(value: Any) -> list[dict[str, Any]]:
             continue
         out.append(
             {
-                "nombre": str(row.get("nombre") or row.get("criterio") or "").strip(),
-                "descriptores": _as_str_list(row.get("descriptores")),
+                "nombre": str(
+                    row.get("nombre")
+                    or row.get("criterio")
+                    or row.get("name")
+                    or row.get("title")
+                    or ""
+                ).strip(),
+                "descriptores": _as_str_list(
+                    row.get("descriptores") or row.get("descriptors") or row.get("niveles")
+                ),
             }
         )
     return [item for item in out if item["nombre"]]
@@ -801,8 +969,15 @@ def _as_slides(value: Any) -> list[dict[str, Any]]:
             continue
         out.append(
             {
-                "titulo": str(row.get("titulo") or "").strip(),
-                "bullets": _as_str_list(row.get("bullets")),
+                "titulo": str(
+                    row.get("titulo") or row.get("title") or row.get("heading") or ""
+                ).strip(),
+                "bullets": _as_str_list(
+                    row.get("bullets")
+                    or row.get("points")
+                    or row.get("items")
+                    or row.get("contenido")
+                ),
             }
         )
     return [item for item in out if item["titulo"]]
@@ -820,6 +995,18 @@ _SECTION_ALIASES: tuple[tuple[str, str], ...] = (
     ("criterios de exito", "evaluacion"),
     ("objetivo", "objetivo"),
     ("objetivos", "objetivo"),
+    ("momento de inicio", "inicio"),
+    ("momento inicial", "inicio"),
+    ("momento de desarrollo", "desarrollo"),
+    ("momento central", "desarrollo"),
+    ("momento de cierre", "cierre"),
+    ("ticket de salida", "evaluacion"),
+    ("pregunta de salida", "evaluacion"),
+    ("apertura", "inicio"),
+    ("motivación", "inicio"),
+    ("motivacion", "inicio"),
+    ("síntesis", "cierre"),
+    ("sintesis", "cierre"),
     ("inicio", "inicio"),
     ("desarrollo", "desarrollo"),
     ("cierre", "cierre"),
@@ -950,6 +1137,50 @@ def _fill_empty_fields(dst: dict[str, Any], src: dict[str, Any]) -> None:
             dst[key] = value
 
 
+def _norm_stem(text: str) -> str:
+    return re.sub(r"[^a-záéíóúñü0-9]+", "", (text or "").lower())[:96]
+
+
+def _fill_empty_eval_item_fields(dst: list[Any], src: list[Any]) -> list[dict[str, Any]]:
+    """Copy opciones/clave from markdown extract when the JSON item left them empty."""
+    if not dst:
+        return [row for row in src if isinstance(row, dict)]
+    indexed: dict[str, dict[str, Any]] = {}
+    for row in src:
+        if not isinstance(row, dict):
+            continue
+        stem = _norm_stem(str(row.get("enunciado") or ""))
+        if stem:
+            indexed[stem] = row
+
+    def match_for(row: dict[str, Any]) -> dict[str, Any] | None:
+        stem = _norm_stem(str(row.get("enunciado") or ""))
+        if not stem:
+            return None
+        if stem in indexed:
+            return indexed[stem]
+        for key, candidate in indexed.items():
+            if stem[:24] == key[:24] or stem in key or key in stem:
+                return candidate
+        return None
+
+    out: list[dict[str, Any]] = []
+    for raw in dst:
+        if not isinstance(raw, dict):
+            continue
+        row = dict(raw)
+        incoming = match_for(row)
+        if incoming:
+            if not row.get("opciones") and incoming.get("opciones"):
+                row["opciones"] = list(incoming["opciones"])
+            if not row.get("clave") and incoming.get("clave"):
+                row["clave"] = incoming["clave"]
+            if not row.get("tipo_item") and incoming.get("tipo_item"):
+                row["tipo_item"] = incoming["tipo_item"]
+        out.append(row)
+    return out
+
+
 def _payload_has_body(payload: dict[str, Any]) -> bool:
     for key in ("items", "sm_items", "vf_items", "actividades", "criterios"):
         value = payload.get(key)
@@ -984,6 +1215,11 @@ def enrich_payload_from_markdown(
                 and not _is_answer_chrome(str(row.get("enunciado") or ""))
             ]
     _fill_empty_fields(payload, extracted)
+    if _schema_key(tipo) == "evaluacion":
+        payload["items"] = _fill_empty_eval_item_fields(
+            payload.get("items") if isinstance(payload.get("items"), list) else [],
+            extracted.get("items") if isinstance(extracted.get("items"), list) else [],
+        )
     return payload
 
 
@@ -1061,6 +1297,34 @@ def _strip_host_appendix(markdown: str) -> str:
     if cut:
         text = text[: cut.start()]
     return text.rstrip() + ("\n" if text.strip() else "")
+
+
+_ANSWER_LABEL = re.compile(
+    r"^(respuesta(?:\s+correcta)?|clave|solucionario|pauta\s+de\s+correcci[oó]n)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_answer_key_blocks(text: str) -> str:
+    """Drop teacher-key blocks so the student ficha is not the pauta."""
+    out: list[str] = []
+    skip = False
+    for line in (text or "").splitlines():
+        if re.match(r"^#{1,6}\s+", line.strip()):
+            skip = False
+        stripped = re.sub(r"^[\s*#>]+", "", line).strip().strip("*")
+        if _ANSWER_LABEL.match(stripped) and (":" in stripped or len(stripped.split()) <= 4):
+            rest = stripped.split(":", 1)[1].strip() if ":" in stripped else ""
+            compact = re.sub(r"[^a-záéíóúñü0-9]", "", rest.lower())
+            # Keep one-token keys (A, V, verdadero) so SM/V-F parsers still see them.
+            if compact and len(compact) <= 12 and len(rest.split()) <= 3:
+                out.append(line)
+            skip = True
+            continue
+        if skip:
+            continue
+        out.append(line)
+    return "\n".join(out)
 
 
 def _is_answer_chrome(text: str) -> bool:
@@ -1172,6 +1436,13 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
         line = re.sub(r"^#+\s*", "", raw.strip())
         if not line or line in {"---", "***"}:
             continue
+        clave = re.match(r"^(?:clave|correcta|respuesta)\s*[:\-]\s*(.+)$", line, flags=re.I)
+        if clave and current is not None:
+            token = clave.group(1).strip()
+            # Keep A/B/V/F; drop teacher prose that leaked onto the same line.
+            if token and len(token.split()) <= 3:
+                current["clave"] = token[:8]
+            continue
         if _is_answer_chrome(line):
             continue
         numbered = re.match(r"^(?:\*{0,2})(\d+)[.)](?:\*{0,2})\s+(.*)$", line)
@@ -1188,10 +1459,6 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
                 current = {"enunciado": stem, "opciones": [], "clave": ""}
                 preamble = []
             current["opciones"].append(option.group(2).strip())
-            continue
-        clave = re.match(r"^(?:clave|correcta|respuesta)\s*[:\-]\s*(.+)$", line, flags=re.I)
-        if clave and current is not None:
-            current["clave"] = clave.group(1).strip()[:8]
             continue
         if current is not None and not current.get("opciones"):
             current["enunciado"] = (current["enunciado"] + " " + line).strip()
