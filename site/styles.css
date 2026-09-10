@@ -518,6 +518,129 @@ dialog menu {
   }
 }
 
+.cuerpo[hidden],
+.consulta[hidden],
+.archivo[hidden] {
+  display: none !important;
+}
+
+.consulta {
+  background: var(--tui-bg);
+  color: var(--tui-text);
+  font-family: var(--font-tui);
+  font-size: 0.72rem;
+  padding: 0.55rem 0.7rem 0.65rem;
+  border: 1px solid #2c333c;
+  box-shadow: 4px 6px 0 #00000044;
+}
+
+.consulta-reloj {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  margin: 0 0 0.4rem;
+  color: var(--tui-accent);
+}
+
+.consulta-real {
+  color: var(--tui-muted);
+}
+
+.bitacora {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 7.2rem;
+  overflow: auto;
+  line-height: 1.35;
+}
+
+.bitacora li[data-kind="ok"] {
+  color: var(--tui-ok);
+}
+
+.bitacora li[data-kind="draft_artifact"] {
+  color: var(--tui-warn);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.plano {
+  margin: 0.6rem 0 0.9rem;
+  padding: 0.4rem 0.5rem 0.55rem;
+  background: #fffdf6;
+  border: 1px solid var(--rule);
+}
+
+.plano figcaption {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.plano svg {
+  display: block;
+  width: 100%;
+  max-width: 26rem;
+  height: auto;
+}
+
+.archivo {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.archivo-lead {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hoja-frame {
+  margin: 0;
+  background: #fff;
+  border: 1px solid #2a1a10;
+  box-shadow: 0 8px 22px #00000040;
+}
+
+.hoja-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hoja-frame figcaption {
+  margin: 0;
+  padding: 0.3rem 0.5rem 0.4rem;
+  font-family: var(--font-tui);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.hoja-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.45rem 0 0;
+  font-size: 0.85rem;
+}
+
+.tui-shot {
+  margin: 0 0 0.75rem;
+}
+
+.tui-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #2c333c;
+  background: var(--tui-bg);
+}
+
 @media print {
   body {
     background: #fff;
@@ -532,6 +655,9 @@ dialog menu {
   .rumbos,
   .gate,
   .avisos,
+  .consulta,
+  .tui-shot,
+  .hoja-nav,
   dialog {
     display: none !important;
   }
@@ -540,6 +666,10 @@ dialog menu {
     transform: none;
     box-shadow: none;
     border: none;
+  }
+
+  .archivo {
+    display: block !important;
   }
 
   .stamp {
