@@ -669,7 +669,8 @@ def _split_sections(markdown: str) -> dict[str, str]:
     current = "_preamble"
     chunks: dict[str, list[str]] = {current: []}
     for line in markdown.splitlines():
-        heading = re.match(r"^#{1,6}\s+(.*)$", line.strip())
+        # ATX headings are 1–6 hashes. Nova Lite drafts often use #### for body sections.
+        heading = re.match(r"^#{1,6}\s+(.*?)(?:\s+#*)?$", line.strip())
         if heading:
             key = _canonical_section_key(heading.group(1))
             if key is not None:
@@ -855,7 +856,7 @@ def _eval_items_from_heading_blocks(markdown: str) -> list[dict[str, Any]]:
     current: str | None = None
     buf: list[str] = []
     for line in (markdown or "").splitlines():
-        heading = re.match(r"^#{1,6}\s+(.*)$", line.strip())
+        heading = re.match(r"^#{1,6}\s+(.*?)(?:\s+#*)?$", line.strip())
         if heading:
             kind = _item_kind_from_heading(heading.group(1))
             if kind:

@@ -247,6 +247,14 @@ describe("commands", () => {
     expect(action.kind).toBe("state")
     if (action.kind === "state") expect(action.state.statusLine).toContain("vacío")
   })
+  test("hola is not an encargo and does not hit the bridge", () => {
+    const action = handleCommand(initialState(encargo), "hola")
+    expect(action.kind).toBe("state")
+    if (action.kind === "state") {
+      expect(action.state.statusLine.toLowerCase()).toContain("encargo")
+      expect(action.state.thinking).toBe(false)
+    }
+  })
   test("prompt becomes JSONL prompt and clears stale proposal", () => {
     const state = { ...initialState(encargo), proposal: "viejo", screen: "workspace" as const }
     const action = handleCommand(state, "Prepara una guía")

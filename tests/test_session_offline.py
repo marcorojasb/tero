@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from tero.config import Settings
+from tero.errors import TeroError
 from tero.session import TeacherSession
 from tero.types import Encargo
 from tero.workspace import Workspace
@@ -61,3 +64,31 @@ def test_gate_c_runs_another_pass(workspace: Workspace):
     second = session.turns[-1].draft
     assert second is not None
     assert "Corrección docente" in second.cuerpo_markdown
+
+
+def test_hola_does_not_launch_plan(workspace: Workspace):
+    settings = Settings(offline=True, carpeta=workspace.root)
+    events: list[dict] = []
+    session = TeacherSession(workspace, settings, emit=events.append)
+    with pytest.raises(TeroError) as caught:
+        session.start_turn("hola")
+    assert caught.value.code == "no_encargo"
+    assert session.phase == "idle"
+    assert session.turns == []
+    assert not any(event.get("type") == "plan" for event in events)
+
+
+def test_hola_profe_is_still_phatic(workspace: Workspace):
+    settings = Settings(offline=True, carpeta=workspace.root)
+    session = TeacherSession(workspace, settings)
+    with pytest.raises(TeroError) as caught:
+        session.start_turn("hola profe")
+    assert caught.value.code == "no_encargo"
+
+
+def test_guia_short_encargo_still_starts(workspace: Workspace):
+    settings = Settings(offline=True, carpeta=workspace.root)
+    session = TeacherSession(workspace, settings, encargo=Encargo(oa="OA 4"))
+    session.start_turn("guía del cuento")
+    assert session.phase in {"esperando_plan", "esperando_clarificacion", "error"}
+    assert session.turns

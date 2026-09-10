@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -150,6 +151,12 @@ class TeacherSession:
             raise TeroError(
                 "Ese texto no parece un encargo usable. Describe el material en una frase.",
                 code="garbage_prompt",
+            )
+        if _looks_phatic(cleaned):
+            raise TeroError(
+                "Hola. Eso no es un encargo: dime qué material necesitas "
+                "(planificación, guía, evaluación…) o elige un rumbo 1–4.",
+                code="no_encargo",
             )
 
         # Sync chips from prompt (fixes encargo vs chips desync)
@@ -616,6 +623,62 @@ class TeacherSession:
         chips = ", ".join(self.encargo.chips())
         header = f"Encargo: {chips}\n" if chips else ""
         return header + prompt
+
+
+_PHATIC = {
+    "hola",
+    "holi",
+    "holis",
+    "hello",
+    "hi",
+    "hey",
+    "buenas",
+    "buen dia",
+    "buen día",
+    "buenos dias",
+    "buenos días",
+    "buenas tardes",
+    "buenas noches",
+    "ok",
+    "oka",
+    "okey",
+    "okay",
+    "vale",
+    "ya",
+    "gracias",
+    "thanks",
+    "thank you",
+    "que tal",
+    "qué tal",
+}
+
+
+def _looks_phatic(text: str) -> bool:
+    """Greetings / fillers are not encargos. Do not launch plan+draft."""
+    blob = re.sub(r"[^\wáéíóúñü ]+", " ", (text or "").lower(), flags=re.UNICODE)
+    blob = " ".join(blob.split())
+    if not blob:
+        return True
+    if blob in _PHATIC:
+        return True
+    parts = blob.split()
+    if parts[0] in {"hola", "holi", "holis", "hello", "hi", "hey", "buenas"} and len(parts) <= 3:
+        extra = {
+            "profe",
+            "profesor",
+            "profesora",
+            "tero",
+            "que",
+            "qué",
+            "tal",
+            "como",
+            "cómo",
+            "estas",
+            "estás",
+            "amigo",
+        }
+        return all(part in extra for part in parts[1:])
+    return False
 
 
 def _looks_garbage(text: str) -> bool:

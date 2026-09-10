@@ -532,6 +532,17 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
       },
     }
   }
+  if (looksPhatic(text)) {
+    return {
+      kind: "state",
+      state: {
+        ...state,
+        lastError: "",
+        thinking: false,
+        statusLine: "Hola. Eso no es un encargo: dime el material o elige rumbo 1–4.",
+      },
+    }
+  }
 
   if (state.uiMode === "critique") {
     const next = {
@@ -976,6 +987,48 @@ export function gateStrip(state: AppState): string {
     return "[r] reintentar   /home inicio"
   }
   return ""
+}
+
+export function looksPhatic(text: string): boolean {
+  const blob = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^\p{L}\p{N} ]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!blob) return true
+  const exact = new Set([
+    "hola",
+    "holi",
+    "holis",
+    "hello",
+    "hi",
+    "hey",
+    "buenas",
+    "buen dia",
+    "buenos dias",
+    "buenas tardes",
+    "buenas noches",
+    "ok",
+    "oka",
+    "okey",
+    "okay",
+    "vale",
+    "ya",
+    "gracias",
+    "thanks",
+    "thank you",
+    "que tal",
+  ])
+  if (exact.has(blob)) return true
+  const parts = blob.split(" ")
+  const greet = new Set(["hola", "holi", "holis", "hello", "hi", "hey", "buenas"])
+  const extra = new Set(["profe", "profesor", "profesora", "tero", "que", "tal", "como", "estas", "amigo"])
+  if (greet.has(parts[0] || "") && parts.length <= 3) {
+    return parts.slice(1).every((part) => extra.has(part))
+  }
+  return false
 }
 
 export function chips(encargo: Encargo): string[] {

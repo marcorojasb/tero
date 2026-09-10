@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tero.encargo_sync import apply_rumbo, sync_encargo_from_prompt
 from tero.plan import answer_question, build_plan, edit_assumption
-from tero.rumbos import Rumbo, domain_mismatch, infer_curso, tipo_for_rumbo
+from tero.rumbos import Rumbo, domain_mismatch, infer_curso, infer_tema, tipo_for_rumbo
 from tero.types import ArtifactType, Encargo
 
 
@@ -33,6 +33,12 @@ def test_sync_encargo_updates_curso_and_domain():
     )
     assert warn is not None
     assert "matemática" in warn.lower() or "lenguaje" in warn.lower()
+
+
+def test_infer_tema_ignores_hola():
+    assert infer_tema("hola") == ""
+    assert infer_tema("gracias") == ""
+    assert "cuento" in infer_tema("planificación del cuento").lower()
 
 
 def test_infer_curso_variants():
