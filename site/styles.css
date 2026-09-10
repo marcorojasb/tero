@@ -52,22 +52,8 @@ body {
   font-family: var(--font);
   font-size: 13px;
   line-height: 1.45;
-  background: var(--bg);
+  background: #07080a;
   padding: 0.7rem 0.7rem 3.6rem;
-}
-
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0 2px,
-    #00000014 2px 3px
-  );
-  opacity: 0.45;
 }
 
 ::selection {
@@ -93,6 +79,7 @@ body::before {
 
 .term {
   max-width: 86rem;
+  min-height: calc(100vh - 4.4rem);
   margin: 0 auto;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -128,22 +115,22 @@ body::before {
 
 .banner {
   display: grid;
-  grid-template-columns: minmax(16rem, 1.1fr) minmax(14rem, 1fr);
-  gap: 0.5rem 1.25rem;
+  grid-template-columns: auto minmax(14rem, 1fr);
+  gap: 0.75rem 2rem;
   align-items: center;
-  padding: 0.85rem 1rem 0.95rem;
+  padding: 1rem 1.15rem 1.1rem;
   border-bottom: 1px solid var(--border);
   background:
-    radial-gradient(ellipse at 18% 40%, #82aaff14 0%, transparent 55%),
+    radial-gradient(ellipse at 12% 40%, #82aaff18 0%, transparent 55%),
     var(--bg);
 }
 
 .ascii-tero {
   margin: 0;
   color: var(--accent);
-  font-size: 0.92rem;
-  line-height: 1.08;
-  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
   text-shadow: 0 0 14px #82aaff44;
   user-select: none;
 }
@@ -167,9 +154,9 @@ body::before {
 
 .banner-id .brand {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.7rem;
   font-weight: 600;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.18em;
   color: var(--text);
 }
 
@@ -761,7 +748,7 @@ dialog menu {
   }
 
   .ascii-tero {
-    font-size: 0.78rem;
+    font-size: 0.88rem;
   }
 
   .hoja-frame {
@@ -770,8 +757,8 @@ dialog menu {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
-    display: none;
+  .ascii-tero {
+    text-shadow: none;
   }
 }
 
@@ -782,7 +769,6 @@ dialog menu {
     padding: 0;
   }
 
-  body::before,
   .skip,
   .term-chrome,
   .banner,
