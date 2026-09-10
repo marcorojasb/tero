@@ -67,6 +67,10 @@ def test_ficha_assets_and_pages_workflow():
     workflow = _read(ROOT / ".github" / "workflows" / "pages.yml")
     assert "path: site" in workflow
     assert "deploy-pages" in workflow
+    assert "enablement: true" in workflow
+    sitio = _read(DOCS / "SITIO.md")
+    assert "enablement: true" in sitio
+    assert "marcorojasb.github.io/tero" in sitio
 
 
 def test_ficha_serve_maps_missing_path_to_extraviada_sheet():

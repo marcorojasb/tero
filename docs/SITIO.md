@@ -23,9 +23,15 @@ puerta `s` / `n` / `b` / `c`. El modelo de la demo en esa página es
 ## GitHub Pages
 
 Workflow: `.github/workflows/pages.yml` publica `site/` desde `main`.
-
-En el repo: Settings → Pages → Source **GitHub Actions** (una vez).
 URL esperada: `https://marcorojasb.github.io/tero/`.
+
+`configure-pages` corre con `enablement: true`: el primer deploy crea el
+sitio Pages (source: GitHub Actions). GitHub solo acepta `/` o `/docs`
+como source de *rama*; `site/` no es un path válido ahí, así que se
+queda como artefacto de Actions.
+
+Si la URL sigue en 404, abre **Settings → Pages**, confirma Source
+**GitHub Actions**, y re-ejecuta el workflow `pages`.
 
 Vista previa local (404.html incluido, como en GitHub Pages):
 
