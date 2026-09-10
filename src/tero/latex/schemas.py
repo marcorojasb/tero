@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -99,6 +100,16 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
 }
 
 
+def _oa_looks_like_catalog_essay(value: str) -> bool:
+    text = (value or "").strip()
+    if not text:
+        return False
+    lowered = text.lower()
+    if "catálogo" in lowered or "catalog_covers" in lowered:
+        return True
+    return len(text) > 80
+
+
 def load_schema(tipo: str) -> dict[str, Any]:
     key = _schema_key(tipo)
     path = SCHEMAS_ROOT / f"{key}.json"
@@ -147,6 +158,9 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
             break
     merged = {**base, **{k: v for k, v in data.items() if v is not None}}
     merged["tipo"] = "guia" if key == "actividad" else key
+    oa = str(merged.get("oa") or "").strip()
+    if _oa_looks_like_catalog_essay(oa):
+        merged["oa"] = ""
     # stringify scalars that templates expect as text
     for field in (
         "titulo",
@@ -196,7 +210,10 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
                 }
             ]
     if key == "evaluacion":
-        merged["items"] = _as_eval_items(merged.get("items"))
+        items = _as_eval_items(merged.get("items"))
+        if not items:
+            items = _eval_items_from_split_payload(merged)
+        merged["items"] = items
         if isinstance(merged.get("criterios"), list) and merged["criterios"]:
             # criterios may be objects; normalize to strings for template list
             fixed: list[str] = []
@@ -220,6 +237,30 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
     return merged
 
 
+_PLAN_CARD_KEYS = frozenset(
+    {
+        "como_abordare",
+        "supuestos",
+        "decisiones",
+        "resultado_previsto",
+        "entregables",
+        "questions",
+    }
+)
+
+
+def _is_plan_card_dump(data: dict[str, Any]) -> bool:
+    """True when GLM/Qwen pasted Plan.as_dict() into payload_json."""
+    if len(_PLAN_CARD_KEYS & data.keys()) < 2:
+        return False
+    body = any(str(data.get(field) or "").strip() for field in ("inicio", "desarrollo", "cierre"))
+    for field in ("items", "sm_items", "actividades", "vf_items"):
+        value = data.get(field)
+        if isinstance(value, list) and value:
+            return False
+    return not body
+
+
 def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
     """Parse optional draft_artifact payload_json. Empty or garbage → None (markdown stays)."""
     if raw is None or raw == "":
@@ -236,6 +277,20 @@ def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
         data = _parse_json_blob(text)
     if not data:
         return None
+    if _is_plan_card_dump(data):
+        return None
+    raw_tipo = data.get("tipo")
+    if raw_tipo:
+        json_key = _schema_key(str(raw_tipo))
+        req_key = _schema_key(tipo)
+        aliases = {"guia", "actividad"}
+        if (
+            json_key in SCHEMA_TYPES
+            and req_key in SCHEMA_TYPES
+            and json_key != req_key
+            and not ({json_key, req_key} <= aliases)
+        ):
+            return None
     return repair_payload(tipo, data)
 
 
@@ -408,8 +463,14 @@ def extract_payload_from_markdown(
 
 def _apply_meta(payload: dict[str, Any], meta: dict[str, str], body: str) -> None:
     for key in ("curso", "asignatura", "oa", "duracion", "tiempo"):
+        incoming = meta.get(key) or _front_matter_value(body, key) or ""
+        if key == "oa" and _oa_looks_like_catalog_essay(incoming):
+            incoming = ""
+        if key == "oa" and _oa_looks_like_catalog_essay(str(payload.get(key) or "")):
+            payload[key] = incoming
+            continue
         if not payload.get(key):
-            payload[key] = meta.get(key) or _front_matter_value(body, key) or ""
+            payload[key] = incoming
     if payload.get("duracion") and not payload.get("tiempo"):
         payload["tiempo"] = payload["duracion"]
 
@@ -435,11 +496,50 @@ def _parse_json_blob(raw: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _plain_math(text: str) -> str:
+    """Turn GLM \\begin{cases} dumps into one readable line."""
+    t = text or ""
+    t = re.sub(r"\\begin\{(?:cases|aligned|array|gather)\}", " ", t)
+    t = re.sub(r"\\end\{(?:cases|aligned|array|gather)\}", " ", t)
+    t = re.sub(r"\\\\", "; ", t)
+    t = re.sub(r"\\[\[\]]", "", t)
+    t = t.replace(r"\&", ",")
+    t = re.sub(r"[ \t]+", " ", t)
+    t = re.sub(r"\s*;\s*;\s*", "; ", t)
+    return t.strip(" ;")
+
+
+def _is_tex_chrome(text: str) -> bool:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return True
+    if re.match(r"^\\(?:begin|end)\{", cleaned):
+        return True
+    if re.match(r"^\\[\[\]]\s*$", cleaned):
+        return True
+    if re.match(r"^[&\\]+$", cleaned.replace(" ", "")):
+        return True
+    return False
+
+
 def _as_str_list(value: Any) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                lit = ast.literal_eval(stripped)
+            except (SyntaxError, ValueError):
+                lit = None
+            if isinstance(lit, (dict, list)):
+                return _as_str_list(lit)
         return [line.strip("-• \t") for line in value.splitlines() if line.strip()]
+    if isinstance(value, dict):
+        out: list[str] = []
+        for nested in value.values():
+            out.extend(_as_str_list(nested))
+        return out
     if isinstance(value, list):
         out: list[str] = []
         for item in value:
@@ -458,6 +558,10 @@ def _as_str_list(value: Any) -> list[str]:
                     out.append(f"{name}: {desc}")
                 elif name or desc:
                     out.append(name or desc)
+                else:
+                    out.extend(_as_str_list(list(item.values())))
+            elif isinstance(item, str):
+                out.extend(_as_str_list(item))
             else:
                 text = str(item).strip()
                 if text:
@@ -499,7 +603,9 @@ def _as_sm_items(value: Any) -> list[dict[str, Any]]:
             continue
         items.append(
             {
-                "enunciado": str(row.get("enunciado") or row.get("pregunta") or "").strip(),
+                "enunciado": _plain_math(
+                    str(row.get("enunciado") or row.get("pregunta") or "").strip()
+                ),
                 "opciones": _as_str_list(row.get("opciones")),
                 "clave": str(row.get("clave") or "").strip(),
             }
@@ -534,19 +640,62 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for row in value:
         if isinstance(row, str):
-            out.append({"tipo_item": "desarrollo", "enunciado": row, "puntaje": "", "opciones": []})
+            out.append(
+                {
+                    "tipo_item": "desarrollo",
+                    "enunciado": _plain_math(row),
+                    "puntaje": "",
+                    "opciones": [],
+                }
+            )
             continue
         if not isinstance(row, dict):
             continue
         out.append(
             {
                 "tipo_item": str(row.get("tipo_item") or row.get("tipo") or "desarrollo"),
-                "enunciado": str(row.get("enunciado") or "").strip(),
+                "enunciado": _plain_math(str(row.get("enunciado") or "").strip()),
                 "puntaje": str(row.get("puntaje") or ""),
                 "opciones": _as_str_list(row.get("opciones")),
                 "clave": str(row.get("clave") or "").strip(),
             }
         )
+    return [item for item in out if item["enunciado"]]
+
+
+def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """GLM puts SM/V-F on sm_items/vf_items and leaves evaluacion.items empty."""
+    out: list[dict[str, Any]] = []
+    for row in _as_sm_items(data.get("sm_items")):
+        out.append(
+            {
+                "tipo_item": "sm",
+                "enunciado": row["enunciado"],
+                "opciones": list(row.get("opciones") or []),
+                "puntaje": str(row.get("puntaje") or ""),
+                "clave": row.get("clave") or "",
+            }
+        )
+    for row in _as_vf_items(data.get("vf_items")):
+        out.append(
+            {
+                "tipo_item": "vf",
+                "enunciado": row["enunciado"],
+                "opciones": ["Verdadero", "Falso"],
+                "puntaje": str(row.get("puntaje") or ""),
+                "clave": row.get("clave") or "",
+            }
+        )
+    for prompt in _as_str_list(data.get("desarrollo_prompts")):
+        if prompt and not _is_tex_chrome(prompt):
+            out.append(
+                {
+                    "tipo_item": "desarrollo",
+                    "enunciado": _plain_math(prompt),
+                    "opciones": [],
+                    "puntaje": "",
+                }
+            )
     return [item for item in out if item["enunciado"]]
 
 
@@ -805,6 +954,8 @@ def _strip_host_appendix(markdown: str) -> str:
 def _is_answer_chrome(text: str) -> bool:
     cleaned = re.sub(r"^[\s☐\[\]\*#_]+", "", (text or "").strip())
     if not cleaned:
+        return True
+    if _is_tex_chrome(cleaned):
         return True
     if re.match(
         r"^(respuesta(?:\s+correcta)?|justifica|puntaje total|nota:|clave)\b",

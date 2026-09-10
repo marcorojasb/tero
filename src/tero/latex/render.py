@@ -261,10 +261,20 @@ def _ficha_header(data: dict[str, Any], *, kind: str) -> str:
     curso = escape_latex(str(data.get("curso") or "—"))
     asignatura = escape_latex(str(data.get("asignatura") or "—"))
     oa = escape_latex(str(data.get("oa") or "—"))
-    tiempo = escape_latex(
-        str(data.get("tiempo") or data.get("duracion") or data.get("puntaje_total") or "—")
-    )
-    tiempo_label = "Puntaje" if kind == "evaluacion" else "Tiempo"
+    score = str(data.get("puntaje_total") or "").strip()
+    duration = str(data.get("tiempo") or data.get("duracion") or "").strip()
+    if kind == "evaluacion":
+        looks_like_time = bool(re.search(r"\bmin", score, flags=re.IGNORECASE))
+        if score and not looks_like_time:
+            tiempo, tiempo_label = score, "Puntaje"
+        elif duration:
+            tiempo, tiempo_label = duration, "Tiempo"
+        else:
+            tiempo, tiempo_label = (score or "—"), "Puntaje"
+    else:
+        tiempo = duration or score or "—"
+        tiempo_label = "Tiempo"
+    tiempo = escape_latex(tiempo)
     return "\n".join(
         [
             rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}",

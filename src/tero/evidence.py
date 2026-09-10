@@ -131,12 +131,18 @@ def collect_warnings(
                 )
             )
 
-    # Unknown OA relative to catalog (non-blocking)
+    # Unknown OA relative to catalog (non-blocking). Skip when the course
+    # is not in the catalog: free-text OA is the honest path (1° medio).
     if encargo.oa or (plan and plan.oa):
-        from tero.curriculum.catalog import resolve_oa
+        from tero.curriculum.catalog import catalog_covers_curso, resolve_oa
 
         check = (plan.oa if plan and plan.oa else "") or encargo.oa
-        if check and resolve_oa(check, curso=encargo.curso, asignatura=encargo.asignatura) is None:
+        covers = catalog_covers_curso(encargo.curso)
+        if (
+            check
+            and covers
+            and resolve_oa(check, curso=encargo.curso, asignatura=encargo.asignatura) is None
+        ):
             warnings.append(
                 WarningItem(
                     code="oa_unknown",
@@ -196,6 +202,7 @@ def collect_warnings(
             )
         )
 
+    unverified_paths: list[str] = []
     for item in draft.evidencias:
         if item.path and item.path not in sources:
             warnings.append(
@@ -207,15 +214,7 @@ def collect_warnings(
             continue
         checked = verify_evidence(workspace, item)
         if item.snippet and not checked.verified:
-            warnings.append(
-                WarningItem(
-                    code="unverified_citation",
-                    message=(
-                        f"El fragmento citado no aparece en {item.path}. "
-                        "Puede ser parafraseo del modelo; no lo trates como cita textual."
-                    ),
-                )
-            )
+            unverified_paths.append(item.path)
         if any(
             record.relative_path == item.path and record.changed
             for record in workspace.list_sources()
@@ -226,6 +225,18 @@ def collect_warnings(
                     message=f"La fuente {item.path} cambió respecto del índice. tero no toca el original.",
                 )
             )
+    if unverified_paths:
+        unique_paths = list(dict.fromkeys(unverified_paths))
+        listed = ", ".join(unique_paths)
+        warnings.append(
+            WarningItem(
+                code="unverified_citation",
+                message=(
+                    f"{len(unverified_paths)} cita(s) no aparecen textuales "
+                    f"({listed}). Puede ser parafraseo; no las trates como cita literal."
+                ),
+            )
+        )
 
     # de-duplicate by code+message
     unique: list[WarningItem] = []

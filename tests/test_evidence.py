@@ -33,6 +33,27 @@ def test_warnings_oa_and_thin(workspace: Workspace):
     assert "unverified_citation" not in codes or "unknown_source" in codes
 
 
+def test_oa_unknown_skipped_when_catalog_does_not_cover(workspace: Workspace):
+    draft = ArtifactDraft(
+        tipo=ArtifactType.EVALUACION,
+        titulo="Sistemas",
+        cuerpo_markdown="# Evaluación\n\n## Instrucciones\nLee.\n## Ítems\n1. x\n## Criterios\nPasos\n"
+        + "x" * 800,
+        evidencias=[
+            Evidence(path="fuentes/notas-curso.md", snippet="OA"),
+            Evidence(path="fuentes/cuento-el-condor-y-el-huemul.md", snippet="huemul"),
+        ],
+    )
+    warnings = collect_warnings(
+        workspace=workspace,
+        encargo=Encargo(curso="1° medio", asignatura="Matemática", oa="sistemas 2x2"),
+        plan=None,
+        draft=draft,
+    )
+    codes = {item.code for item in warnings}
+    assert "oa_unknown" not in codes
+
+
 def test_snippet_must_appear_in_source(workspace: Workspace):
     assert snippet_in_text("hola mundo largo", "hola mundo")
     assert not snippet_in_text("hola mundo", "no está")
@@ -68,6 +89,10 @@ def test_snippet_must_appear_in_source(workspace: Workspace):
         draft=draft,
     )
     assert "unverified_citation" in {item.code for item in warnings}
+    unverified = [item for item in warnings if item.code == "unverified_citation"]
+    assert len(unverified) == 1
+    assert "cuento-el-condor-y-el-huemul.md" in unverified[0].message
+    assert "notas-curso.md" in unverified[0].message
 
 
 def test_planificacion_structure_ok():

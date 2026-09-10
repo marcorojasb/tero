@@ -55,3 +55,29 @@ Voy a planificar. propose_plan(
     assert plan.tipo == ArtifactType.PLANIFICACION
     assert "agua dulce" in plan.objetivo.lower()
     assert "CIE-5B-OA06" in plan.oa
+
+
+def test_salvage_propose_plan_json_blob():
+    from tero.salvage import salvage_plan_from_text
+    from tero.types import Encargo
+
+    blob = """
+{
+  "objetivo": "Evaluar la capacidad de resolver sistemas de ecuaciones lineales 2x2",
+  "tipo": "evaluacion",
+  "curso": "1° medio",
+  "asignatura": "Matemática",
+  "tema": "Sistemas de ecuaciones lineales 2x2",
+  "duracion": "45 min",
+  "oa": "sistemas 2x2",
+  "notas": "catalog_covers=false"
+}
+"""
+    plan = salvage_plan_from_text(
+        blob,
+        encargo=Encargo(curso="1° medio", tipo=ArtifactType.EVALUACION),
+    )
+    assert plan is not None
+    assert plan.tipo == ArtifactType.EVALUACION
+    assert "sistemas" in plan.objetivo.lower()
+    assert "45" in plan.duracion

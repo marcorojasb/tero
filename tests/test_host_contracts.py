@@ -223,6 +223,112 @@ def test_parse_payload_json_garbage_is_none():
     assert parsed["titulo"] == "Ficha"
 
 
+def test_parse_payload_json_rejects_plan_card_dump():
+    card = {
+        "tipo": "planificacion",
+        "titulo": "Plan agua",
+        "objetivo": "Describir el agua",
+        "inicio": "",
+        "desarrollo": "",
+        "cierre": "",
+        "meta": "Plan de trabajo",
+        "resultado_previsto": ["Planificación"],
+        "decisiones": {"curso": "5° básico"},
+        "como_abordare": [{"titulo": "Inicio", "detalle": "Activación"}],
+        "supuestos": [{"id": "s1", "text": "Solo la carpeta"}],
+    }
+    assert parse_payload_json("planificacion", card) is None
+    assert parse_payload_json("evaluacion", card) is None
+    eval_ok = parse_payload_json(
+        "evaluacion",
+        {
+            "tipo": "evaluacion",
+            "titulo": "Prueba",
+            "items": [{"tipo_item": "sm", "enunciado": "¿x+y?", "opciones": ["1", "2"]}],
+        },
+    )
+    assert eval_ok is not None
+    assert eval_ok["items"]
+
+
+def test_repair_evaluacion_lifts_sm_items_and_plain_math():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "tipo": "evaluacion",
+            "titulo": "Prueba",
+            "items": [],
+            "sm_items": [
+                {
+                    "enunciado": r"sistema \begin{cases} x + y = 7 \\ x - y = 1 \end{cases}",
+                    "opciones": [{"id": "A", "texto": "(4, 3)"}, {"id": "B", "texto": "(1, 6)"}],
+                }
+            ],
+            "vf_items": [{"enunciado": "Un sistema 2x2 puede no tener solución."}],
+        },
+    )
+    kinds = [row["tipo_item"] for row in payload["items"]]
+    assert "sm" in kinds
+    assert "vf" in kinds
+    sm = next(row for row in payload["items"] if row["tipo_item"] == "sm")
+    assert "begin{cases}" not in sm["enunciado"]
+    assert "(4, 3)" in sm["opciones"]
+
+
+def test_instrucciones_python_dict_repr():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Prueba",
+            "instrucciones": [
+                "{'tiempo': '45 minutos', 'materiales': 'lápiz y papel', 'puntaje': '50 puntos'}"
+            ],
+        },
+    )
+    joined = " ".join(payload["instrucciones"])
+    assert "{" not in joined
+    assert "45 minutos" in joined
+    assert "lápiz" in joined
+
+
+def test_catalog_essay_oa_is_dropped():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Prueba",
+            "oa": (
+                "No disponible en el catálogo Chile para 1° medio; se basa en "
+                "fuentes locales (bases curriculares, ejemplos resueltos, vocabulario)."
+            ),
+        },
+    )
+    assert payload["oa"] == ""
+
+
+def test_propose_plan_does_not_echo_card(workspace: Workspace):
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
+    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
+    result = json.loads(
+        tools["propose_plan"](
+            objetivo="Evaluar sistemas 2x2",
+            tipo="evaluacion",
+            oa="sistemas 2x2",
+            duracion="45 min",
+        )
+    )
+    assert result["ok"] is True
+    assert "como_abordare" not in result
+    assert result.get("plan") is None or "como_abordare" not in (result.get("plan") or {})
+    assert ctx.pending_plan is not None
+    assert ctx.pending_plan.objetivo.startswith("Evaluar")
+
+
 def test_salvage_payload_json():
     blob = """
 draft_artifact(

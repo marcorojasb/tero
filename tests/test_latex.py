@@ -281,6 +281,29 @@ def test_export_latex_from_json_payload(tmp_path):
     body = path.read_text(encoding="utf-8")
     assert "Prueba corta" in body
     assert "MAT-5B-OA04" in body
+    assert "Puntaje" in body
+    assert "50" not in body  # payload says 5
+
+
+def test_evaluacion_header_prefers_puntaje_over_duration(tmp_path):
+    payload = {
+        "tipo": "evaluacion",
+        "titulo": "Sistemas",
+        "curso": "1° medio",
+        "asignatura": "Matemática",
+        "oa": "sistemas 2x2",
+        "tiempo": "45 min",
+        "duracion": "45 min",
+        "puntaje_total": "50",
+        "items": [{"tipo_item": "sm", "enunciado": "¿x?", "opciones": ["1", "2"]}],
+    }
+    dest = tmp_path / "sistemas.tex"
+    export_latex(tmp_path / "missing.md", dest, payload=payload)
+    body = dest.read_text(encoding="utf-8")
+    assert "Puntaje" in body
+    assert "50" in body
+    # duration must not replace the score in the puntaje slot
+    assert "Puntaje}{45" not in body.replace(" ", "")
 
 
 def test_extract_json_fence_from_markdown():
