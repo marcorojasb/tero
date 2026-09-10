@@ -68,7 +68,9 @@ Theater / weak:
   looks like evidence in the panel (`?`).
 - Warnings never block `s`. A thin skeleton, a missing rúbrica, an OA
   mismatch, an unknown path — the teacher can accept all of them. That is
-  intentional. It is also how a sloppy demo ships a bad lesson plan.
+  intentional (the sloppy-demo risk is real; the host still must not
+  become the teacher). Confirmed after quality loops 1–8: see
+  [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md). The draft that blocked `s` is closed.
 - `c` does not persist the crítica to disk. If the second pass fails, the
   note lives only in the session.
 - Plan “edit” is local (`/objetivo`, `/oa`, …) then `a` sends the dict.

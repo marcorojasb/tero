@@ -68,4 +68,28 @@ Additional adversarial hardening after `style: ruff format` went green:
 | Opaque “thinking” | Status emits `progress`/`step`/`detail` (1/2 read·plan, 2/2 draft, draft_retry) → TUI spinner label |
 | Bedrock empty draft | `_draft_phase` auto-retries once with an explicit `draft_artifact` nudge before `no_draft` error |
 
-Still open (honest): no source-line viewer; warnings never block `s`; Bedrock not in CI.
+Still open (honest): no source-line viewer; Bedrock not in CI.
+
+Warnings **still** never block `s`. That is closed as product, not as
+debt: [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md). PR #8 (block `s` on thin /
+unknown evidence, `SIGALRM`, `--yes` → `borradores/`) stays unmerged.
+
+## Host contracts (corridas Bedrock 1–8)
+
+Quality loop on plan-agua / eval-cuento / eval-sistemas (MiniMax, GLM,
+Qwen) plus Nova Lite stress. What landed on `main` without hardcoding a
+classroom recipe:
+
+| Contrato | Dónde |
+| --- | --- |
+| Salvage de plan/borrador desde prosa o JSON | `tero.salvage` + `TeacherSession._draft_phase` |
+| Reintento único de `draft_artifact` + stream retry | `session.py` |
+| Tope de tools / turns en draft | `DRAFT_TOOL_BUDGET` / `DRAFT_AGENT_TURNS` |
+| Un `activity` start por `toolUseId` (no por delta) | `TeacherSession._callback` |
+| Payload aliases, ítems SM/V-F, guía anidada, pauta | `tero.coerce` + `latex/schemas` |
+| `catalog_covers: false` en media; no relleno 4b–6b | tools OA |
+| Avisos a la vista, `blocking: false` | `tero.evidence` |
+| Landing = fotocopia | `site/` / GitHub Pages |
+
+Qué no: AgentCore Runtime como producto; bloquear `s`; cues de un cuento
+(`cóndor` / `huemul`) como si fueran el dominio universal.
