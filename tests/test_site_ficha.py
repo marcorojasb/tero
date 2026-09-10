@@ -50,7 +50,9 @@ def test_ficha_landing_is_the_github_page():
     assert "unverified_citation" in js
     # The rejected PR #8 override must not appear as a gate.
     assert "forzar" not in js
-    assert "AgentCore Runtime" not in html
+    assert "tú decides" in html
+    assert "vos decidís" not in html
+    assert "vos decidís" not in js
     assert "Get started" not in html
     assert "Sign up" not in html
 

@@ -68,8 +68,8 @@
         <p>Analizar dos voces del cabildo de 1810 (acta formal y voz de vecino): quién tiene voz y quién queda fuera.</p>
         <h2>Instrucciones</h2>
         <ol>
-          <li>Leé el fragmento del acta y la hoja de prensa de la carpeta.</li>
-          <li>Completá el análisis comparativo.</li>
+          <li>Lee el fragmento del acta y la hoja de prensa de la carpeta.</li>
+          <li>Completa el análisis comparativo.</li>
           <li>Ticket de salida: una cita de cada voz.</li>
         </ol>
         <h2>Cierre</h2>
@@ -90,7 +90,7 @@
       title: "Evaluación — el cóndor y el huemul",
       html: `
         <h1>Evaluación — el cóndor y el huemul</h1>
-        <p>Leé el cuento de la carpeta. Respondé en silencio.</p>
+        <p>Lee el cuento de la carpeta. Responde en silencio.</p>
         <h2>Ítem I · Selección múltiple</h2>
         <ol>
           <li>¿Por qué el valle tenía sed, según el huemul?
@@ -127,8 +127,8 @@
         <p>Mismo material de la carpeta, otro curso. tero no inventa un OA de 5° para rellenar 4° si el catálogo no cubre: avisa.</p>
         <h2>Pasos</h2>
         <ol>
-          <li>Dibujá en el cuaderno: mar, río, glaciar.</li>
-          <li>Marcá cuál se puede tomar (con ayuda del o la docente).</li>
+          <li>Dibuja en el cuaderno: mar, río, glaciar.</li>
+          <li>Marca cuál se puede tomar (con ayuda del o la docente).</li>
           <li>Una frase: «en Chile el agua dulce no es toda el agua que se ve».</li>
         </ol>
       `,
@@ -136,7 +136,7 @@
         {
           code: "tipo_desviado",
           message:
-            "El rumbo pedía actividad y el modelo a veces llega con pauta. El plan no se pisa: vos decidís s o c.",
+            "El rumbo pedía actividad y el modelo a veces llega con pauta. El plan no se pisa: tú decides s o c.",
         },
       ],
     },
@@ -289,7 +289,7 @@
       ]);
       setStamp("REVISAR");
       setGateEnabled(true);
-      $("gate-note").textContent = "Reescrito. La crítica quedó; volvé a la puerta.";
+      $("gate-note").textContent = "Reescrito. La crítica quedó; vuelve a la puerta.";
       setPhase("esperando_criterio", "c persistida · s/n/b/c");
     }, 400);
   }
