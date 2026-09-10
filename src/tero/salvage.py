@@ -157,6 +157,9 @@ def _finish_draft(
     evidencias: list[Evidence] | None,
 ) -> ArtifactDraft | None:
     parsed = ArtifactType.parse(tipo_raw) or fallback_tipo or ArtifactType.GUIA
+    from tero.sanitize import scrub_ficha_text, strip_tool_traces_value
+
+    cuerpo = scrub_ficha_text(cuerpo or "")
     payload = None
     if payload_raw not in (None, ""):
         from tero.latex.schemas import parse_payload_json
@@ -165,6 +168,7 @@ def _finish_draft(
     from tero.latex.schemas import enrich_payload_from_markdown
 
     payload = enrich_payload_from_markdown(parsed.value, payload, cuerpo)
+    payload = strip_tool_traces_value(payload)
     cuerpo = (cuerpo or "").strip()
     if not cuerpo and payload:
         title = (titulo or "").strip() or parsed.label
