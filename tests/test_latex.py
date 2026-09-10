@@ -118,6 +118,7 @@ Activar saberes.
     assert payload["curso"] == "4° básico"
     assert payload.get("duracion") == "45 min"
     assert "45°" not in payload["curso"]
+    assert "Activar saberes" in payload["inicio"]
 
     filled = repair_payload(
         "planificacion",
@@ -210,3 +211,51 @@ def test_cli_export_latex_smoke(tmp_path):
     assert code == 0
     assert out.exists()
     assert "Smoke" in out.read_text(encoding="utf-8")
+
+
+def test_extract_planificacion_heading_aliases_and_h4():
+    md = """# Plan
+
+#### Objetivo de aprendizaje
+Distinguir explícito de implícito.
+
+## Estructura de la clase
+
+### 1. Inicio (8-10 min)
+Preguntar por el cóndor.
+
+### Activación
+Parejas de 30 segundos.
+
+### 2. Desarrollo — 25 min
+Lectura en voz alta del cuento.
+
+### 3. Cierre (10 min)
+Ticket de salida.
+
+## Evaluación formativa
+Observación en parejas.
+
+## Materiales
+- Copias del cuento
+"""
+    payload = extract_payload_from_markdown(md, tipo="planificacion")
+    assert "Distinguir explícito" in payload["objetivo"]
+    assert "cóndor" in payload["inicio"]
+    assert "Parejas de 30 segundos" in payload["inicio"]
+    assert "Lectura en voz alta" in payload["desarrollo"]
+    assert "Ticket de salida" in payload["cierre"]
+    assert "Observación" in payload["evaluacion"]
+    assert any("cuento" in item.lower() for item in payload["recursos"])
+
+
+def test_prose_latex_lists_are_host_itemize_not_raw_tex():
+    from tero.latex.render import prose_latex
+
+    body = prose_latex("- Copias del cuento\n- Lápices\n\nSíntesis.")
+    assert r"\begin{itemize}" in body
+    assert r"\item Copias del cuento" in body
+    assert r"\write18" not in body
+    evil = prose_latex(r"\write18{rm -rf /}")
+    assert r"\write18" not in evil
+    assert r"\textbackslash{}" in evil

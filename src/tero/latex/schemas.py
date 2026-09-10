@@ -263,7 +263,10 @@ def extract_payload_from_markdown(
             "inicio": sections.get("inicio") or "",
             "desarrollo": sections.get("desarrollo") or "",
             "cierre": sections.get("cierre") or "",
-            "evaluacion": sections.get("evaluación") or sections.get("evaluacion") or "",
+            "evaluacion": sections.get("evaluacion")
+            or sections.get("evaluación")
+            or sections.get("criterios")
+            or "",
             "recursos": _bullets(sections.get("recursos") or sections.get("materiales") or ""),
             "oa": meta.get("oa") or _front_matter_value(body, "oa") or "",
             "duracion": meta.get("duracion") or _front_matter_value(body, "duracion") or "",
@@ -474,15 +477,71 @@ def _as_slides(value: Any) -> list[dict[str, Any]]:
     return [item for item in out if item["titulo"]]
 
 
+# Canonical keys the markdown→schema extractor understands.
+# Longer aliases first so "objetivo de aprendizaje" wins over a bare prefix check.
+_SECTION_ALIASES: tuple[tuple[str, str], ...] = (
+    ("objetivo de aprendizaje", "objetivo"),
+    ("objetivos de aprendizaje", "objetivo"),
+    ("objetivo general", "objetivo"),
+    ("evaluación formativa", "evaluacion"),
+    ("evaluacion formativa", "evaluacion"),
+    ("criterios de éxito", "evaluacion"),
+    ("criterios de exito", "evaluacion"),
+    ("objetivo", "objetivo"),
+    ("objetivos", "objetivo"),
+    ("inicio", "inicio"),
+    ("desarrollo", "desarrollo"),
+    ("cierre", "cierre"),
+    ("evaluación", "evaluacion"),
+    ("evaluacion", "evaluacion"),
+    ("recursos", "recursos"),
+    ("materiales", "materiales"),
+    ("instrucciones", "instrucciones"),
+    ("propósito", "proposito"),
+    ("proposito", "proposito"),
+    ("actividades", "actividades"),
+    ("ítems", "items"),
+    ("items", "items"),
+    ("preguntas", "preguntas"),
+    ("criterios", "criterios"),
+    ("descriptores", "descriptores"),
+    ("niveles", "niveles"),
+    ("puntaje total", "puntaje"),
+    ("puntaje", "puntaje"),
+    ("nota", "nota"),
+)
+
+
+def _canonical_section_key(title: str) -> str | None:
+    """Map '## 1. Inicio (8-10 min)' / '#### Objetivo' onto schema field names."""
+    raw = title.strip().lower()
+    raw = re.sub(r"^\*+\s*", "", raw)
+    raw = re.sub(r"\s*\*+$", "", raw)
+    raw = raw.replace("**", "").strip()
+    raw = re.sub(r"^[\d]+(?:\.[\d]+)*[.)]\s*", "", raw)
+    raw = re.sub(r"^[\d]+\s+", "", raw)
+    for alias, key in _SECTION_ALIASES:
+        if raw == alias:
+            return key
+        if raw.startswith(alias) and (len(raw) == len(alias) or raw[len(alias)] in " \t(-–—:."):
+            return key
+    return None
+
+
 def _split_sections(markdown: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     current = "_preamble"
     chunks: dict[str, list[str]] = {current: []}
     for line in markdown.splitlines():
-        heading = re.match(r"^#{1,3}\s+(.*)$", line.strip())
+        heading = re.match(r"^#{1,6}\s+(.*)$", line.strip())
         if heading:
-            current = heading.group(1).strip().lower()
-            chunks.setdefault(current, [])
+            key = _canonical_section_key(heading.group(1))
+            if key is not None:
+                current = key
+                chunks.setdefault(current, [])
+                continue
+            # Nested unknown heading (### Lectura guiada): keep as body.
+            chunks.setdefault(current, []).append(line)
             continue
         chunks.setdefault(current, []).append(line)
     for key, lines in chunks.items():

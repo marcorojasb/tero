@@ -41,6 +41,56 @@ def escape_latex(text: str) -> str:
     return "".join(out)
 
 
+def _strip_md_inline(text: str) -> str:
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    return text
+
+
+def prose_latex(text: str) -> str:
+    """Escape model markdown for a template body: paragraphs, lists, quotes. No raw TeX."""
+    if not (text or "").strip():
+        return ""
+    parts: list[str] = []
+    in_list = False
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if stripped in {"---", "***", "___"}:
+            continue
+        is_bullet = bool(re.match(r"^[-*•]\s+", stripped))
+        is_numbered = bool(re.match(r"^\d+[.)]\s+", stripped))
+        if is_bullet or is_numbered:
+            if not in_list:
+                parts.append(r"\begin{itemize}")
+                in_list = True
+            item = re.sub(r"^[-*•]\s+", "", stripped)
+            item = re.sub(r"^\d+[.)]\s+", "", item)
+            parts.append(rf"\item {escape_latex(_strip_md_inline(item))}")
+            continue
+        if in_list:
+            parts.append(r"\end{itemize}")
+            in_list = False
+        if not stripped:
+            parts.append(r"\par")
+            continue
+        if stripped.startswith(">"):
+            quote = stripped.lstrip("> ").strip()
+            parts.append(r"\begin{quote}")
+            parts.append(escape_latex(_strip_md_inline(quote)))
+            parts.append(r"\end{quote}")
+            continue
+        if stripped.startswith("#"):
+            title = re.sub(r"^#+\s*", "", stripped)
+            parts.append(rf"\textbf{{{escape_latex(_strip_md_inline(title))}}}\par")
+            continue
+        parts.append(escape_latex(_strip_md_inline(stripped)))
+        parts.append(r"\par")
+    if in_list:
+        parts.append(r"\end{itemize}")
+    return "\n".join(parts)
+
+
 def _fill(template: str, mapping: dict[str, str]) -> str:
     result = template
     # longer keys first so {{oa_texto}} wins over {{oa}}
@@ -104,12 +154,12 @@ def _mapping_for(key: str, data: dict[str, Any]) -> dict[str, str]:
         "oa_texto": escape_latex(str(data.get("oa_texto") or "")),
         "tiempo": escape_latex(str(data.get("tiempo") or data.get("duracion") or "—")),
         "duracion": escape_latex(str(data.get("duracion") or data.get("tiempo") or "—")),
-        "proposito": escape_latex(str(data.get("proposito") or "")),
-        "cierre": escape_latex(str(data.get("cierre") or "")),
-        "objetivo": escape_latex(str(data.get("objetivo") or "")),
-        "inicio": escape_latex(str(data.get("inicio") or "")),
-        "desarrollo": escape_latex(str(data.get("desarrollo") or "")),
-        "evaluacion": escape_latex(str(data.get("evaluacion") or "")),
+        "proposito": prose_latex(str(data.get("proposito") or "")),
+        "cierre": prose_latex(str(data.get("cierre") or "")),
+        "objetivo": prose_latex(str(data.get("objetivo") or "")),
+        "inicio": prose_latex(str(data.get("inicio") or "")),
+        "desarrollo": prose_latex(str(data.get("desarrollo") or "")),
+        "evaluacion": prose_latex(str(data.get("evaluacion") or "")),
         "puntaje_total": escape_latex(str(data.get("puntaje_total") or "—")),
         "nota_docente": escape_latex(str(data.get("nota_docente") or "")),
         "lineamientos_nota": escape_latex(str(data.get("lineamientos_nota") or "")),
