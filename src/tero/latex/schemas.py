@@ -600,6 +600,19 @@ def _canonical_section_key(title: str) -> str | None:
             return key
         if raw.startswith(alias) and (len(raw) == len(alias) or raw[len(alias)] in " \t(-–—:."):
             return key
+    folded = (
+        raw.replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+    if "seleccion multiple" in folded or "items de seleccion" in folded:
+        return "sm"
+    if "verdadero" in folded and "falso" in folded:
+        return "vf"
+    if "items de desarrollo" in folded or folded.startswith("desarrollo "):
+        return "desarrollo"
     return None
 
 
@@ -661,7 +674,7 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
     for raw in text.splitlines():
-        line = raw.strip()
+        line = re.sub(r"^#+\s*", "", raw.strip())
         if not line or line in {"---", "***"}:
             continue
         numbered = re.match(r"^(?:\*{0,2})(\d+)[.)](?:\*{0,2})\s+(.*)$", line)
@@ -687,7 +700,9 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
 
 def _vf_statement(text: str) -> dict[str, str] | None:
     cleaned = (text or "").strip()
-    if not cleaned:
+    if re.fullmatch(r"(v\s*/\s*f|respuesta.*|_+)", cleaned, flags=re.IGNORECASE):
+        return None
+    if len(cleaned) < 8:
         return None
     clave = ""
     tagged = re.search(

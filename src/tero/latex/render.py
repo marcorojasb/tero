@@ -89,10 +89,24 @@ def prose_latex(text: str) -> str:
         return ""
     parts: list[str] = []
     in_list = False
+    table_rows: list[str] = []
+
+    def flush_table() -> None:
+        if table_rows:
+            parts.append(_md_table_latex(table_rows))
+            table_rows.clear()
+
     for raw in text.splitlines():
         stripped = raw.strip()
         if stripped in {"---", "***", "___"}:
             continue
+        if _looks_md_table_row(stripped):
+            if in_list:
+                parts.append(r"\end{itemize}")
+                in_list = False
+            table_rows.append(stripped)
+            continue
+        flush_table()
         is_bullet = bool(re.match(r"^[-*•]\s+", stripped))
         is_numbered = bool(re.match(r"^\d+[.)]\s+", stripped))
         if is_bullet or is_numbered:
@@ -121,9 +135,38 @@ def prose_latex(text: str) -> str:
             continue
         parts.append(escape_latex(_strip_md_inline(stripped)))
         parts.append(r"\par")
+    flush_table()
     if in_list:
         parts.append(r"\end{itemize}")
     return "\n".join(parts)
+
+
+def _looks_md_table_row(line: str) -> bool:
+    if not line.startswith("|") or line.count("|") < 2:
+        return False
+    return True
+
+
+def _md_table_latex(rows: list[str]) -> str:
+    parsed: list[list[str]] = []
+    for row in rows:
+        if re.match(r"^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$", row):
+            continue
+        cells = [c.strip() for c in row.strip("|").split("|")]
+        if cells:
+            parsed.append(cells)
+    if not parsed:
+        return ""
+    width = max(len(r) for r in parsed)
+    spec = "|" + "l|" * width
+    lines = [rf"\begin{{tabular}}{{{spec}}}", r"\hline"]
+    for row in parsed:
+        padded = row + [""] * (width - len(row))
+        lines.append(" & ".join(escape_latex(_strip_md_inline(c)) for c in padded) + r" \\")
+        lines.append(r"\hline")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\par")
+    return "\n".join(lines)
 
 
 def _fill(template: str, mapping: dict[str, str]) -> str:
@@ -135,23 +178,35 @@ def _fill(template: str, mapping: dict[str, str]) -> str:
     return re.sub(r"\{\{[a-z0-9_]+\}\}", "", result)
 
 
+def _real_lines(lines: list[str]) -> list[str]:
+    out: list[str] = []
+    for line in lines:
+        stripped = str(line).strip()
+        if not stripped or stripped in {"-", "—", "–", "*", "·"}:
+            continue
+        out.append(stripped)
+    return out
+
+
 def _itemize(lines: list[str]) -> str:
-    if not lines:
+    cleaned = _real_lines(lines)
+    if not cleaned:
         return ""
-    return "\n".join(rf"\item {escape_latex(line)}" for line in lines)
+    return "\n".join(rf"\item {escape_latex(_strip_md_inline(line))}" for line in cleaned)
 
 
 def _enumerate(lines: list[str]) -> str:
-    if not lines:
+    cleaned = _real_lines(lines)
+    if not cleaned:
         return ""
-    return "\n".join(rf"\item {escape_latex(line)}" for line in lines)
+    return "\n".join(rf"\item {escape_latex(_strip_md_inline(line))}" for line in cleaned)
 
 
 def _tcolor(title: str | None, body: str) -> str:
     if not (body or "").strip():
         return ""
     opts = (
-        r"colback=black!3,colframe=black!45,boxrule=0.5pt,arc=0pt,"
+        r"breakable,colback=black!3,colframe=black!45,boxrule=0.5pt,arc=0pt,"
         r"left=8pt,right=8pt,top=5pt,bottom=5pt"
     )
     if title:
@@ -170,30 +225,18 @@ def _prose_section(title: str, text: str, *, boxed: bool = False) -> str:
 
 
 def _itemize_section(title: str, lines: list[str]) -> str:
-    cleaned = [line for line in lines if str(line).strip()]
-    if not cleaned:
+    inner_items = _itemize(lines)
+    if not inner_items:
         return ""
-    inner = "\n".join(
-        [
-            r"\begin{itemize}",
-            _itemize(cleaned),
-            r"\end{itemize}",
-        ]
-    )
+    inner = "\n".join([r"\begin{itemize}", inner_items, r"\end{itemize}"])
     return rf"\needspace{{6\baselineskip}}\section*{{{escape_latex(title)}}}" + "\n" + inner
 
 
 def _enumerate_section(title: str, lines: list[str]) -> str:
-    cleaned = [line for line in lines if str(line).strip()]
-    if not cleaned:
+    inner_items = _enumerate(lines)
+    if not inner_items:
         return ""
-    inner = "\n".join(
-        [
-            r"\begin{enumerate}",
-            _enumerate(cleaned),
-            r"\end{enumerate}",
-        ]
-    )
+    inner = "\n".join([r"\begin{enumerate}", inner_items, r"\end{enumerate}"])
     return rf"\needspace{{6\baselineskip}}\section*{{{escape_latex(title)}}}" + "\n" + inner
 
 
@@ -245,7 +288,8 @@ def _choice_list(opciones: list[str]) -> str:
     for idx, opt in enumerate(opciones):
         letter = chr(ord("A") + idx) if idx < 26 else str(idx + 1)
         parts.append(
-            rf"\item[\fbox{{\makebox[0.9em]{{\strut {letter}}}}}] " + escape_latex(str(opt))
+            rf"\item[\fbox{{\makebox[0.9em]{{\strut {letter}}}}}] "
+            + escape_latex(_strip_md_inline(str(opt)))
         )
     parts.append(r"\end{itemize}")
     parts.append(r"\hfill\textit{Marco:}\,\fbox{\phantom{XX}}")
@@ -504,7 +548,9 @@ def _sm_block(items: list[dict[str, Any]]) -> str:
         return ""
     parts: list[str] = [r"\begin{enumerate}"]
     for item in items:
-        parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}")
+        parts.append(
+            rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}"
+        )
         parts.append(_choice_list(list(item.get("opciones") or [])))
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
@@ -515,7 +561,9 @@ def _vf_block(items: list[dict[str, Any]]) -> str:
         return ""
     parts: list[str] = [r"\begin{enumerate}"]
     for item in items:
-        parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}")
+        parts.append(
+            rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}"
+        )
         parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
@@ -527,7 +575,7 @@ def _desarrollo_block(prompts: list[str]) -> str:
     parts = [r"\begin{enumerate}"]
     for prompt in prompts:
         n_rules = 3 if len(prompt) >= 80 else 2
-        parts.append(rf"\item {escape_latex(prompt)}")
+        parts.append(rf"\item {escape_latex(_strip_md_inline(prompt))}")
         parts.append(_answer_rules(n_rules))
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
@@ -566,7 +614,9 @@ def _eval_items_block(items: list[dict[str, Any]]) -> str:
         pts = str(item.get("puntaje") or "").strip()
         suffix = f" ({escape_latex(pts)} pts)" if pts else ""
         kind = str(item.get("tipo_item") or "ítem").strip().lower()
-        parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}{suffix}")
+        parts.append(
+            rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}{suffix}"
+        )
         opciones = list(item.get("opciones") or [])
         if kind in {"sm", "seleccion", "selección"} or (
             opciones and kind not in {"vf", "verdadero"}

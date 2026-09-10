@@ -326,6 +326,12 @@ def test_prose_latex_lists_are_host_itemize_not_raw_tex():
     body = prose_latex("- Copias del cuento\n- Lápices\n\nSíntesis.")
     assert r"\begin{itemize}" in body
     assert r"\item Copias del cuento" in body
+    table = prose_latex(
+        "| Término | Definición |\n|---------|------------|\n| Incógnita | Valor x |"
+    )
+    assert r"\begin{tabular}" in table
+    assert "Incógnita" in table
+    assert "Definición" in table
     assert r"\write18" not in body
     evil = prose_latex(r"\write18{rm -rf /}")
     assert r"\write18" not in evil
@@ -413,6 +419,29 @@ Compara tu par ordenado con el ejemplo de la carpeta.
     assert vf
     assert any("sustitución" in p or "sustitucion" in p for p in payload["desarrollo_prompts"])
     assert "par ordenado" in payload["cierre"]
+
+
+def test_extract_evaluacion_item_i_sm_heading():
+    md = """# Evaluación
+
+## Instrucciones
+- Lee cada ítem.
+
+## Ítem I: Selección múltiple (10 puntos)
+### 1. (3 puntos)
+Sistema: x+y=7
+A) (3, 4)
+B) (4, 3)
+
+## Ítem II: Verdadero o falso
+- El sistema 2x+2y=10, x+y=5 tiene infinitas soluciones.
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    sm = [row for row in payload["items"] if row.get("tipo_item") == "sm"]
+    assert sm
+    assert any("(3, 4)" in str(row.get("opciones")) for row in sm)
+    vf = [row for row in payload["items"] if row.get("tipo_item") == "vf"]
+    assert vf
 
 
 def test_worksheet_guia_compiles_with_pdflatex(tmp_path):
