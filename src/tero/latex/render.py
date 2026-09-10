@@ -275,17 +275,20 @@ def _ficha_header(data: dict[str, Any], *, kind: str) -> str:
         tiempo = duration or score or "—"
         tiempo_label = "Tiempo"
     tiempo = escape_latex(tiempo)
+    # The label must be its own paragraph. \vspace in horizontal mode left it
+    # beside a \textwidth tabularx and shoved the ficha off the page.
+    col = r">{\raggedright\arraybackslash}X"
     return "\n".join(
         [
-            rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}",
-            r"\vspace{0.45em}",
-            r"\begin{tabularx}{\textwidth}{|X|X|}",
+            rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}\par",
+            rf"\noindent\begin{{tabularx}}{{\textwidth}}{{|{col}|{col}|}}",
             r"\hline",
             r"\rule{0pt}{3.1ex}Nombre: \hrulefill & Fecha: \hrulefill \\",
             rf"Curso: {curso} & Asignatura: {asignatura} \\",
             rf"OA: {oa} & {escape_latex(tiempo_label)}: {tiempo} \\",
             r"\hline",
             r"\end{tabularx}",
+            r"\par",
         ]
     )
 
@@ -628,11 +631,11 @@ def _eval_items_block(items: list[dict[str, Any]]) -> str:
             rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}{suffix}"
         )
         opciones = list(item.get("opciones") or [])
-        if kind in {"sm", "seleccion", "selección"} or (
-            opciones and kind not in {"vf", "verdadero"}
+        if kind in {"sm", "seleccion", "selección", "seleccion_multiple"} or (
+            opciones and kind not in {"vf", "verdadero", "verdadero_falso", "falso"}
         ):
             parts.append(_choice_list(opciones))
-        elif kind in {"vf", "verdadero", "falso", "verdadero/falso"}:
+        elif kind in {"vf", "verdadero", "falso", "verdadero/falso", "verdadero_falso"}:
             parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
         else:
             parts.append(_answer_rules(3 if len(str(item.get("enunciado") or "")) >= 80 else 2))

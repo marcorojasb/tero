@@ -277,6 +277,71 @@ def test_repair_evaluacion_lifts_sm_items_and_plain_math():
     assert "(4, 3)" in sm["opciones"]
 
 
+def test_repair_evaluacion_lifts_desarrollo_items_beside_sm():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "tipo": "evaluacion",
+            "titulo": "Prueba",
+            "items": [
+                {"tipo_item": "sm", "enunciado": "¿Quién preguntó?", "opciones": ["El huemul"]}
+            ],
+            "desarrollo_items": [
+                {
+                    "enunciado": r"Resuelve \begin{cases} 2x + y = 8 \\ x - y = 2 \end{cases}",
+                    "puntos": 6,
+                }
+            ],
+            "vf_items": [
+                {
+                    "enunciado": "El huemul preguntó al cóndor por qué el valle tenía sed.",
+                    "correcta": True,
+                }
+            ],
+            "desarrollo_prompts": [],
+        },
+    )
+    kinds = [row["tipo_item"] for row in payload["items"]]
+    assert kinds.count("sm") == 1
+    assert "vf" in kinds
+    assert "desarrollo" in kinds
+    dev = next(row for row in payload["items"] if row["tipo_item"] == "desarrollo")
+    assert "begin{cases}" not in dev["enunciado"]
+    assert "2x" in dev["enunciado"]
+    assert dev["puntaje"] == "6"
+    vf = next(row for row in payload["items"] if row["tipo_item"] == "vf")
+    assert vf["clave"] == "V"
+
+
+def test_canonical_tipo_item_seleccion_multiple_and_vf():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Prueba",
+            "items": [
+                {
+                    "tipo_item": "seleccion_multiple",
+                    "enunciado": "¿Qué observaba el cóndor?",
+                    "opciones": ["El mar", "El río"],
+                },
+                {
+                    "tipo_item": "verdadero_falso",
+                    "enunciado": "El huemul no corrió.",
+                },
+                {"tipo_item": "desarrollo", "enunciado": "Infiere con cita."},
+            ],
+            "criterios": ["1", "3", "Ancla la inferencia a una cita."],
+        },
+    )
+    kinds = [row["tipo_item"] for row in payload["items"]]
+    assert kinds == ["sm", "vf", "desarrollo"]
+    assert payload["criterios"] == ["Ancla la inferencia a una cita."]
+
+
 def test_instrucciones_python_dict_repr():
     from tero.latex.schemas import repair_payload
 
