@@ -70,7 +70,7 @@
     const v = lane / (lanes - 1) - 0.5;
     const wave = Math.sin(u * Math.PI * 1.7 + time * 0.32 + twist);
     const x = 0.04 + u * 0.94;
-    const y = 0.78 - u * 0.58 + wave * 0.13 + v * (0.038 + u * 0.028);
+    const y = 0.78 - u * 0.58 + wave * 0.16 + v * (0.058 + u * 0.04);
     return { x, y, v, u };
   }
 
@@ -93,8 +93,8 @@
     ctx.fillStyle = p.fondo;
     ctx.fillRect(0, 0, w, h);
 
-    const lanes = compact ? 7 : 12;
-    const steps = compact ? 90 : 210;
+    const lanes = compact ? 8 : 16;
+    const steps = compact ? 90 : 260;
     const seed = brand.seed | 0;
 
     for (let lane = 0; lane < lanes; lane++) {
@@ -110,9 +110,9 @@
         const alpha = 0.22 + core * 0.78;
         const color = rgba(rgb, alpha);
         const roll = hash32(i, lane, seed);
-        const size = (compact ? 2.2 : 3.4) + core * mid * (compact ? 7 : 12);
+        const size = (compact ? 2.2 : 3.8) + core * mid * (compact ? 8 : 16);
 
-        if (core > 0.55 && roll > 0.74) {
+        if (core > 0.42 && roll > 0.62) {
           ctx.save();
           ctx.shadowColor = rgba(rgb, 0.45);
           ctx.shadowBlur = compact ? 4 : 8;
