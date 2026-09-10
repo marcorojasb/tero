@@ -313,7 +313,17 @@ def test_ficha_header_table_is_full_width(tmp_path):
     assert r"el docente decide}\par" in body
     assert r"\noindent\begin{tabularx}{\textwidth}" in body
     assert "Lenguaje y Comunicaci" in body
+    # GitHub Actions has no TeX; the worksheet compile test already skips the same way.
     pdf = dest.with_suffix(".pdf")
+    if pdf.exists():
+        return
+    import shutil
+
+    from tero.latex.render import compile_pdf
+
+    compiled = compile_pdf(dest)
+    if compiled is None and not shutil.which("latexmk"):
+        return
     assert pdf.exists()
 
 
