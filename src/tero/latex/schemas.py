@@ -211,9 +211,8 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
             ]
     if key == "evaluacion":
         items = _as_eval_items(merged.get("items"))
-        if not items:
-            items = _eval_items_from_split_payload(merged)
-        merged["items"] = items
+        split = _eval_items_from_split_payload(merged)
+        merged["items"] = _merge_eval_items(items, split)
         if isinstance(merged.get("criterios"), list) and merged["criterios"]:
             # criterios may be objects; normalize to strings for template list
             fixed: list[str] = []
@@ -587,6 +586,8 @@ def _as_vf_items(value: Any) -> list[dict[str, Any]]:
             continue
         if row.get("clave"):
             parsed["clave"] = str(row.get("clave") or "").strip()[:8]
+        elif isinstance(row.get("correcta"), bool):
+            parsed["clave"] = "V" if row["correcta"] else "F"
         items.append(parsed)
     return [item for item in items if item["enunciado"]]
 
@@ -664,7 +665,7 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
 
 
 def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """GLM puts SM/V-F on sm_items/vf_items and leaves evaluacion.items empty."""
+    """GLM puts SM/V-F/desarrollo on sm_items, vf_items, desarrollo_items."""
     out: list[dict[str, Any]] = []
     for row in _as_sm_items(data.get("sm_items")):
         out.append(
@@ -686,6 +687,36 @@ def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]
                 "clave": row.get("clave") or "",
             }
         )
+    for row in _as_desarrollo_items(data):
+        out.append(row)
+    return [item for item in out if item["enunciado"]]
+
+
+def _as_desarrollo_items(data: dict[str, Any]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    raw = data.get("desarrollo_items")
+    if isinstance(raw, list) and raw:
+        for row in raw:
+            if isinstance(row, str):
+                prompt, pts = row, ""
+            elif isinstance(row, dict):
+                prompt = str(
+                    row.get("enunciado") or row.get("prompt") or row.get("consigna") or ""
+                ).strip()
+                pts = str(row.get("puntos") or row.get("puntaje") or "")
+            else:
+                continue
+            prompt = _plain_math(prompt)
+            if prompt and not _is_tex_chrome(prompt):
+                out.append(
+                    {
+                        "tipo_item": "desarrollo",
+                        "enunciado": prompt,
+                        "opciones": [],
+                        "puntaje": pts,
+                    }
+                )
+        return out
     for prompt in _as_str_list(data.get("desarrollo_prompts")):
         if prompt and not _is_tex_chrome(prompt):
             out.append(
@@ -696,7 +727,20 @@ def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]
                     "puntaje": "",
                 }
             )
-    return [item for item in out if item["enunciado"]]
+    return out
+
+
+def _merge_eval_items(
+    primary: list[dict[str, Any]], extra: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Keep typed items from `items`, fill missing kinds from split payload keys."""
+    have = {str(row.get("tipo_item") or "") for row in primary}
+    out = list(primary)
+    for kind in ("sm", "vf", "desarrollo"):
+        if kind in have:
+            continue
+        out.extend(row for row in extra if row.get("tipo_item") == kind)
+    return out
 
 
 def _as_pauta_criterios(value: Any) -> list[dict[str, Any]]:
