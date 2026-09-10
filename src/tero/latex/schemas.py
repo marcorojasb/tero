@@ -221,7 +221,9 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
                     fixed.append(str(row.get("nombre") or row.get("texto") or row))
                 else:
                     fixed.append(str(row))
-            merged["criterios"] = fixed
+            merged["criterios"] = [
+                row for row in fixed if row and not re.fullmatch(r"\d+", str(row).strip())
+            ]
     if key == "planificacion":
         for field in ("objetivo", "inicio", "desarrollo", "cierre", "evaluacion"):
             merged[field] = _as_plan_prose(merged.get(field))
@@ -654,7 +656,10 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
             continue
         out.append(
             {
-                "tipo_item": str(row.get("tipo_item") or row.get("tipo") or "desarrollo"),
+                "tipo_item": _canonical_tipo_item(
+                    str(row.get("tipo_item") or row.get("tipo") or ""),
+                    opciones=_as_str_list(row.get("opciones")),
+                ),
                 "enunciado": _plain_math(str(row.get("enunciado") or "").strip()),
                 "puntaje": str(row.get("puntaje") or ""),
                 "opciones": _as_str_list(row.get("opciones")),
@@ -662,6 +667,28 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
             }
         )
     return [item for item in out if item["enunciado"]]
+
+
+def _canonical_tipo_item(raw: str, *, opciones: list[str] | None = None) -> str:
+    folded = (
+        (raw or "")
+        .strip()
+        .lower()
+        .replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+    if "seleccion" in folded or folded in {"sm", "opcion_multiple"}:
+        return "sm"
+    if folded in {"vf"} or ("verdadero" in folded and "falso" in folded):
+        return "vf"
+    if "desarrollo" in folded:
+        return "desarrollo"
+    if opciones:
+        return "sm"
+    return folded or "desarrollo"
 
 
 def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -811,6 +838,8 @@ _SECTION_ALIASES: tuple[tuple[str, str], ...] = (
     ("verdadero/falso", "vf"),
     ("ítems de desarrollo", "desarrollo"),
     ("items de desarrollo", "desarrollo"),
+    ("puntuación", "puntaje"),
+    ("puntuacion", "puntaje"),
     ("completar", "completar"),
     ("actividades", "actividades"),
     ("ítems", "items"),
@@ -853,6 +882,8 @@ def _canonical_section_key(title: str) -> str | None:
     if "verdadero" in folded and "falso" in folded:
         return "vf"
     if "items de desarrollo" in folded or folded.startswith("desarrollo "):
+        return "desarrollo"
+    if "desarrollo" in folded and "item" in folded:
         return "desarrollo"
     return None
 
@@ -1001,14 +1032,17 @@ def _is_answer_chrome(text: str) -> bool:
         return True
     if _is_tex_chrome(cleaned):
         return True
+    if cleaned.startswith("|"):
+        return True
     if re.match(
-        r"^(respuesta(?:\s+correcta)?|justifica|puntaje total|nota:|clave)\b",
+        r"^(respuesta(?:\s+correcta)?|justificaci[oó]n|justifica|"
+        r"cita textual|tu respuesta|puntaje total|puntuaci[oó]n|nota:|clave)\b",
         cleaned,
         flags=re.IGNORECASE,
     ):
         return True
     compact = re.sub(r"[^a-záéíóúñü]", "", cleaned.lower())
-    if compact in {"verdadero", "falso", "vf", "verdaderofalso"}:
+    if compact in {"verdadero", "falso", "vf", "verdaderofalso", "pregunta"}:
         return True
     if "fuentes/" in cleaned.lower() and "verific" in cleaned.lower():
         return True
@@ -1160,10 +1194,43 @@ def _vf_statement(text: str) -> dict[str, str] | None:
     return {"enunciado": cleaned, "clave": clave}
 
 
+def _statement_from_md_table_row(line: str) -> str:
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    cells = [cell for cell in cells if cell and not re.fullmatch(r":?-+:?", cell)]
+    if not cells:
+        return ""
+    headers = {
+        "#",
+        "oracion",
+        "oración",
+        "v o f",
+        "vof",
+        "verdadero",
+        "falso",
+        "item",
+        "ítem",
+        "puntos",
+    }
+    labels = {re.sub(r"[^a-záéíóúñü#]", "", cell.lower()) for cell in cells}
+    if labels <= headers:
+        return ""
+    rest = [cell for cell in cells if not re.fullmatch(r"\d+", cell)]
+    if not rest:
+        return ""
+    return max(rest, key=len)
+
+
 def _vf_from_section(text: str) -> list[dict[str, Any]]:
     if not (text or "").strip():
         return []
     items: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        if line.strip().startswith("|"):
+            parsed = _vf_statement(_statement_from_md_table_row(line))
+            if parsed:
+                items.append(parsed)
+    if items:
+        return items
     for bullet in _bullets(text):
         parsed = _vf_statement(bullet)
         if parsed:

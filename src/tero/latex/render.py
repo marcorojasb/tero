@@ -628,11 +628,11 @@ def _eval_items_block(items: list[dict[str, Any]]) -> str:
             rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}{suffix}"
         )
         opciones = list(item.get("opciones") or [])
-        if kind in {"sm", "seleccion", "selección"} or (
-            opciones and kind not in {"vf", "verdadero"}
+        if kind in {"sm", "seleccion", "selección", "seleccion_multiple"} or (
+            opciones and kind not in {"vf", "verdadero", "verdadero_falso", "falso"}
         ):
             parts.append(_choice_list(opciones))
-        elif kind in {"vf", "verdadero", "falso", "verdadero/falso"}:
+        elif kind in {"vf", "verdadero", "falso", "verdadero/falso", "verdadero_falso"}:
             parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
         else:
             parts.append(_answer_rules(3 if len(str(item.get("enunciado") or "")) >= 80 else 2))

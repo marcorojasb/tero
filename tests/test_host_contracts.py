@@ -315,6 +315,33 @@ def test_repair_evaluacion_lifts_desarrollo_items_beside_sm():
     assert vf["clave"] == "V"
 
 
+def test_canonical_tipo_item_seleccion_multiple_and_vf():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Prueba",
+            "items": [
+                {
+                    "tipo_item": "seleccion_multiple",
+                    "enunciado": "¿Qué observaba el cóndor?",
+                    "opciones": ["El mar", "El río"],
+                },
+                {
+                    "tipo_item": "verdadero_falso",
+                    "enunciado": "El huemul no corrió.",
+                },
+                {"tipo_item": "desarrollo", "enunciado": "Infiere con cita."},
+            ],
+            "criterios": ["1", "3", "Ancla la inferencia a una cita."],
+        },
+    )
+    kinds = [row["tipo_item"] for row in payload["items"]]
+    assert kinds == ["sm", "vf", "desarrollo"]
+    assert payload["criterios"] == ["Ancla la inferencia a una cita."]
+
+
 def test_instrucciones_python_dict_repr():
     from tero.latex.schemas import repair_payload
 

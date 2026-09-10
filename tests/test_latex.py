@@ -626,6 +626,33 @@ El huemul cree que el río se secó por culpa de alguien.
     assert "verificada" not in blob
 
 
+def test_extract_evaluacion_skips_vf_table_and_item_desarrollo_heading():
+    md = """# Prueba
+
+## Verdadero o falso
+| # | Oración | V o F |
+|---|---------|-------|
+| 1 | El cóndor se rió del huemul con un tono burlón. | |
+
+## Ítem III: Desarrollo (5 puntos)
+¿Por qué el narrador dice que el huemul tenía menos miedo?
+
+## Puntuación
+| Ítem | Puntos |
+| Desarrollo | 5 puntos |
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    vf = [row for row in payload["items"] if row.get("tipo_item") == "vf"]
+    des = [row for row in payload["items"] if row.get("tipo_item") == "desarrollo"]
+    assert vf
+    assert any("rió" in row["enunciado"] or "rio" in row["enunciado"].lower() for row in vf)
+    blob = " ".join(row["enunciado"] for row in payload["items"]).lower()
+    assert "|" not in blob
+    assert "puntos" not in blob or des
+    assert des
+    assert "miedo" in des[0]["enunciado"].lower()
+
+
 def test_extract_evaluacion_numbered_heading_without_item_i():
     md = """# Prueba
 
