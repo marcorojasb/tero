@@ -290,11 +290,34 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
         "niveles",
     ):
         merged[list_field] = _as_str_list(merged.get(list_field))
+    merged["instrucciones"] = [
+        row for row in merged.get("instrucciones") or [] if not _is_md_table_row(row)
+    ]
     if key == "evaluacion":
         merged["criterios"] = _as_str_list(merged.get("criterios"))
     if key in {"guia", "actividad"}:
+        merged["proposito"] = _as_plan_prose(merged.get("proposito"))
+        merged["cierre"] = _as_plan_prose(merged.get("cierre"))
         merged["sm_items"] = _as_sm_items(merged.get("sm_items"))
         merged["vf_items"] = _as_vf_items(merged.get("vf_items"))
+        if not merged["sm_items"] or not merged["vf_items"]:
+            lifted = _as_eval_items(merged.get("items"))
+            if not merged["sm_items"]:
+                merged["sm_items"] = [
+                    {
+                        "enunciado": row["enunciado"],
+                        "opciones": list(row.get("opciones") or []),
+                        "clave": row.get("clave") or "",
+                    }
+                    for row in lifted
+                    if row.get("tipo_item") == "sm"
+                ]
+            if not merged["vf_items"]:
+                merged["vf_items"] = [
+                    {"enunciado": row["enunciado"], "clave": row.get("clave") or ""}
+                    for row in lifted
+                    if row.get("tipo_item") == "vf"
+                ]
         merged["actividades"] = _as_actividades(merged.get("actividades"))
         has_items = bool(merged["sm_items"] or merged["vf_items"] or merged["desarrollo_prompts"])
         if not merged["actividades"] and merged.get("proposito") and not has_items:
@@ -703,7 +726,7 @@ def _row_opciones(row: dict[str, Any]) -> list[str]:
 def _row_clave(row: dict[str, Any]) -> str:
     if row.get("clave"):
         return str(row.get("clave") or "").strip()
-    for key in ("correcta", "correct", "answer", "respuesta"):
+    for key in ("correcta", "correct", "answer", "respuesta", "respuesta_correcta"):
         value = row.get(key)
         if isinstance(value, bool):
             return "V" if value else "F"
@@ -778,13 +801,13 @@ def _as_actividades(value: Any) -> list[dict[str, str]]:
                 "titulo": str(
                     row.get("titulo") or row.get("title") or row.get("nombre") or "Actividad"
                 ).strip(),
-                "inicio": str(
+                "inicio": _as_plan_prose(
                     row.get("inicio") or row.get("start") or row.get("apertura") or ""
-                ).strip(),
-                "desarrollo": str(
+                ),
+                "desarrollo": _as_plan_prose(
                     row.get("desarrollo") or row.get("development") or row.get("detalle") or ""
-                ).strip(),
-                "cierre": str(row.get("cierre") or row.get("close") or "").strip(),
+                ),
+                "cierre": _as_plan_prose(row.get("cierre") or row.get("close") or ""),
             }
         )
     return out
@@ -930,30 +953,64 @@ def _merge_eval_items(
     return out
 
 
+def _clean_criterio_nombre(text: str) -> str:
+    cleaned = re.sub(r"[*_`]+", "", text or "").strip()
+    if re.match(r"^(ejemplo|se observan|nota)\b", cleaned, flags=re.IGNORECASE):
+        return ""
+    return cleaned
+
+
 def _as_pauta_criterios(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
-    out: list[dict[str, Any]] = []
+    raw: list[dict[str, Any]] = []
     for row in value:
         if isinstance(row, str):
-            out.append({"nombre": row, "descriptores": []})
+            nombre = _clean_criterio_nombre(row)
+            if nombre:
+                raw.append({"nombre": nombre, "descriptores": []})
             continue
         if not isinstance(row, dict):
             continue
-        out.append(
+        nombre = _clean_criterio_nombre(
+            str(
+                row.get("nombre")
+                or row.get("criterio")
+                or row.get("name")
+                or row.get("title")
+                or ""
+            )
+        )
+        if not nombre:
+            continue
+        raw.append(
             {
-                "nombre": str(
-                    row.get("nombre")
-                    or row.get("criterio")
-                    or row.get("name")
-                    or row.get("title")
-                    or ""
-                ).strip(),
-                "descriptores": _as_str_list(
-                    row.get("descriptores") or row.get("descriptors") or row.get("niveles")
-                ),
+                "nombre": nombre,
+                "descriptores": [
+                    _clean_criterio_nombre(item)
+                    for item in _as_str_list(
+                        row.get("descriptores") or row.get("descriptors") or row.get("niveles")
+                    )
+                    if _clean_criterio_nombre(item)
+                ],
             }
         )
+    return _coalesce_pauta_criterios(raw)
+
+
+def _coalesce_pauta_criterios(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group chopped markdown lines: a short title, then sentence descriptores."""
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        nombre = str(row.get("nombre") or "").strip()
+        desc = list(row.get("descriptores") or [])
+        is_title = len(nombre) <= 60 and not nombre.endswith((".", ":", ";"))
+        if out and not is_title and not desc:
+            prev = out[-1]
+            if prev.get("nombre") and not str(prev["nombre"]).endswith((".", ":", ";")):
+                prev["descriptores"] = list(prev.get("descriptores") or []) + [nombre]
+                continue
+        out.append({"nombre": nombre, "descriptores": desc})
     return [item for item in out if item["nombre"]]
 
 
@@ -1415,13 +1472,25 @@ def _eval_items_from_heading_blocks(markdown: str) -> list[dict[str, Any]]:
     ]
 
 
+def _is_md_table_row(text: str) -> bool:
+    stripped = (text or "").strip()
+    if not stripped:
+        return False
+    if stripped.startswith("|") or re.match(r"^:?-+:?(\s*\|+\s*:?-+:?)+$", stripped):
+        return True
+    return stripped.count("|") >= 2
+
+
 def _bullets(text: str) -> list[str]:
     items: list[str] = []
     for line in text.splitlines():
         cleaned = re.sub(r"^[-*•]\s+", "", line.strip())
         cleaned = re.sub(r"^\d+\.\s+", "", cleaned)
-        if cleaned and cleaned not in {"---", "***", "___", "-", "—", "–"}:
-            items.append(cleaned)
+        if not cleaned or cleaned in {"---", "***", "___", "-", "—", "–"}:
+            continue
+        if _is_md_table_row(cleaned):
+            continue
+        items.append(cleaned)
     return items
 
 

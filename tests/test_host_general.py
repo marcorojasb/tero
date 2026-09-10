@@ -353,3 +353,79 @@ La pauta no reemplaza la hoja del estudiante. Cada criterio pide una cita breve.
     assert draft is not None
     assert "criterios" in draft.cuerpo_markdown.lower()
     assert "inferencia" in draft.cuerpo_markdown.lower()
+
+
+def test_repair_guia_nested_cierre_and_items():
+    payload = repair_payload(
+        "guia",
+        {
+            "title": "Cabildo",
+            "purpose": "Contrastar dos voces de la carpeta.",
+            "cierre": {
+                "tipo": "ticket_salida",
+                "descripcion": "Una cita del acta y una de la prensa.",
+            },
+            "items": [
+                {
+                    "type": "sm",
+                    "pregunta": "¿Quién queda en el patio?",
+                    "opciones": [
+                        {"id": "a", "texto": "El vecino"},
+                        {"id": "b", "texto": "El escribano"},
+                    ],
+                    "respuesta_correcta": "a",
+                }
+            ],
+        },
+    )
+    assert "{" not in payload["cierre"]
+    assert "cita del acta" in payload["cierre"].lower()
+    assert payload["sm_items"]
+    assert "patio" in payload["sm_items"][0]["enunciado"].lower()
+    assert "El vecino" in payload["sm_items"][0]["opciones"]
+
+
+def test_repair_pauta_coalesces_chopped_markdown_lines():
+    payload = repair_payload(
+        "pauta",
+        {
+            "title": "Informe",
+            "criterios": [
+                {"nombre": "Se observan tres dimensiones:"},
+                {"nombre": "**Evidencia de la carpeta**"},
+                {"nombre": "El informe cita el registro de la carpeta."},
+                {"nombre": "*Ejemplo:* el vaso abierto baja."},
+                {"nombre": "**Dato vs. inferencia**"},
+                {"nombre": "Distingue dato medido de inferencia."},
+            ],
+        },
+    )
+    names = [row["nombre"] for row in payload["criterios"]]
+    assert names == ["Evidencia de la carpeta", "Dato vs. inferencia"]
+    assert "cita el registro" in " ".join(payload["criterios"][0]["descriptores"]).lower()
+    blob = " ".join(names).lower()
+    assert "ejemplo" not in blob
+    assert "**" not in "".join(names)
+
+
+def test_extract_guia_skips_markdown_table_as_instrucciones():
+    md = """# Guía — Simple past
+
+## Propósito
+Usar simple past con evidencia del audio de la carpeta.
+
+## Instrucciones
+1. Escucha el audio.
+2. Completa la tabla:
+
+| Elemento | Acta | Prensa |
+|----------|------|--------|
+| Lenguaje | | |
+
+3. Entrega el ticket con una cita.
+"""
+    payload = extract_payload_from_markdown(md, tipo="guia")
+    joined = " ".join(payload["instrucciones"]).lower()
+    assert "escucha el audio" in joined
+    assert "elemento" not in joined
+    assert "|" not in joined
