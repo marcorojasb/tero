@@ -463,3 +463,86 @@ draft_artifact(
     assert draft is not None
     assert draft.payload is not None
     assert "cita" in draft.payload.get("proposito", "").lower()
+
+
+def test_draft_artifact_fills_empty_eval_items_from_markdown(workspace: Workspace):
+    ctx, tools = _draft_tools(workspace)
+    cuerpo = """# Prueba
+
+## Verdadero o falso
+- El huemul preguntó por qué el valle tenía sed.
+
+## Ítems de desarrollo
+¿Qué se infiere del final del cuento?
+"""
+    result = json.loads(
+        tools["draft_artifact"](
+            tipo="evaluacion",
+            titulo="Prueba huemul",
+            cuerpo_markdown=cuerpo,
+            payload_json=json.dumps(
+                {
+                    "tipo": "evaluacion",
+                    "titulo": "Prueba huemul",
+                    "items": [],
+                },
+                ensure_ascii=False,
+            ),
+        )
+    )
+    assert result["ok"] is True
+    assert ctx.pending_draft is not None
+    items = (ctx.pending_draft.payload or {}).get("items") or []
+    assert items
+    blob = " ".join(str(row.get("enunciado") or "") for row in items).lower()
+    assert "huemul" in blob or "infiere" in blob
+    md = materialize_markdown(Encargo(curso="4° básico"), None, ctx.pending_draft)
+    extracted = extract_payload_from_markdown(md, tipo="evaluacion")
+    assert extracted["items"]
+    fence = md[md.index("```json") : md.index("```", md.index("```json") + 7)]
+    assert '"enunciado"' in fence
+
+
+def test_salvage_fills_empty_eval_items_from_markdown():
+    blob = r"""
+draft_artifact(
+  tipo="evaluacion",
+  titulo="Prueba",
+  cuerpo_markdown="## Verdadero o falso\n- El cóndor se rió del huemul.\n## Ítems de desarrollo\n¿Por qué el valle tenía sed?\n",
+  payload_json="{\"tipo\": \"evaluacion\", \"titulo\": \"Prueba\", \"items\": []}"
+)
+"""
+    draft = salvage_draft_from_text(blob)
+    assert draft is not None
+    items = (draft.payload or {}).get("items") or []
+    assert items
+    blob_txt = " ".join(str(row.get("enunciado") or "") for row in items).lower()
+    assert "cóndor" in blob_txt or "condor" in blob_txt or "valle" in blob_txt
+
+
+def test_materialize_fills_empty_plan_moments():
+    draft = ArtifactDraft(
+        tipo=ArtifactType.PLANIFICACION,
+        titulo="Agua",
+        cuerpo_markdown=(
+            "## Objetivo\nExplicar la distribución del agua.\n\n"
+            "## Inicio\nPregunta del patio sobre la lluvia.\n\n"
+            "## Desarrollo\nLectura de la carpeta y globo terráqueo.\n\n"
+            "## Cierre\nTicket de salida sin laboratorio.\n"
+        ),
+        payload={
+            "tipo": "planificacion",
+            "titulo": "Agua",
+            "objetivo": "Explicar la distribución del agua.",
+            "inicio": "",
+            "desarrollo": "",
+            "cierre": "",
+        },
+    )
+    md = materialize_markdown(Encargo(curso="5° básico"), None, draft)
+    assert draft.payload is not None
+    assert "patio" in draft.payload["inicio"].lower()
+    assert "globo" in draft.payload["desarrollo"].lower()
+    assert "ticket" in draft.payload["cierre"].lower()
+    fence = md[md.index("```json") :]
+    assert "patio" in fence.lower()

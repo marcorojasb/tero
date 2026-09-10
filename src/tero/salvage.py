@@ -155,6 +155,9 @@ def _finish_draft(
         from tero.latex.schemas import parse_payload_json
 
         payload = parse_payload_json(parsed.value, payload_raw)
+    from tero.latex.schemas import enrich_payload_from_markdown
+
+    payload = enrich_payload_from_markdown(parsed.value, payload, cuerpo)
     cuerpo = (cuerpo or "").strip()
     if not cuerpo and payload:
         title = (titulo or "").strip() or parsed.label

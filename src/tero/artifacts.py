@@ -158,11 +158,15 @@ def materialize_markdown(
     plan: Plan | None,
     draft: ArtifactDraft,
 ) -> str:
+    from tero.latex.schemas import enrich_payload_from_markdown
+
+    payload = enrich_payload_from_markdown(draft.tipo.value, draft.payload, draft.cuerpo_markdown)
+    draft.payload = payload
     body = draft.cuerpo_markdown.strip() + "\n"
     return (
         render_front_matter(encargo, plan, draft)
         + body
-        + render_payload_fence(draft.payload)
+        + render_payload_fence(payload)
         + render_evidence_appendix(draft.evidencias)
     )
 
