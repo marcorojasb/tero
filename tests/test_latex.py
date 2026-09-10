@@ -283,6 +283,48 @@ def test_export_latex_from_json_payload(tmp_path):
     assert "MAT-5B-OA04" in body
     assert "Puntaje" in body
     assert "50" not in body  # payload says 5
+    # Label is a paragraph, not a left-side caption that shoves the table.
+    assert r"el docente decide}\par" in body
+    idx_label = body.index("el docente decide")
+    idx_table = body.index(r"\begin{tabularx}")
+    assert idx_label < idx_table
+    assert r"\par" in body[idx_label:idx_table]
+
+
+def test_ficha_header_table_is_full_width(tmp_path):
+    payload = {
+        "tipo": "evaluacion",
+        "titulo": "Prueba de comprensión lectora: El cóndor y el huemul",
+        "curso": "4° básico",
+        "asignatura": "Lenguaje y Comunicación",
+        "oa": "OA 4 (LEN-4B-OA04)",
+        "puntaje_total": "20",
+        "items": [
+            {
+                "tipo_item": "sm",
+                "enunciado": "¿Qué observaba el cóndor?",
+                "opciones": ["El mar", "El río"],
+            }
+        ],
+    }
+    dest = tmp_path / "header.tex"
+    export_latex(tmp_path / "missing.md", dest, payload=payload, try_pdf=True)
+    body = dest.read_text(encoding="utf-8")
+    assert r"el docente decide}\par" in body
+    assert r"\noindent\begin{tabularx}{\textwidth}" in body
+    assert "Lenguaje y Comunicaci" in body
+    # GitHub Actions has no TeX; the worksheet compile test already skips the same way.
+    pdf = dest.with_suffix(".pdf")
+    if pdf.exists():
+        return
+    import shutil
+
+    from tero.latex.render import compile_pdf
+
+    compiled = compile_pdf(dest)
+    if compiled is None and not shutil.which("latexmk"):
+        return
+    assert pdf.exists()
 
 
 def test_evaluacion_header_prefers_puntaje_over_duration(tmp_path):
@@ -652,6 +694,33 @@ El huemul cree que el río se secó por culpa de alguien.
     blob = " ".join(row["enunciado"] for row in payload["items"]).lower()
     assert "fuentes/" not in blob
     assert "verificada" not in blob
+
+
+def test_extract_evaluacion_skips_vf_table_and_item_desarrollo_heading():
+    md = """# Prueba
+
+## Verdadero o falso
+| # | Oración | V o F |
+|---|---------|-------|
+| 1 | El cóndor se rió del huemul con un tono burlón. | |
+
+## Ítem III: Desarrollo (5 puntos)
+¿Por qué el narrador dice que el huemul tenía menos miedo?
+
+## Puntuación
+| Ítem | Puntos |
+| Desarrollo | 5 puntos |
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    vf = [row for row in payload["items"] if row.get("tipo_item") == "vf"]
+    des = [row for row in payload["items"] if row.get("tipo_item") == "desarrollo"]
+    assert vf
+    assert any("rió" in row["enunciado"] or "rio" in row["enunciado"].lower() for row in vf)
+    blob = " ".join(row["enunciado"] for row in payload["items"]).lower()
+    assert "|" not in blob
+    assert "puntos" not in blob or des
+    assert des
+    assert "miedo" in des[0]["enunciado"].lower()
 
 
 def test_extract_evaluacion_numbered_heading_without_item_i():

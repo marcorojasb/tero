@@ -2,12 +2,34 @@
 
 from __future__ import annotations
 
+import json
 import re
+from typing import Any
 
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
 
 _CALL = re.compile(r"draft_artifact\s*\(", re.IGNORECASE)
 _PLAN_CALL = re.compile(r"propose_plan\s*\(", re.IGNORECASE)
+_HEADING = re.compile(r"#{1,6}\s+\S")
+_FICHA_HINTS = (
+    "instrucciones",
+    "ítem",
+    "item",
+    "selección",
+    "seleccion",
+    "verdadero",
+    "objetivo",
+    "inicio",
+    "desarrollo",
+    "cierre",
+    "propósito",
+    "proposito",
+    "puntaje",
+    "evaluación",
+    "evaluacion",
+    "opción",
+    "opcion",
+)
 
 
 def salvage_draft_from_text(
@@ -16,8 +38,33 @@ def salvage_draft_from_text(
     fallback_tipo: ArtifactType | None = None,
     evidencias: list[Evidence] | None = None,
 ) -> ArtifactDraft | None:
-    """Parse a leaked Python-style draft_artifact(...) call from streamed text."""
+    """Recover a ficha from a leaked tool call, a JSON dump, or streamed markdown."""
     blob = text or ""
+    from_call = _draft_from_python_call(blob, fallback_tipo=fallback_tipo, evidencias=evidencias)
+    if from_call is not None:
+        return from_call
+    from_json = _draft_from_json_blob(blob, fallback_tipo=fallback_tipo, evidencias=evidencias)
+    if from_json is not None:
+        return from_json
+    return _draft_from_markdown_prose(blob, fallback_tipo=fallback_tipo, evidencias=evidencias)
+
+
+def salvage_plan_from_text(text: str, *, encargo: Encargo | None = None) -> Plan | None:
+    """Parse a leaked Python-style propose_plan(...) call or a JSON plan blob."""
+    blob = text or ""
+    from_call = _plan_from_python_call(blob, encargo=encargo)
+    if from_call is not None:
+        return from_call
+    return _plan_from_json_blob(blob, encargo=encargo)
+
+
+def _draft_from_python_call(
+    blob: str,
+    *,
+    fallback_tipo: ArtifactType | None,
+    evidencias: list[Evidence] | None,
+) -> ArtifactDraft | None:
+    """Parse a leaked Python-style draft_artifact(...) call from streamed text."""
     if "draft_artifact" not in blob:
         return None
     match = _CALL.search(blob)
@@ -30,21 +77,94 @@ def salvage_draft_from_text(
     payload_raw = _kw_string(src, "payload_json")
     if not (cuerpo or "").strip() and not (payload_raw or "").strip():
         return None
-    cuerpo = _unescape(cuerpo or "")
+    return _finish_draft(
+        tipo_raw=tipo_raw,
+        titulo=_unescape((titulo or "").strip()),
+        cuerpo=_unescape(cuerpo or ""),
+        payload_raw=_unescape(payload_raw) if payload_raw else None,
+        fallback_tipo=fallback_tipo,
+        evidencias=evidencias,
+    )
+
+
+def _draft_from_json_blob(
+    blob: str,
+    *,
+    fallback_tipo: ArtifactType | None,
+    evidencias: list[Evidence] | None,
+) -> ArtifactDraft | None:
+    """Qwen dumps {titulo, tipo, cuerpo_markdown, payload_json} instead of a tool call."""
+    data = _extract_draft_json_object(blob)
+    if not data:
+        return None
+    cuerpo = data.get("cuerpo_markdown")
+    if not isinstance(cuerpo, str) or not cuerpo.strip():
+        return None
+    payload_raw: Any = data.get("payload_json")
+    if payload_raw is None:
+        payload_raw = data.get("payload")
+    return _finish_draft(
+        tipo_raw=str(data.get("tipo") or ""),
+        titulo=str(data.get("titulo") or "").strip(),
+        cuerpo=cuerpo,
+        payload_raw=payload_raw,
+        fallback_tipo=fallback_tipo,
+        evidencias=evidencias,
+    )
+
+
+def _draft_from_markdown_prose(
+    blob: str,
+    *,
+    fallback_tipo: ArtifactType | None,
+    evidencias: list[Evidence] | None,
+) -> ArtifactDraft | None:
+    """Last resort: the model wrote the ficha as markdown and never called the tool."""
+    cuerpo = _extract_ficha_markdown(blob)
+    if not cuerpo:
+        return None
+    tipo_raw = ""
+    titulo = ""
+    match = _CALL.search(blob)
+    if match:
+        src = blob[match.start() :]
+        tipo_raw = _kw_string(src, "tipo") or ""
+        titulo = _unescape(_kw_string(src, "titulo") or "")
+    return _finish_draft(
+        tipo_raw=tipo_raw,
+        titulo=titulo,
+        cuerpo=cuerpo,
+        payload_raw=None,
+        fallback_tipo=fallback_tipo,
+        evidencias=evidencias,
+    )
+
+
+def _finish_draft(
+    *,
+    tipo_raw: str | None,
+    titulo: str,
+    cuerpo: str,
+    payload_raw: Any,
+    fallback_tipo: ArtifactType | None,
+    evidencias: list[Evidence] | None,
+) -> ArtifactDraft | None:
     parsed = ArtifactType.parse(tipo_raw) or fallback_tipo or ArtifactType.GUIA
-    title = _unescape((titulo or "").strip()) or parsed.label
     payload = None
-    if payload_raw:
+    if payload_raw not in (None, ""):
         from tero.latex.schemas import parse_payload_json
 
-        payload = parse_payload_json(parsed.value, _unescape(payload_raw))
+        payload = parse_payload_json(parsed.value, payload_raw)
     from tero.latex.schemas import enrich_payload_from_markdown
 
     payload = enrich_payload_from_markdown(parsed.value, payload, cuerpo)
-    if not cuerpo.strip() and payload:
-        cuerpo = f"# {title}\n"
-    if not cuerpo.strip():
+    cuerpo = (cuerpo or "").strip()
+    if not cuerpo and payload:
+        title = (titulo or "").strip() or parsed.label
+        cuerpo = f"# {title}"
+    if not cuerpo:
         return None
+    title = (titulo or "").strip() or _title_from_markdown(cuerpo) or parsed.label
     return ArtifactDraft(
         tipo=parsed,
         titulo=title[:180],
@@ -54,13 +174,72 @@ def salvage_draft_from_text(
     )
 
 
-def salvage_plan_from_text(text: str, *, encargo: Encargo | None = None) -> Plan | None:
-    """Parse a leaked Python-style propose_plan(...) call or a JSON plan blob."""
+def _extract_draft_json_object(blob: str) -> dict[str, Any] | None:
+    """Pick the JSON object whose cuerpo_markdown is longest (the ficha, not a stub)."""
+    marker = '"cuerpo_markdown"'
+    best: dict[str, Any] | None = None
+    best_len = -1
+    decoder = json.JSONDecoder()
+    start = 0
+    while True:
+        idx = blob.find(marker, start)
+        if idx < 0:
+            break
+        cursor = idx
+        while True:
+            brace = blob.rfind("{", 0, cursor)
+            if brace < 0:
+                break
+            try:
+                data, _end = decoder.raw_decode(blob[brace:])
+            except json.JSONDecodeError:
+                cursor = brace
+                continue
+            if isinstance(data, dict):
+                cuerpo = data.get("cuerpo_markdown")
+                if isinstance(cuerpo, str) and cuerpo.strip() and len(cuerpo) > best_len:
+                    best = data
+                    best_len = len(cuerpo)
+                    break
+            cursor = brace
+        start = idx + len(marker)
+    return best
+
+
+def _extract_ficha_markdown(text: str) -> str | None:
+    """Pull a ficha-shaped markdown body out of streamed model text."""
     blob = text or ""
-    from_call = _plan_from_python_call(blob, encargo=encargo)
-    if from_call is not None:
-        return from_call
-    return _plan_from_json_blob(blob, encargo=encargo)
+    cut = _CALL.search(blob)
+    if cut:
+        blob = blob[: cut.start()]
+    fence = re.search(r"```json", blob, flags=re.IGNORECASE)
+    if fence:
+        blob = blob[: fence.start()]
+    match = _HEADING.search(blob)
+    if not match:
+        return None
+    body = blob[match.start() :].strip()
+    if not _looks_like_ficha(body):
+        return None
+    return body
+
+
+def _looks_like_ficha(text: str) -> bool:
+    body = (text or "").strip()
+    if len(body) < 280:
+        return False
+    if not _HEADING.search(body):
+        return False
+    folded = body.lower()
+    hits = sum(1 for hint in _FICHA_HINTS if hint in folded)
+    return hits >= 2
+
+
+def _title_from_markdown(cuerpo: str) -> str:
+    match = re.search(r"^#{1,6}\s+(.+)$", (cuerpo or "").strip(), flags=re.MULTILINE)
+    if not match:
+        return ""
+    return re.sub(r"[*_`]+", "", match.group(1)).strip()
 
 
 def _plan_from_python_call(blob: str, *, encargo: Encargo | None) -> Plan | None:
