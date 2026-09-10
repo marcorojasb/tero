@@ -21,6 +21,10 @@
 Esto no es un dashboard de IA. Es la **fotocopia** que sale mañana a la
 sala. La [página de GitHub](https://marcorojasb.github.io/tero/) es esa
 hoja: rumbos `1–4`, avisos a la vista, puerta `s` / `n` / `b` / `c`.
+Si el link da 404, enciende Pages una vez en
+[Settings → Pages](https://github.com/marcorojasb/tero/settings/pages)
+(Source **GitHub Actions**) y re-ejecuta el workflow `pages` — el token
+de Actions no puede crear el sitio. Detalle: [docs/SITIO.md](docs/SITIO.md).
 El modelo de la demo en el sitio es `tero-offline` (Strands scripted).
 No finge Bedrock. AgentCore no es el producto.
 

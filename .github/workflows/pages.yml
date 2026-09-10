@@ -18,7 +18,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # GITHUB_TOKEN can deploy to Pages but cannot create the site
+  # (403 Resource not accessible by integration, even if configure-pages
+  # tries to create it). Skip instead of failing main until Settings →
+  # Pages is set once.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" --silent; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=GitHub Pages is off::Open https://github.com/${GITHUB_REPOSITORY}/settings/pages → Source: GitHub Actions (or Deploy from a branch → gh-pages /). Then re-run this workflow. The Actions token cannot create the Pages site."
+          fi
+
   deploy:
+    needs: check
+    if: needs.check.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -26,11 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-        with:
-          # First run creates the Pages site if Settings still has Pages off.
-          # GitHub Pages only accepts / or /docs as a branch source; site/ stays
-          # an Actions artifact (this job), not a branch-root deploy.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
