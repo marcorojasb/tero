@@ -217,6 +217,25 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
     return merged
 
 
+def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
+    """Parse optional draft_artifact payload_json. Empty or garbage → None (markdown stays)."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, dict):
+        data: dict[str, Any] | None = raw
+    elif isinstance(raw, (list, tuple)):
+        text = "\n".join(str(item) for item in raw).strip()
+        data = _parse_json_blob(text) if text else None
+    else:
+        text = str(raw).strip()
+        if not text:
+            return None
+        data = _parse_json_blob(text)
+    if not data:
+        return None
+    return repair_payload(tipo, data)
+
+
 def validate_payload(tipo: str, payload: dict[str, Any]) -> list[str]:
     """Lightweight required-field check (no jsonschema dependency)."""
     key = _schema_key(tipo)
@@ -283,15 +302,25 @@ def extract_payload_from_markdown(
             or sections.get("sm")
             or ""
         )
+        items = _eval_items_from_markdown(
+            items_md,
+            vf_md=sections.get("vf") or "",
+            desarrollo_md=sections.get("desarrollo") or "",
+        )
+        if not any(row.get("tipo_item") == "sm" for row in items):
+            # ### 1. stems often sit outside ## Ítems — scan the whole body.
+            fallback = _eval_items_from_markdown(
+                body,
+                vf_md=sections.get("vf") or "",
+                desarrollo_md=sections.get("desarrollo") or sections.get("preguntas") or "",
+            )
+            if any(row.get("tipo_item") == "sm" for row in fallback):
+                items = fallback
         raw = {
             "tipo": "evaluacion",
             "titulo": titulo,
             "instrucciones": _bullets(sections.get("instrucciones") or ""),
-            "items": _eval_items_from_markdown(
-                items_md,
-                vf_md=sections.get("vf") or "",
-                desarrollo_md=sections.get("desarrollo") or "",
-            ),
+            "items": items,
             "criterios": _bullets(sections.get("criterios") or ""),
             "puntaje_total": _guess_puntaje(
                 sections.get("puntaje") or sections.get("puntaje total") or ""

@@ -24,12 +24,16 @@ Reglas:
 - Usa list_sources, search_sources y read_source antes de afirmar algo de las fuentes.
 - Para OA: usa list_oa / get_oa / search_oa del catálogo Chile. Elige un id existente
   (p. ej. LEN-4B-OA04). NUNCA inventes códigos OA ni pegues LaTeX crudo.
+- Si list_oa o search_oa responden catalog_covers=false, el curso no está en el catálogo:
+  no uses un OA de otro nivel de relleno.
 - Si el encargo (curso/tema) no calza con las fuentes, dilo en notas del plan; no inventes dominio.
 - Cita evidencia con cite_evidence (path + snippet + sección del material).
 - No inventes rutas. No pidas credenciales. No sobreescribas archivos.
 - Español de aula chilena, claro, sin relleno.
 - Estructura el markdown según el tipo (planificación: objetivo, OA, inicio, desarrollo, cierre, evaluación; guía: propósito, instrucciones, actividades, cierre; evaluación: instrucciones, ítems, puntaje, criterios; pauta: criterios, niveles, descriptores; actividad: objetivo, materiales, pasos).
 - El host exporta LaTeX desde JSON/plantillas; tú no emites \\documentclass ni TeX libre.
+- draft_artifact acepta payload_json opcional con el schema del tipo (sm_items, vf_items, items, proposito). El markdown es para la TUI; el JSON es lo que se exporta.
+- Respeta el tipo del plan aprobado. Si entregas otro tipo, el docente lo verá como aviso.
 
 Fase actual: {phase}
 {_phase_instructions(phase)}
@@ -46,7 +50,8 @@ def _phase_instructions(phase: str) -> str:
     if phase == "draft":
         return (
             "El plan ya fue aprobado por el docente. Llama cite_evidence al menos dos veces si hay fuentes, "
-            "luego draft_artifact con markdown completo y evidencias. No vuelvas a propose_plan."
+            "luego draft_artifact con markdown completo, evidencias y payload_json si puedes. "
+            "Respeta el tipo del plan. No vuelvas a propose_plan."
         )
     if phase == "correct":
         return (

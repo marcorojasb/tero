@@ -549,9 +549,7 @@ def _sm_block(items: list[dict[str, Any]]) -> str:
         return ""
     parts: list[str] = [r"\begin{enumerate}"]
     for item in items:
-        parts.append(
-            rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}"
-        )
+        parts.append(rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}")
         parts.append(_choice_list(list(item.get("opciones") or [])))
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
@@ -562,9 +560,7 @@ def _vf_block(items: list[dict[str, Any]]) -> str:
         return ""
     parts: list[str] = [r"\begin{enumerate}"]
     for item in items:
-        parts.append(
-            rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}"
-        )
+        parts.append(rf"\item {escape_latex(_strip_md_inline(str(item.get('enunciado') or '')))}")
         parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)

@@ -18,7 +18,7 @@ from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
 from tero.salvage import salvage_draft_from_text
-from tero.tools import TurnContext, build_tools
+from tero.tools import DRAFT_AGENT_TURNS, DRAFT_TOOL_BUDGET, TurnContext, build_tools
 from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
@@ -350,7 +350,10 @@ class TeacherSession:
         follow = (
             f"El docente aprobó el plan:\n{turn.plan.as_dict()}\n"
             f"Encargo original: {turn.prompt}\n"
-            "Redacta ahora el artefacto con cite_evidence y draft_artifact."
+            "Redacta ahora el artefacto con cite_evidence y draft_artifact. "
+            "Respeta el tipo del plan aprobado. "
+            "Si list_oa trae catalog_covers=false, no uses un OA de otro curso. "
+            "Si puedes, pasa payload_json con el schema del tipo (ítems SM/V-F, propósito, etc.)."
         )
         try:
             self._draft_phase(turn, follow, phase="draft")
@@ -375,6 +378,7 @@ class TeacherSession:
         for attempt in (1, 2):
             self.ctx.pending_draft = None
             self._stream_buf = []
+            self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
             if attempt == 2:
                 self.emit(
                     {
@@ -402,7 +406,10 @@ class TeacherSession:
                     "No te detengas solo en texto."
                 )
             try:
-                agent(self._user_payload(nudge))
+                agent(
+                    self._user_payload(nudge),
+                    limits={"turns": DRAFT_AGENT_TURNS},
+                )
             except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
                 if attempt == 1 and _is_retryable_stream_error(exc):
                     self.emit(
@@ -462,6 +469,37 @@ class TeacherSession:
             )
             return
         draft = self.ctx.pending_draft
+        expected = (turn.plan.tipo if turn.plan is not None else None) or self.encargo.tipo
+        if expected is not None and draft.tipo != expected:
+            # Keep plan.tipo / encargo.tipo. The draft tipo is what the model delivered.
+            self.emit(
+                {
+                    "type": "warning",
+                    "warning": {
+                        "code": "tipo_desviado",
+                        "message": (
+                            f"El plan pedía {expected.label} y el borrador llegó como "
+                            f"{draft.tipo.label}. No cambié el tipo del plan: decide s, "
+                            "o c si quieres el otro entregable."
+                        ),
+                        "blocking": False,
+                    },
+                }
+            )
+        if self.ctx.budget_exhausted:
+            self.emit(
+                {
+                    "type": "warning",
+                    "warning": {
+                        "code": "tool_budget_exhausted",
+                        "message": (
+                            "Se cortó el loop de herramientas en el borrador "
+                            f"(tope {DRAFT_TOOL_BUDGET}). Revisa si el material quedó corto."
+                        ),
+                        "blocking": False,
+                    },
+                }
+            )
         draft.warnings = collect_warnings(
             workspace=self.workspace,
             encargo=self.encargo,

@@ -26,16 +26,27 @@ def salvage_draft_from_text(
     tipo_raw = _kw_string(src, "tipo")
     titulo = _kw_string(src, "titulo")
     cuerpo = _kw_string(src, "cuerpo_markdown")
-    if not (cuerpo or "").strip():
+    payload_raw = _kw_string(src, "payload_json")
+    if not (cuerpo or "").strip() and not (payload_raw or "").strip():
         return None
-    cuerpo = _unescape(cuerpo)
+    cuerpo = _unescape(cuerpo or "")
     parsed = ArtifactType.parse(tipo_raw) or fallback_tipo or ArtifactType.GUIA
     title = _unescape((titulo or "").strip()) or parsed.label
+    payload = None
+    if payload_raw:
+        from tero.latex.schemas import parse_payload_json
+
+        payload = parse_payload_json(parsed.value, _unescape(payload_raw))
+    if not cuerpo.strip() and payload:
+        cuerpo = f"# {title}\n"
+    if not cuerpo.strip():
+        return None
     return ArtifactDraft(
         tipo=parsed,
         titulo=title[:180],
         cuerpo_markdown=cuerpo.strip() + "\n",
         evidencias=list(evidencias or []),
+        payload=payload,
     )
 
 

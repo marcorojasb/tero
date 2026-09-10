@@ -444,6 +444,26 @@ B) (4, 3)
     assert vf
 
 
+def test_extract_evaluacion_numbered_heading_without_item_i():
+    md = """# Prueba
+
+## Instrucciones
+- Lee en silencio.
+
+### 1. (3 puntos)
+¿Cuál es la solución de x+y=7, x-y=1?
+A) (4, 3)
+B) (3, 4)
+
+## Verdadero o falso
+- Un sistema 2x2 siempre tiene solución única.
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    sm = [row for row in payload["items"] if row.get("tipo_item") == "sm"]
+    assert sm
+    assert any("x+y=7" in row.get("enunciado", "") for row in sm)
+
+
 def test_worksheet_guia_compiles_with_pdflatex(tmp_path):
     from tero.latex.render import compile_pdf, export_latex
 

@@ -135,7 +135,16 @@ def normalize_asignatura(value: str) -> str | None:
     return None
 
 
+def catalog_covers_curso(curso: str) -> bool:
+    """True when the host catalog has this course (today: 4b–6b). Empty curso is unconstrained."""
+    if not (curso or "").strip():
+        return True
+    return normalize_curso(curso) is not None
+
+
 def list_oa(curso: str = "", asignatura: str = "") -> list[OARecord]:
+    if curso and not catalog_covers_curso(curso):
+        return []
     catalog = get_catalog()
     curso_id = normalize_curso(curso) if curso else None
     asig_id = normalize_asignatura(asignatura) if asignatura else None
@@ -203,11 +212,14 @@ def resolve_oa(
     direct = get_oa(text)
     if direct:
         return direct
+    # Don't invent a básica OA when the course isn't in the catalog (p. ej. 1° medio).
+    if curso and not catalog_covers_curso(curso):
+        return None
     # "OA 4" / "oa4" within curso+asignatura
     curso_id = normalize_curso(curso)
     asig_id = normalize_asignatura(asignatura)
     codigo_fold = _fold(text)
-    candidates = list_oa(curso_id or "", asig_id or "")
+    candidates = list_oa(curso, asignatura)
     if not candidates:
         candidates = list(get_catalog().oas)
     for item in candidates:

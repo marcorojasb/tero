@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from tero.errors import WorkspaceError
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
@@ -143,6 +145,14 @@ def render_evidence_appendix(evidencias: list[Evidence]) -> str:
     return "\n".join(lines)
 
 
+def render_payload_fence(payload: dict[str, Any] | None) -> str:
+    """Host schema JSON so export does not depend on markdown headings."""
+    if not payload:
+        return ""
+    blob = json.dumps(payload, ensure_ascii=False, indent=2)
+    return f"\n```json\n{blob}\n```\n"
+
+
 def materialize_markdown(
     encargo: Encargo,
     plan: Plan | None,
@@ -152,6 +162,7 @@ def materialize_markdown(
     return (
         render_front_matter(encargo, plan, draft)
         + body
+        + render_payload_fence(draft.payload)
         + render_evidence_appendix(draft.evidencias)
     )
 

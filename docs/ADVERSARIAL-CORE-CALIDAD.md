@@ -244,6 +244,15 @@ Un material es bueno para tero si, en una carpeta real y un rumbo:
 Si eso no se cumple, AgentCore no lo disimula. Si se cumple, Core es
 un extra de traza y memoria docente, no el producto.
 
+## Estado en código (loop de calidad)
+
+Hecho en el host, sin AgentCore:
+
+- `draft_artifact(..., payload_json="")` — el export prefiere el JSON (fence en el markdown).
+- `list_oa` / `get_oa` / `search_oa` con `catalog_covers` (1° medio → lista vacía, no relleno 4b–6b).
+- Aviso `tipo_desviado` si el borrador no coincide con el plan; el tipo del plan no se pisa.
+- Tope de tools/turns en fase draft (`DRAFT_TOOL_BUDGET` / `DRAFT_AGENT_TURNS`) + salvage.
+
 ## Relación con docs previos
 
 - [ANALISIS-ADVERSARIAL.md](ANALISIS-ADVERSARIAL.md) — elegibilidad,

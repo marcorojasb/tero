@@ -105,6 +105,18 @@ def collect_warnings(
         warnings.append(WarningItem(code="domain_mismatch", message=mismatch))
 
     plan_oa = (plan.oa if plan else "") or encargo.oa
+    expected_tipo = (plan.tipo if plan is not None else None) or encargo.tipo
+    if expected_tipo is not None and draft.tipo != expected_tipo:
+        warnings.append(
+            WarningItem(
+                code="tipo_desviado",
+                message=(
+                    f"El rumbo/plan pedía {expected_tipo.label} y el borrador llegó como "
+                    f"{draft.tipo.label}. El plan no se cambia: decide s, o c si quieres "
+                    "el otro entregable."
+                ),
+            )
+        )
     if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
         # Allow "OA 4" vs "OA 4 (LEN-4B-OA04)" when same catalog id / codigo
         from tero.curriculum.catalog import resolve_oa
@@ -150,7 +162,8 @@ def collect_warnings(
             )
 
     body = as_text(draft.cuerpo_markdown).strip()
-    if len(body) < THIN_CHARS:
+    payload_rich = bool(draft.payload)
+    if len(body) < THIN_CHARS and not payload_rich:
         warnings.append(
             WarningItem(
                 code="thin_skeleton",
@@ -159,7 +172,7 @@ def collect_warnings(
         )
 
     missing = missing_headings(draft.tipo, body)
-    if missing:
+    if missing and not payload_rich:
         warnings.append(
             WarningItem(
                 code="missing_structure",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tero.curriculum.catalog import (
+    catalog_covers_curso,
     get_catalog,
     get_oa,
     list_oa,
@@ -55,3 +56,13 @@ def test_normalize_helpers():
     assert normalize_curso("6° básico") == "6b"
     assert normalize_asignatura("Matemáticas") == "matematica"
     assert normalize_asignatura("Ciencias Naturales") == "ciencias"
+
+
+def test_catalog_does_not_cover_media():
+    assert catalog_covers_curso("4° básico") is True
+    assert catalog_covers_curso("1° medio") is False
+    assert catalog_covers_curso("") is True
+    assert list_oa("1° medio", "Matemática") == []
+    assert resolve_oa("OA 4", curso="1° medio", asignatura="Matemática") is None
+    # Exact catalog id still resolves (warning lives at the gate).
+    assert get_oa("LEN-4B-OA04") is not None
