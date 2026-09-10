@@ -275,17 +275,20 @@ def _ficha_header(data: dict[str, Any], *, kind: str) -> str:
         tiempo = duration or score or "—"
         tiempo_label = "Tiempo"
     tiempo = escape_latex(tiempo)
+    # The label must be its own paragraph. \vspace in horizontal mode left it
+    # beside a \textwidth tabularx and shoved the ficha off the page.
+    col = r">{\raggedright\arraybackslash}X"
     return "\n".join(
         [
-            rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}",
-            r"\vspace{0.45em}",
-            r"\begin{tabularx}{\textwidth}{|X|X|}",
+            rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}\par",
+            rf"\noindent\begin{{tabularx}}{{\textwidth}}{{|{col}|{col}|}}",
             r"\hline",
             r"\rule{0pt}{3.1ex}Nombre: \hrulefill & Fecha: \hrulefill \\",
             rf"Curso: {curso} & Asignatura: {asignatura} \\",
             rf"OA: {oa} & {escape_latex(tiempo_label)}: {tiempo} \\",
             r"\hline",
             r"\end{tabularx}",
+            r"\par",
         ]
     )
 

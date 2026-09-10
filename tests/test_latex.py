@@ -283,6 +283,38 @@ def test_export_latex_from_json_payload(tmp_path):
     assert "MAT-5B-OA04" in body
     assert "Puntaje" in body
     assert "50" not in body  # payload says 5
+    # Label is a paragraph, not a left-side caption that shoves the table.
+    assert r"el docente decide}\par" in body
+    idx_label = body.index("el docente decide")
+    idx_table = body.index(r"\begin{tabularx}")
+    assert idx_label < idx_table
+    assert r"\par" in body[idx_label:idx_table]
+
+
+def test_ficha_header_table_is_full_width(tmp_path):
+    payload = {
+        "tipo": "evaluacion",
+        "titulo": "Prueba de comprensión lectora: El cóndor y el huemul",
+        "curso": "4° básico",
+        "asignatura": "Lenguaje y Comunicación",
+        "oa": "OA 4 (LEN-4B-OA04)",
+        "puntaje_total": "20",
+        "items": [
+            {
+                "tipo_item": "sm",
+                "enunciado": "¿Qué observaba el cóndor?",
+                "opciones": ["El mar", "El río"],
+            }
+        ],
+    }
+    dest = tmp_path / "header.tex"
+    export_latex(tmp_path / "missing.md", dest, payload=payload, try_pdf=True)
+    body = dest.read_text(encoding="utf-8")
+    assert r"el docente decide}\par" in body
+    assert r"\noindent\begin{tabularx}{\textwidth}" in body
+    assert "Lenguaje y Comunicaci" in body
+    pdf = dest.with_suffix(".pdf")
+    assert pdf.exists()
 
 
 def test_evaluacion_header_prefers_puntaje_over_duration(tmp_path):
