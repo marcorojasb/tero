@@ -261,6 +261,39 @@ def test_prose_latex_lists_are_host_itemize_not_raw_tex():
     assert r"\textbackslash{}" in evil
 
 
+def test_extract_guia_emoji_and_roman_item_headings():
+    md = """# Guía
+
+## 📌 Propósito
+Trabajar sistemas 2×2 solo.
+
+## Actividades
+
+### I. Selección Múltiple
+1. ¿Qué es un sistema 2×2?
+a) Una ecuación
+b) Dos ecuaciones lineales
+c) Un gráfico
+
+### II. Verdadero o Falso
+- El par (2, 1) siempre sirve.
+
+### III. Desarrollo
+- Resuelve y verifica: x+y=5, x-y=1.
+
+## Cierre
+Autochequeo del par ordenado.
+"""
+    payload = extract_payload_from_markdown(md, tipo="guia")
+    assert "sistemas 2" in payload["proposito"]
+    assert payload["sm_items"]
+    assert "sistema 2" in payload["sm_items"][0]["enunciado"].lower()
+    vf = [row for row in payload["actividades"] if "falso" in row["titulo"].lower()]
+    assert vf
+    assert any("verifica" in p.lower() for p in payload["desarrollo_prompts"])
+    assert "Autochequeo" in payload["cierre"]
+
+
 def test_extract_guia_sm_vf_and_desarrollo_sections():
     md = """# Guía de sistemas
 

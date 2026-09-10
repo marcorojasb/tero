@@ -555,6 +555,8 @@ def _canonical_section_key(title: str) -> str | None:
     raw = re.sub(r"^\*+\s*", "", raw)
     raw = re.sub(r"\s*\*+$", "", raw)
     raw = raw.replace("**", "").strip()
+    raw = re.sub(r"^[^a-záéíóúñü0-9]+", "", raw)
+    raw = re.sub(r"^[ivxlcdm]+\.\s+", "", raw)
     raw = re.sub(r"^[\d]+(?:\.[\d]+)*[.)]\s*", "", raw)
     raw = re.sub(r"^[\d]+\s+", "", raw)
     for alias, key in _SECTION_ALIASES:
