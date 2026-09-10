@@ -18,6 +18,7 @@ from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
 from tero.tools import TurnContext, build_tools
+from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
 
@@ -66,12 +67,22 @@ class TeacherSession:
         self.workspace = workspace
         self.settings = settings
         self.encargo = encargo or Encargo()
-        self.emit = emit or (lambda _event: None)
+        self._downstream: EmitFn = emit or (lambda _event: None)
+        self.transcript = TranscriptLog.open(workspace, settings)
+        self.emit: EmitFn = self._emit
         self.turns: list[Turn] = []
         self.phase: ProtocolPhase = "idle"
         self.ctx = TurnContext(workspace=workspace, encargo=self.encargo, emit=self.emit)
         self._agent: Agent | None = None
         self.last_prompt: str = ""
+
+    def _emit(self, event: dict[str, Any]) -> None:
+        self.transcript.append(event)
+        self._downstream(event)
+
+    def record(self, event: dict[str, Any]) -> None:
+        """Transcript-only (inbound commands / host actions). Not sent to the TUI."""
+        self.transcript.append(event)
 
     def set_encargo(self, encargo: Encargo) -> None:
         self.encargo = encargo
@@ -155,6 +166,15 @@ class TeacherSession:
         self.last_prompt = cleaned
         turn = Turn(id=uuid.uuid4().hex[:10], prompt=cleaned, phase="leyendo")
         self.turns.append(turn)
+        self.record(
+            {
+                "type": "host_action",
+                "action": "start_turn",
+                "id": turn.id,
+                "prompt": cleaned,
+                "encargo": self.encargo.as_dict(),
+            }
+        )
         self.ctx.pending_plan = None
         self.ctx.pending_draft = None
         self.ctx.evidence = []
@@ -277,6 +297,15 @@ class TeacherSession:
         turn = self._current_turn()
         if turn is None or turn.plan is None:
             raise RuntimeError("No hay plan pendiente.")
+        self.record(
+            {
+                "type": "host_action",
+                "action": "decide_plan",
+                "id": turn.id,
+                "decision": decision,
+                "edits": edits or {},
+            }
+        )
         if decision == "cancel":
             turn.phase = "listo"
             turn.plan.status = "cancelado"
@@ -415,6 +444,15 @@ class TeacherSession:
         turn = self._current_turn()
         if turn is None or turn.draft is None:
             raise RuntimeError("No hay propuesta pendiente.")
+        self.record(
+            {
+                "type": "host_action",
+                "action": "decide_gate",
+                "id": turn.id,
+                "decision": decision,
+                "note": note,
+            }
+        )
         if decision == "c" and note.strip():
             turn.critique_notes.append(note.strip())
             persist_critique(self.workspace, turn.id, note.strip())
