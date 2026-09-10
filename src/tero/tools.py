@@ -58,7 +58,7 @@ class TurnContext:
         self.budget_exhausted = False
         self.last_chance_used = set()
 
-    def consume_tool(self, name: str) -> str | None:
+    def consume_tool(self, name: str, *, allow_last_chance: bool = True) -> str | None:
         """Return an error JSON if the host tool budget is spent or a deliverable exists."""
         if self.tool_budget is None:
             return None
@@ -90,7 +90,7 @@ class TurnContext:
                 },
                 ensure_ascii=False,
             )
-        last_chance = name in {"draft_artifact", "propose_plan"}
+        last_chance = name in {"draft_artifact", "propose_plan"} and allow_last_chance
         if self.tool_calls >= self.tool_budget:
             self.budget_exhausted = True
             # One extra propose_plan / draft_artifact after the cap — not an unbounded loop.
@@ -114,8 +114,8 @@ class TurnContext:
         return None
 
 
-def _blocked(ctx: TurnContext, name: str) -> str | None:
-    err = ctx.consume_tool(name)
+def _blocked(ctx: TurnContext, name: str, *, allow_last_chance: bool = True) -> str | None:
+    err = ctx.consume_tool(name, allow_last_chance=allow_last_chance)
     if err:
         ctx._emit(
             {"type": "activity", "tool": name, "state": "end", "detail": "presupuesto agotado"}
@@ -376,7 +376,9 @@ def _propose_plan(ctx: TurnContext):
         tema = as_text(tema, joiner=" ")
         curso = as_text(curso, joiner=" ")
         asignatura = as_text(asignatura, joiner=" ")
-        blocked = _blocked(ctx, "propose_plan")
+        blocked = _blocked(
+            ctx, "propose_plan", allow_last_chance=bool(objetivo.strip() and tipo.strip())
+        )
         if blocked:
             return blocked
         ctx._emit({"type": "activity", "tool": "plan", "state": "start"})
@@ -482,7 +484,10 @@ def _draft_artifact(ctx: TurnContext):
         titulo = as_text(titulo, joiner=" ")
         cuerpo_markdown = as_text(cuerpo_markdown, joiner="\n")
         payload_json = as_text(payload_json, joiner="\n")
-        blocked = _blocked(ctx, "draft_artifact")
+        looks_real = ArtifactType.parse(tipo) is not None and bool(
+            cuerpo_markdown.strip() or payload_json.strip()
+        )
+        blocked = _blocked(ctx, "draft_artifact", allow_last_chance=looks_real)
         if blocked:
             return blocked
         ctx._emit({"type": "activity", "tool": "draft", "state": "start", "detail": titulo})
@@ -546,7 +551,7 @@ def _cite_evidence_plan_stub(ctx: TurnContext):
     def cite_evidence(path: str, snippet: str, seccion: str = "") -> str:
         """En fase plan no cites aún: primero propose_plan."""
         del path, snippet, seccion
-        blocked = _blocked(ctx, "cite_evidence")
+        blocked = _blocked(ctx, "cite_evidence", allow_last_chance=False)
         if blocked:
             return blocked
         return json.dumps(
@@ -572,7 +577,7 @@ def _draft_artifact_plan_stub(ctx: TurnContext):
     ) -> str:
         """En fase plan no redactes aún: primero propose_plan."""
         del tipo, titulo, cuerpo_markdown, evidencias_json, payload_json
-        blocked = _blocked(ctx, "draft_artifact")
+        blocked = _blocked(ctx, "draft_artifact", allow_last_chance=False)
         if blocked:
             return blocked
         ctx._emit(

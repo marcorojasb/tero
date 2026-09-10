@@ -134,16 +134,24 @@ def test_last_chance_draft_is_once(workspace: Workspace):
     for _ in range(DRAFT_TOOL_BUDGET + 2):
         json.loads(tools["list_sources"]())
     empty = json.loads(tools["draft_artifact"](tipo="", titulo="x", cuerpo_markdown="# x\n"))
-    assert empty.get("ok") is False
-    again = json.loads(
+    assert empty.get("error") == "presupuesto_herramientas_agotado"
+    drafted = json.loads(
         tools["draft_artifact"](
             tipo="guia",
             titulo="Sigue",
             cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
         )
     )
-    assert again.get("error") == "presupuesto_herramientas_agotado"
-    assert ctx.pending_draft is None
+    assert drafted["ok"] is True
+    assert ctx.pending_draft is not None
+    again = json.loads(
+        tools["draft_artifact"](
+            tipo="guia",
+            titulo="Dos",
+            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
+        )
+    )
+    assert again.get("already") is True
 
 
 def test_plan_stubs_consume_budget(workspace: Workspace):
