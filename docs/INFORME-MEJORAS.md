@@ -39,6 +39,11 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 ### Stress Bedrock (2026-09-10)
 - Ver [STRESS-BEDROCK.md](STRESS-BEDROCK.md): EventStreamError bajo carga, hangs del bridge, evidencia thin/unknown aceptada en `derivados/`, demos flaky en carpetas no-demo.
 
+### Mitigaciones (ciclo post-stress)
+- Retry de plan + borrador (hasta 3) con backoff; token `EventStreamError` / `event loop cycle failed`.
+- `s` → `derivados/` bloqueado si `thin_evidence` / `unknown_source` (salvo nota `forzar…`); `--yes` y bridge autogate caen a `borradores/`.
+- Prompt de `c` exige `cite_evidence` con paths reales de la carpeta.
+
 ### Robustez
 - Sync de chips desde el prompt (curso/asignatura/tema/tipo/rumbo).
 - Aviso `domain_mismatch` si el encargo no calza con la carpeta.

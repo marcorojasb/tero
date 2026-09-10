@@ -87,7 +87,21 @@ class Bridge:
                 return
             self.session.decide_plan("approve")
         elif kind == "proposal":
-            self.session.decide_gate("s")
+            artifact = event.get("artifact") or {}
+            warnings = artifact.get("warnings") or []
+            codes = {str(w.get("code") or "") for w in warnings if isinstance(w, dict)}
+            if codes & {"thin_evidence", "unknown_source"}:
+                self.emit(
+                    {
+                        "type": "status",
+                        "phase": "esperando_criterio",
+                        "detail": "autogate: evidencia débil → borradores/ (no derivados/)",
+                        "step": "autogate_borrador",
+                    }
+                )
+                self.session.decide_gate("b")
+            else:
+                self.session.decide_gate("s")
 
     def serve(self) -> int:
         self.emit(
@@ -124,9 +138,11 @@ class Bridge:
                             "bedrock_auth",
                             "bedrock_throttle",
                             "bedrock_model",
+                            "bedrock_stream",
                             "network",
                             "no_plan",
                             "no_draft",
+                            "evidence_blocked",
                             "host_error",
                         },
                     }

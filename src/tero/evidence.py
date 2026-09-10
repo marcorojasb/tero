@@ -1,4 +1,4 @@
-"""Evidence records and non-blocking teacher warnings."""
+"""Evidence records and teacher warnings (some block accept-to-derivados)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,14 @@ from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan, War
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
+
+# Codes that must not land in derivados/ without an explicit teacher "forzar".
+ACCEPT_BLOCKING_CODES = frozenset({"thin_evidence", "unknown_source"})
+
+
+def accept_blockers(draft: ArtifactDraft) -> list[WarningItem]:
+    """Warnings that block `s` → derivados/ unless the teacher forces."""
+    return [w for w in draft.warnings if w.code in ACCEPT_BLOCKING_CODES]
 
 
 def snippet_in_text(text: str, snippet: Any) -> bool:
@@ -165,6 +173,7 @@ def collect_warnings(
             WarningItem(
                 code="thin_evidence",
                 message="Menos de dos fuentes citadas. El panel de evidencia quedará pobre.",
+                blocking=True,
             )
         )
 
@@ -174,6 +183,7 @@ def collect_warnings(
                 WarningItem(
                     code="unknown_source",
                     message=f"Cita a una ruta que no está en la carpeta: {item.path}",
+                    blocking=True,
                 )
             )
             continue

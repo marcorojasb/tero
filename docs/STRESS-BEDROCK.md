@@ -71,5 +71,10 @@ python -m tero demo --yes --carpeta fixtures/aula-5basico-agua \
   --curso "5° básico" --asignatura Ciencias --tipo guia
 ```
 
-Harness local usado en el agente: `/tmp/tero-stress/` (no versionado).
-Artifact: `stress_report.md` en el run del cloud agent.
+## Mitigaciones aplicadas (ciclo 2026-09-10b)
+
+- Retry plan + draft (hasta 3) con backoff; match de `EventStreamError` / `event loop cycle failed`.
+- `s` bloqueado ante `thin_evidence` / `unknown_source` salvo nota `forzar…`; `--yes`/bridge → `borradores/`.
+- Prompt de corrección `c` exige citas con paths reales.
+
+Post-fix smoke: concurrent ×3 pasó sin EventStream en logs; agua escribió pese a stream; demo carpeta-demo aún puede colgar (>240s) — timeout de turno CLI pendiente.

@@ -169,6 +169,7 @@ def test_stream_tooluse_error_retries_once(workspace: Workspace):
 
 def test_humanize_stream_tooluse():
     assert _is_retryable_stream_error(RuntimeError("modelStreamErrorException ToolUse"))
+    assert _is_retryable_stream_error(RuntimeError("EventStreamError | event loop cycle failed"))
     code, message = humanize_exception(RuntimeError("modelStreamErrorException: bad ToolUse"))
     assert code == "bedrock_stream"
     assert "reintenta" in message.lower() or "retry" in message.lower()

@@ -200,17 +200,45 @@ def cmd_demo(args: argparse.Namespace) -> int:
         for warning in draft.warnings:
             say(f"  aviso ({warning.code}): {warning.message}")
         if args.yes:
-            result = session.decide_gate("s")
+            from tero.evidence import accept_blockers
+
+            blockers = accept_blockers(draft)
+            if blockers:
+                codes = ", ".join(sorted({w.code for w in blockers}))
+                say(
+                    f"  evidencia débil ({codes}) → escribo en borradores/ "
+                    "(no derivados/). Usa la TUI y 'forzar…' si quieres forzar s."
+                )
+                result = session.decide_gate("b")
+            else:
+                result = session.decide_gate("s")
         else:
             print("\nPuerta docente: s sí · n no · b borrador · c corregir", flush=True)
             decision = input("criterio [s/n/b/c]: ").strip().lower() or "s"
             note = ""
             if decision == "c":
                 note = input("crítica: ").strip()
+            if decision == "s":
+                from tero.evidence import accept_blockers
+
+                if accept_blockers(draft):
+                    print(
+                        "Evidencia débil: s irá a error a menos que la nota empiece por 'forzar'.",
+                        flush=True,
+                    )
+                    note = input("nota (vacío=bloquear / forzar …): ").strip()
             if decision not in {"s", "n", "b", "c"}:
                 print("decisión inválida", flush=True)
                 return 2
-            result = session.decide_gate(decision, note)  # type: ignore[arg-type]
+            try:
+                result = session.decide_gate(decision, note)  # type: ignore[arg-type]
+            except Exception as exc:  # noqa: BLE001
+                from tero.errors import TeroError
+
+                if isinstance(exc, TeroError) and exc.code == "evidence_blocked":
+                    print(exc.message, file=sys.stderr)
+                    return 2
+                raise
         if result.path:
             print(f"\nescrito: {result.path}", flush=True)
         after = workspace.fingerprint_sources()

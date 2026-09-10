@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -12,13 +13,13 @@ from strands import Agent
 from tero.config import Settings
 from tero.encargo_sync import source_domain_warning, sync_encargo_from_prompt
 from tero.errors import TeroError, humanize_exception
-from tero.evidence import collect_warnings
+from tero.evidence import accept_blockers, collect_warnings
 from tero.gate import GateResult, apply_gate, persist_critique
 from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
 from tero.tools import TurnContext, build_tools
-from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
+from tero.types import ArtifactType, Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
 
 EmitFn = Callable[[dict[str, Any]], None]
@@ -37,9 +38,12 @@ def make_model(settings: Settings, encargo: Encargo):
 
 
 def _is_retryable_stream_error(exc: BaseException) -> bool:
-    """Nova Lite ConverseStream ToolUse / modelStreamErrorException flakiness."""
+    """Nova Lite ConverseStream ToolUse / EventStreamError flakiness."""
     blob = f"{type(exc).__name__} {exc}".lower()
     tokens = (
+        "eventstreamerror",
+        "event stream error",
+        "event loop cycle failed",
         "modelstreamerrorexception",
         "modelstreamerror",
         "tooluse",
@@ -49,10 +53,18 @@ def _is_retryable_stream_error(exc: BaseException) -> bool:
         "unexpected tool",
         "toolcall",
         "conversationstream",
-        "event stream error",
         "internalserverexception",
+        "serviceunavailableexception",
+        "throttlingexception",
     )
     return any(token in blob for token in tokens)
+
+
+def _artifact_tipo_label(tipo: Any) -> str:
+    if isinstance(tipo, ArtifactType):
+        return tipo.value
+    parsed = ArtifactType.parse(tipo)
+    return parsed.value if parsed else str(tipo or "planificacion")
 
 
 class TeacherSession:
@@ -186,7 +198,6 @@ class TeacherSession:
                 "progress": "1/2",
             }
         )
-        agent = self._agent_for("plan")
         self._set_phase("proponiendo_plan")
         self.emit(
             {
@@ -197,13 +208,45 @@ class TeacherSession:
                 "progress": "1/2",
             }
         )
-        agent(self._user_payload(prompt))
+        # Nova stream flakiness: retry plan propose (was a common "no propuso un plan").
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            self.ctx.pending_plan = None
+            if attempt > 1:
+                self.emit(
+                    {
+                        "type": "status",
+                        "phase": "proponiendo_plan",
+                        "detail": f"reintento plan ({attempt}/{max_attempts})",
+                        "step": "plan_stream_retry",
+                        "progress": "1/2",
+                        "attempt": attempt,
+                    }
+                )
+                time.sleep(0.35 * (attempt - 1))
+            agent = self._agent_for("plan")
+            nudge = self._user_payload(prompt)
+            if attempt > 1:
+                nudge += (
+                    "\n\nIMPORTANTE: Debes llamar a propose_plan ahora con el plan tipado. "
+                    "No te detengas solo en texto."
+                )
+            try:
+                agent(nudge)
+            except Exception as exc:  # noqa: BLE001
+                if attempt < max_attempts and _is_retryable_stream_error(exc):
+                    continue
+                raise
+            if self.ctx.pending_plan is not None:
+                break
         if self.ctx.pending_plan is None:
             self._set_phase("error")
             self.emit(
                 {
                     "type": "error",
-                    "message": "El agente no propuso un plan. Prueba de nuevo o usa --skip-plan.",
+                    "message": (
+                        "El agente no propuso un plan (tras reintentos). Pulsa r o usa --skip-plan."
+                    ),
                     "code": "no_plan",
                     "retryable": True,
                 }
@@ -338,17 +381,19 @@ class TeacherSession:
                 "progress": "2/2",
             }
         )
-        # Bedrock sometimes returns tools/text without draft_artifact — retry once.
-        for attempt in (1, 2):
+        # Bedrock stream/ToolUse flakiness + missing draft_artifact — retry with backoff.
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
             self.ctx.pending_draft = None
-            if attempt == 2:
+            if attempt > 1:
                 self.emit(
                     {
                         "type": "status",
                         "phase": "escribiendo",
-                        "detail": "reintento: el modelo no entregó borrador",
-                        "step": "draft_retry",
+                        "detail": f"reintento borrador ({attempt}/{max_attempts})",
+                        "step": "draft_stream_retry" if attempt == 2 else "draft_retry",
                         "progress": "2/2",
+                        "attempt": attempt,
                     }
                 )
                 self.emit(
@@ -359,18 +404,20 @@ class TeacherSession:
                         "detail": "reintento automático",
                     }
                 )
+                time.sleep(0.4 * (attempt - 1))
             agent = self._agent_for(phase)
             nudge = prompt
-            if attempt == 2:
+            if attempt > 1:
                 nudge = (
                     prompt
-                    + "\n\nIMPORTANTE: Debes llamar a draft_artifact ahora con el markdown completo. "
-                    "No te detengas solo en texto."
+                    + "\n\nIMPORTANTE: Debes llamar cite_evidence con rutas reales de la carpeta "
+                    "(p. ej. fuentes/…) y draft_artifact con el markdown completo. "
+                    "No cites IDs de OA como si fueran paths. No te detengas solo en texto."
                 )
             try:
                 agent(self._user_payload(nudge))
             except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
-                if attempt == 1 and _is_retryable_stream_error(exc):
+                if attempt < max_attempts and _is_retryable_stream_error(exc):
                     self.emit(
                         {
                             "type": "status",
@@ -378,6 +425,7 @@ class TeacherSession:
                             "detail": "reintento: error de stream/ToolUse de Bedrock",
                             "step": "draft_stream_retry",
                             "progress": "2/2",
+                            "attempt": attempt,
                         }
                     )
                     continue
@@ -390,7 +438,7 @@ class TeacherSession:
                 {
                     "type": "error",
                     "message": (
-                        "El agente no entregó un borrador (ni en el reintento). "
+                        "El agente no entregó un borrador (tras reintentos). "
                         "Pulsa r o /retry para volver a intentar."
                     ),
                     "code": "no_draft",
@@ -426,6 +474,30 @@ class TeacherSession:
                     "n": len(turn.critique_notes),
                 }
             )
+        # derivados/ is the system of record — block weak evidence unless teacher forces.
+        if decision == "s":
+            blockers = accept_blockers(turn.draft)
+            forced = note.strip().lower().startswith("forzar")
+            if blockers and not forced:
+                codes = ", ".join(sorted({w.code for w in blockers}))
+                for warning in blockers:
+                    self.emit(
+                        {
+                            "type": "warning",
+                            "warning": {
+                                "code": warning.code,
+                                "message": warning.message,
+                                "blocking": True,
+                            },
+                        }
+                    )
+                raise TeroError(
+                    (
+                        f"Evidencia débil ({codes}): no escribo en derivados/. "
+                        "Usa b (borrador), c (corregir), o s con nota que empiece por 'forzar'."
+                    ),
+                    code="evidence_blocked",
+                )
         result = apply_gate(
             workspace=self.workspace,
             encargo=self.encargo,
@@ -438,9 +510,12 @@ class TeacherSession:
         turn.gate = decision
         if decision == "c":
             critique = note.strip() or "Hazlo más usable en aula: más evidencia, menos adorno."
+            tipo_label = _artifact_tipo_label(turn.draft.tipo)
             follow = (
                 f"CORRECCIÓN DOCENTE: {critique}\n"
-                f"Reescribe el artefacto tipo {turn.draft.tipo.value} titulado {turn.draft.titulo}."
+                f"Reescribe el artefacto tipo {tipo_label} titulado {turn.draft.titulo}.\n"
+                "Obligatorio: list_sources → read_source de ≥1 archivo real → "
+                "cite_evidence con path de carpeta (nunca un OA id) → draft_artifact."
             )
             self.ctx.pending_draft = None
             try:
