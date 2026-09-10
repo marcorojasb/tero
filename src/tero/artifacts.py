@@ -161,11 +161,11 @@ def materialize_markdown(
     from tero.latex.schemas import enrich_payload_from_markdown
 
     payload = enrich_payload_from_markdown(draft.tipo.value, draft.payload, draft.cuerpo_markdown)
-    from tero.sanitize import strip_tool_traces, strip_tool_traces_value
+    from tero.sanitize import scrub_ficha_text, strip_tool_traces_value
 
     payload = strip_tool_traces_value(payload)
     draft.payload = payload
-    body = strip_tool_traces(draft.cuerpo_markdown).strip() + "\n"
+    body = scrub_ficha_text(draft.cuerpo_markdown).strip() + "\n"
     return (
         render_front_matter(encargo, plan, draft)
         + body

@@ -96,3 +96,36 @@ def test_salvage_and_export_drop_traces(tmp_path, workspace: Workspace):
     tex = dest.read_text(encoding="utf-8")
     assert "cite_evidence" not in tex
     assert "cite\\_evidence" not in tex
+
+
+QWEN_OPTION = r"\\( \\begin{cases} 2x + y = 4 \\\\ x - y = 2 \\end{cases} \\)"
+
+
+def test_flatten_cases_tex_in_opciones():
+    from tero.sanitize import flatten_tex_leaks, scrub_ficha_text
+
+    flat = flatten_tex_leaks(QWEN_OPTION)
+    assert "begin{cases}" not in flat
+    assert "2x + y = 4" in flat
+    assert "x - y = 2" in flat
+    repaired = repair_payload(
+        "evaluacion",
+        {
+            "titulo": "Sistemas",
+            "items": [
+                {
+                    "tipo_item": "sm",
+                    "enunciado": "¿Cuál NO tiene solución única?",
+                    "opciones": [QWEN_OPTION, "(2, 3)"],
+                }
+            ],
+        },
+    )
+    blob = json.dumps(repaired, ensure_ascii=False)
+    assert "begin{cases}" not in blob
+    assert "2x + y = 4" in blob
+    leftover = "¿Cuál es la solución del sistema: ; [ \\ x + y = 5; x - y = 1 \\ ; ]"
+    cleaned = flatten_tex_leaks(leftover)
+    assert "[" not in cleaned
+    assert "x + y = 5" in cleaned
+    assert "cite_evidence" not in scrub_ficha_text(QWEN_LINE + " " + QWEN_OPTION)

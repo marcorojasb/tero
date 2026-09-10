@@ -484,9 +484,9 @@ def _draft_artifact(ctx: TurnContext):
         titulo = as_text(titulo, joiner=" ")
         cuerpo_markdown = as_text(cuerpo_markdown, joiner="\n")
         payload_json = as_text(payload_json, joiner="\n")
-        from tero.sanitize import strip_tool_traces, strip_tool_traces_value
+        from tero.sanitize import scrub_ficha_text, strip_tool_traces_value
 
-        cuerpo_markdown = strip_tool_traces(cuerpo_markdown)
+        cuerpo_markdown = scrub_ficha_text(cuerpo_markdown)
         looks_real = ArtifactType.parse(tipo) is not None and bool(
             cuerpo_markdown.strip() or payload_json.strip()
         )
