@@ -26,6 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          # First run creates the Pages site if Settings still has Pages off.
+          # GitHub Pages only accepts / or /docs as a branch source; site/ stays
+          # an Actions artifact (this job), not a branch-root deploy.
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
