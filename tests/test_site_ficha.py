@@ -38,6 +38,9 @@ def test_ficha_landing_is_the_github_page():
     assert "borradores/" in html
     assert "fuentes/" in html
     assert "amazon.nova-lite-v1:0" in html
+    assert 'id="consulta"' in html
+    assert 'id="archivo"' in html
+    assert "hojas/guia-sistemas" in js or "guia-sistemas/p1.png" in js
 
     assert "--tui-bg: #0b0d10" in css
     assert "--tui-accent: #82aaff" in css
@@ -47,7 +50,14 @@ def test_ficha_landing_is_the_github_page():
     assert "function canAccept" in js
     assert "tero-offline" in js
     assert "draft_artifact" in js
+    assert "list_sources" in js
     assert "unverified_citation" in js
+    assert "92.5" in js
+    assert "94.9" in js
+    assert "sistemas" in js.lower()
+    assert "Selección múltiple" in js or "selección múltiple" in js
+    assert "Verdadero o falso" in js or "verdadero o falso" in js
+    assert "Desarrollo" in js
     # The rejected PR #8 override must not appear as a gate.
     assert "forzar" not in js
     assert "tú decides" in html
@@ -60,6 +70,17 @@ def test_ficha_landing_is_the_github_page():
 def test_ficha_assets_and_pages_workflow():
     assert (SITE / "assets" / "tero-og.png").is_file()
     assert (SITE / "assets" / "tero-stamp.png").is_file()
+    for folder, n in (
+        ("plan", 3),
+        ("guia-sistemas", 3),
+        ("eval-sistemas", 3),
+        ("eval-cuento", 3),
+    ):
+        for i in range(1, n + 1):
+            path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
+            assert path.is_file(), path
+            assert path.stat().st_size > 10_000
+    assert (SITE / "assets" / "tui" / "puerta.webp").is_file()
     assert (SITE / "404.html").is_file()
     not_found = _read(SITE / "404.html")
     assert "unknown_source" in not_found

@@ -46,18 +46,13 @@
       </aside>
 
       <div class="stage">
-        <figure class="hero-shot">
-          <img
-            src="./assets/tero-og.png"
-            alt="Fotocopia de ficha tero sobre un escritorio, sello rojo REVISAR, lapicera, teclas s n b c al pie."
-            width="1280"
-            height="720"
-          />
-          <figcaption>
-            Así se muestra tero: una hoja, no un dashboard. El sello lo pone la
-            persona.
-          </figcaption>
-        </figure>
+        <section class="consulta" id="consulta" hidden>
+          <p class="consulta-reloj">
+            <span id="reloj">0.0 s</span>
+            <span class="consulta-real" id="corrida-real"></span>
+          </p>
+          <ol id="bitacora" class="bitacora" aria-live="polite"></ol>
+        </section>
 
         <main class="sheet" id="ficha" tabindex="-1">
           <img
@@ -73,7 +68,7 @@
           <header class="sheet-head">
             <p class="brand">tero — agente docente</p>
             <p class="tag">tus fuentes, tu criterio</p>
-            <p class="meta" id="chips">5° básico · Ciencias Naturales · 90 min</p>
+            <p class="meta" id="chips">elige un rumbo · tero prepara · tú decides</p>
           </header>
 
           <label class="nombre-row">
@@ -123,8 +118,28 @@
               <code>Model</code> scripted, no un Bedrock disfrazado. AgentCore no es el producto.
             </p>
             <p class="home-copy">
+              Un rumbo dispara una <strong>consulta con reloj</strong> (tools
+              reales, tiempos de corrida). Las páginas fotocopiadas —las mejores
+              fichas LaTeX que ya corrimos— aparecen <strong>al final</strong>,
+              cuando hay archivo en <code>derivados/</code> o
+              <code>borradores/</code>.
+            </p>
+            <p class="home-copy">
               Avisos a la vista — parafraseo, evidencia flaca, OA raro — y
               <strong>s sigue abierto</strong>. Eso no es un bug. Es la tesis.
+            </p>
+          </section>
+
+          <section class="archivo" id="archivo" hidden>
+            <p class="archivo-lead" id="archivo-lead">Archivo creado</p>
+            <figure class="hoja-frame">
+              <img id="hoja-img" alt="Página de la ficha generada" />
+              <figcaption id="hoja-cap"></figcaption>
+            </figure>
+            <p class="hoja-nav">
+              <button type="button" id="hoja-prev">página anterior</button>
+              <span id="hoja-pos">1 / 1</span>
+              <button type="button" id="hoja-next">página siguiente</button>
             </p>
           </section>
 
@@ -157,6 +172,16 @@
       </div>
 
       <aside class="leyenda" aria-label="Cómo correrlo">
+        <p class="leyenda-kicker">Captura de la TUI</p>
+        <figure class="tui-shot">
+          <img
+            id="tui-shot"
+            src="./assets/tui/home.webp"
+            alt="TUI de tero en home, rumbos y puerta s n b c."
+            width="960"
+            height="540"
+          />
+        </figure>
         <p class="leyenda-kicker">20 minutos, juez o docente</p>
         <pre class="cmd">python -m tero demo --offline --yes</pre>
         <p>

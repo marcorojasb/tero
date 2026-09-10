@@ -11,14 +11,20 @@ puerta `s` / `n` / `b` / `c`. El modelo de la demo en esa página es
 ## Cómo se ve
 
 - Fondo de escritorio, papel con grano de tóner, sello rojo chueco.
-- Elegir rumbo (`1` Planificar · `2` Crear · `3` Evaluar · `4` Adaptar)
-  arma un borrador de ejemplo anclado a una carpeta.
+- Un rumbo (`1` Planificar · `2` Crear · `3` Evaluar · `4` Adaptar)
+  dispara una **consulta con reloj**: `list_sources`, `read_source`,
+  `propose_plan`, `draft_artifact`. Los milisegundos de la hoja están
+  comprimidos; al lado va el tiempo de la corrida real (p. ej. MiniMax
+  92.5 s / 94.9 s, GLM 29.1 s).
+- El borrador en la ficha trae **varios tipos de pregunta** (SM, V/F,
+  desarrollo) y, en matemática, **gráficos de rectas** (sistemas 2×2).
+- Las **páginas LaTeX reales** (capturas de las mejores corridas) se
+  muestran **al final**, cuando `s` deja el archivo en `derivados/` o
+  `b` en `borradores/`. `n` no publica hojas.
 - Un aviso `unverified_citation` aparece **y no bloquea** `s`. Eso es la
   tesis, no un bug. Ver [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
-- `s` deja el archivo en `derivados/` de la carpeta simulada; `b` en
-  `borradores/`; `n` descarta; `c` pide crítica.
 - La franja de abajo es la TUI (fondo `#0b0d10`, acento `#82aaff`).
-- Imprimir la página (`Ctrl+P`) deja solo la hoja. Sirve de ficha.
+- Imprimir (`Ctrl+P`) deja la hoja. Sirve de ficha.
 
 ## GitHub Pages
 
