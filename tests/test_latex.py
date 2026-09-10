@@ -444,6 +444,68 @@ B) (4, 3)
     assert vf
 
 
+def test_extract_qwen_eval_heading_kinds_without_dumping_evidence():
+    md = """---
+tipo: evaluacion
+titulo: Evaluación cuento
+curso: 4° básico
+---
+# Evaluación
+
+**Instrucciones generales:**
+
+Lee el cuento.
+
+## Ítems de evaluación
+
+### 1. Selección múltiple (2 puntos)
+
+¿Por qué el cóndor le dice al huemul que corra?
+
+a) Porque quiere ayudarlo a encontrar agua.
+b) Porque cree que el valle se está secando y ya no es seguro.
+c) Porque el huemul lo está molestando con preguntas.
+d) Porque el río ha crecido y hay peligro de inundación.
+
+**Respuesta correcta:**
+
+### 2. Verdadero o Falso (2 puntos)
+
+El huemul cree que el río se secó por culpa de alguien.
+
+☐ Verdadero
+☐ Falso
+
+**Justifica tu respuesta con una frase del texto:**
+
+### 3. Desarrollo (6 puntos)
+
+¿Qué nos dice el cuento sobre la diferencia entre el cóndor y el huemul?
+
+**Respuesta:**
+
+## Evidencia (fuentes usadas)
+
+- `fuentes/cuento-el-condor-y-el-huemul.md` — sección *Ítem 1 (SM)* · verificada
+  > El cóndor, desde una cornisa, se rió.
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    sm = [row for row in payload["items"] if row.get("tipo_item") == "sm"]
+    vf = [row for row in payload["items"] if row.get("tipo_item") == "vf"]
+    des = [row for row in payload["items"] if row.get("tipo_item") == "desarrollo"]
+    assert sm
+    assert "cóndor" in sm[0]["enunciado"].lower() or "corra" in sm[0]["enunciado"].lower()
+    assert len(sm[0]["opciones"]) == 4
+    assert vf
+    assert "huemul" in vf[0]["enunciado"].lower()
+    assert "justifica" not in vf[0]["enunciado"].lower()
+    assert des
+    assert "diferencia" in des[0]["enunciado"].lower()
+    blob = " ".join(row["enunciado"] for row in payload["items"]).lower()
+    assert "fuentes/" not in blob
+    assert "verificada" not in blob
+
+
 def test_extract_evaluacion_numbered_heading_without_item_i():
     md = """# Prueba
 
