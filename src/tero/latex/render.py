@@ -259,11 +259,14 @@ def _actividades_block(acts: list[dict[str, Any]]) -> str:
     for act in acts:
         parts.append(rf"\subsection*{{{escape_latex(str(act.get('titulo') or 'Actividad'))}}}")
         if act.get("inicio"):
-            parts.append(r"\textbf{Inicio. } " + escape_latex(str(act["inicio"])))
+            parts.append(r"\textbf{Inicio.}")
+            parts.append(prose_latex(str(act["inicio"])))
         if act.get("desarrollo"):
-            parts.append(r"\textbf{Desarrollo. } " + escape_latex(str(act["desarrollo"])))
+            parts.append(r"\textbf{Desarrollo.}")
+            parts.append(prose_latex(str(act["desarrollo"])))
         if act.get("cierre"):
-            parts.append(r"\textbf{Cierre. } " + escape_latex(str(act["cierre"])))
+            parts.append(r"\textbf{Cierre.}")
+            parts.append(prose_latex(str(act["cierre"])))
     return "\n\n".join(parts)
 
 

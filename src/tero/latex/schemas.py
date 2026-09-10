@@ -298,27 +298,55 @@ def extract_payload_from_markdown(
         }
     else:
         # guía / actividad
+        actividades: list[dict[str, str]] = []
+        if sections.get("actividades"):
+            actividades.append(
+                {
+                    "titulo": "Actividades",
+                    "inicio": sections.get("inicio") or "",
+                    "desarrollo": sections.get("actividades"),
+                    "cierre": "",
+                }
+            )
+        if sections.get("vf"):
+            actividades.append(
+                {
+                    "titulo": "Verdadero o falso",
+                    "inicio": "",
+                    "desarrollo": sections["vf"],
+                    "cierre": "",
+                }
+            )
+        if sections.get("completar"):
+            actividades.append(
+                {
+                    "titulo": "Completar",
+                    "inicio": "",
+                    "desarrollo": sections["completar"],
+                    "cierre": "",
+                }
+            )
+        if not actividades:
+            actividades = [
+                {
+                    "titulo": "Secuencia",
+                    "inicio": sections.get("inicio") or "",
+                    "desarrollo": sections.get("desarrollo") or "",
+                    "cierre": sections.get("cierre") or "",
+                }
+            ]
         raw = {
             "tipo": "guia",
             "titulo": titulo,
-            "proposito": sections.get("propósito")
-            or sections.get("proposito")
+            "proposito": sections.get("proposito")
+            or sections.get("propósito")
             or sections.get("objetivo")
             or "",
             "instrucciones": _bullets(sections.get("instrucciones") or ""),
             "materiales": _bullets(sections.get("materiales") or ""),
-            "desarrollo_prompts": _bullets(
-                sections.get("desarrollo") or sections.get("actividades") or ""
-            ),
-            "actividades": [
-                {
-                    "titulo": "Secuencia",
-                    "inicio": sections.get("inicio") or "",
-                    "desarrollo": sections.get("desarrollo") or sections.get("actividades") or "",
-                    "cierre": sections.get("cierre") or "",
-                }
-            ],
-            "sm_items": [],
+            "desarrollo_prompts": _bullets(sections.get("desarrollo") or ""),
+            "actividades": actividades,
+            "sm_items": _sm_from_section(sections.get("sm") or ""),
             "cierre": sections.get("cierre") or "",
             "tiempo": meta.get("duracion") or "",
         }
@@ -499,6 +527,15 @@ _SECTION_ALIASES: tuple[tuple[str, str], ...] = (
     ("instrucciones", "instrucciones"),
     ("propósito", "proposito"),
     ("proposito", "proposito"),
+    ("selección múltiple", "sm"),
+    ("seleccion multiple", "sm"),
+    ("ítems de selección", "sm"),
+    ("items de seleccion", "sm"),
+    ("verdadero o falso", "vf"),
+    ("verdadero/falso", "vf"),
+    ("ítems de desarrollo", "desarrollo"),
+    ("items de desarrollo", "desarrollo"),
+    ("completar", "completar"),
     ("actividades", "actividades"),
     ("ítems", "items"),
     ("items", "items"),
@@ -577,6 +614,37 @@ def _bullets(text: str) -> list[str]:
         if cleaned:
             items.append(cleaned)
     return items
+
+
+def _sm_from_section(text: str) -> list[dict[str, Any]]:
+    """Best-effort SM items from markdown (numbered stems + a/b/c options)."""
+    if not (text or "").strip():
+        return []
+    items: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line in {"---", "***"}:
+            continue
+        numbered = re.match(r"^\d+[.)]\s+(.*)$", line)
+        if numbered:
+            if current and current.get("enunciado"):
+                items.append(current)
+            current = {"enunciado": numbered.group(1).strip(), "opciones": [], "clave": ""}
+            continue
+        option = re.match(r"^[a-dA-D][.)]\s+(.*)$", line)
+        if option and current is not None:
+            current["opciones"].append(option.group(1).strip())
+            continue
+        clave = re.match(r"^(?:clave|correcta|respuesta)\s*[:\-]\s*(.+)$", line, flags=re.I)
+        if clave and current is not None:
+            current["clave"] = clave.group(1).strip()[:8]
+            continue
+        if current is not None and not current.get("opciones"):
+            current["enunciado"] = (current["enunciado"] + " " + line).strip()
+    if current and current.get("enunciado"):
+        items.append(current)
+    return [item for item in items if item["enunciado"]]
 
 
 def _items_from_section(text: str) -> list[dict[str, Any]]:

@@ -261,6 +261,43 @@ def test_prose_latex_lists_are_host_itemize_not_raw_tex():
     assert r"\textbackslash{}" in evil
 
 
+def test_extract_guia_sm_vf_and_desarrollo_sections():
+    md = """# Guía de sistemas
+
+## Propósito
+Introducir sistemas 2×2 en autoaprendizaje.
+
+## Instrucciones
+- Lee el ejemplo resuelto.
+- Resuelve sin calculadora.
+
+## Selección múltiple
+1. El par (2, 1) es solución de x+y=3, x-y=1.
+a) Sí
+b) No
+c) No se puede saber
+Clave: A
+
+## Verdadero o falso
+- Un sistema 2×2 siempre tiene una única solución.
+
+## Ítems de desarrollo
+- Resuelve por sustitución: x+y=5, x-y=1.
+
+## Cierre
+Compara tu par ordenado con el ejemplo de la carpeta.
+"""
+    payload = extract_payload_from_markdown(md, tipo="guia")
+    assert "sistemas 2" in payload["proposito"]
+    assert payload["sm_items"]
+    assert "solución" in payload["sm_items"][0]["enunciado"].lower()
+    assert len(payload["sm_items"][0]["opciones"]) == 3
+    vf = [row for row in payload["actividades"] if "falso" in row["titulo"].lower()]
+    assert vf
+    assert any("sustitución" in p or "sustitucion" in p for p in payload["desarrollo_prompts"])
+    assert "par ordenado" in payload["cierre"]
+
+
 def test_escape_latex_drops_narrow_nbsp_for_pdflatex():
     from tero.latex.render import escape_latex, render_latex
 
