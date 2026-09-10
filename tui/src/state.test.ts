@@ -3,6 +3,8 @@ import {
   applyHostEvent,
   chips,
   footerFor,
+  gateStrip,
+  hasKeyLegend,
   handleCommand,
   handleHotkey,
   helpFor,
@@ -33,10 +35,32 @@ describe("chips y pie", () => {
     expect(home.screen).toBe("home")
     expect(showChips(home)).toBe(false)
   })
-  test("footer changes at the gate", () => {
+  test("footer stays quiet at the gate (actions live in gate strip)", () => {
     const state = { ...initialState(encargo), phase: "esperando_criterio" as const, screen: "workspace" as const }
-    expect(footerFor(state)).toContain("s sí")
-    expect(footerFor(state)).toContain("c corregir")
+    expect(footerFor(state)).toBe("")
+    expect(footerFor(state)).not.toMatch(/s sí|c corregir|a aprobar/)
+  })
+})
+
+describe("HITL chrome quiet", () => {
+  test("no key legends in footer/status during HITL", () => {
+    for (const phase of ["esperando_plan", "esperando_clarificacion", "esperando_criterio"] as const) {
+      const state = {
+        ...initialState(encargo),
+        phase,
+        screen: "workspace" as const,
+        plan: {
+          objetivo: "x",
+          tipo: "guia",
+          oa: "OA 4",
+          duracion: "45 min",
+          notas: "",
+        },
+      }
+      expect(gateStrip(state).length).toBeGreaterThan(0)
+      expect(footerFor(state)).toBe("")
+      expect(hasKeyLegend(footerFor(state))).toBe(false)
+    }
   })
 })
 
@@ -57,7 +81,7 @@ describe("host events", () => {
     expect(state.phase).toBe("esperando_criterio")
     expect(state.evidence).toHaveLength(1)
     expect(state.warnings[0]?.code).toBe("thin_skeleton")
-    expect(state.statusLine).toContain("s sí")
+    expect(state.statusLine).toMatch(/tu turno|sí/)
   })
 
   test("plan with questions enters clarification", () => {

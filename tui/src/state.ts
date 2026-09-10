@@ -44,6 +44,8 @@ export type AppState = {
   sourceCount: number
   changedCount: number
   planPinned: boolean
+  /** Full plan card outside plan-wait phases (toggle with p). */
+  planDetail: boolean
   screen: Screen
   recentSessions: RecentSession[]
   question: PlanQuestion | null
@@ -75,7 +77,7 @@ export function initialState(encargo: Encargo): AppState {
     warnings: [],
     plan: null,
     help: false,
-    statusLine: "Pregunta, explora o crea con tero…",
+    statusLine: "elige rumbo o escribe",
     lastError: "",
     errorCode: "",
     retryable: false,
@@ -86,6 +88,7 @@ export function initialState(encargo: Encargo): AppState {
     sourceCount: 0,
     changedCount: 0,
     planPinned: false,
+    planDetail: false,
     screen: "home",
     recentSessions: [],
     question: null,
@@ -104,13 +107,13 @@ export function initialState(encargo: Encargo): AppState {
 export const PHASE_LABEL: Record<Phase, string> = {
   idle: "listo",
   home: "inicio",
-  leyendo: "leyendo fuentes",
-  proponiendo_plan: "proponiendo plan",
-  esperando_clarificacion: "clarificación",
-  esperando_plan: "criterio · plan",
-  escribiendo: "escribiendo borrador",
-  esperando_criterio: "criterio · puerta",
-  exportando: "exportando",
+  leyendo: "leyendo",
+  proponiendo_plan: "plan…",
+  esperando_clarificacion: "clarificar",
+  esperando_plan: "plan",
+  escribiendo: "borrador…",
+  esperando_criterio: "puerta",
+  exportando: "export…",
   listo: "listo",
   error: "error",
 }
@@ -143,6 +146,32 @@ export function spinnerGlyph(frame: number): string {
   return SPINNER[frame % SPINNER.length]
 }
 
+export function shortPath(path: string): string {
+  const parts = path.split("/").filter(Boolean)
+  if (parts.length <= 2) return path
+  // Keep export filenames readable (…/derivados/20240910-….tex).
+  const leaf = parts[parts.length - 1] || ""
+  const parent = parts[parts.length - 2] || ""
+  if (parent === "derivados" || parent === "borradores" || parent === "exports") {
+    return `…/${parent}/${leaf}`
+  }
+  if (leaf.length > 28) return `…/${leaf.slice(0, 12)}…${leaf.slice(-10)}`
+  return `…/${parts.slice(-2).join("/")}`
+}
+
+export function shortModel(model: string): string {
+  if (!model) return model
+  if (model === "tero-offline" || model.includes("offline")) return "offline"
+  const leaf = model.split("/").pop() || model
+  return leaf.length > 28 ? `${leaf.slice(0, 27)}…` : leaf
+}
+
+/** Plan card shows full detail during plan wait, or when planDetail is on. */
+export function planShowsDetail(state: AppState): boolean {
+  if (state.phase === "esperando_plan" || state.phase === "esperando_clarificacion") return true
+  return state.planDetail
+}
+
 export function applyHostEvent(state: AppState, event: HostEvent): AppState {
   const next = {
     ...state,
@@ -157,9 +186,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.model = String(event.model ?? next.model)
       next.carpeta = String(event.carpeta ?? next.carpeta)
       next.statusLine =
-        next.mode === "offline"
-          ? `listo · offline (tero-offline) · no es Bedrock`
-          : `listo · bedrock · ${next.model}`
+        next.mode === "offline" ? "listo · offline" : `listo · ${shortModel(next.model)}`
       break
     case "hello_ok":
       next.carpeta = String(event.carpeta ?? next.carpeta)
@@ -175,8 +202,8 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
         next.screen = "home"
         next.phase = "home"
         next.statusLine = next.sourceCount
-          ? `carpeta · ${next.sourceCount} fuente${next.sourceCount === 1 ? "" : "s"}`
-          : "Pregunta, explora o crea con tero…"
+          ? `${next.sourceCount} fuente${next.sourceCount === 1 ? "" : "s"}`
+          : "elige rumbo o escribe"
       }
       break
     case "status": {
@@ -184,10 +211,24 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       const detail = event.detail ? String(event.detail) : ""
       const progress = event.progress ? String(event.progress) : ""
       const step = event.step ? String(event.step) : ""
-      const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
-        .filter(Boolean)
-        .join(" · ")
-      next.statusLine = label
+      // Quiet status during HITL waits — action keys live in the gate strip.
+      if (
+        next.phase === "esperando_plan" ||
+        next.phase === "esperando_clarificacion" ||
+        next.phase === "esperando_criterio"
+      ) {
+        next.statusLine =
+          next.phase === "esperando_plan"
+            ? "plan listo"
+            : next.phase === "esperando_clarificacion"
+              ? "clarificar"
+              : "tu turno"
+      } else {
+        const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
+          .filter(Boolean)
+          .join(" · ")
+        next.statusLine = label
+      }
       if (
         next.phase === "leyendo" ||
         next.phase === "proponiendo_plan" ||
@@ -254,12 +295,12 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
           next.question = pending
           next.phase = "esperando_clarificacion"
           next.uiMode = "clarify"
-          next.statusLine = "Responde 1/2/3 o con tus palabras"
+          next.statusLine = "elige 1/2/3 o escribe"
         } else {
           next.question = null
           next.phase = "esperando_plan"
           next.uiMode = "prompt"
-          next.statusLine = "Plan listo. a aprobar · e supuesto · x cancelar"
+          next.statusLine = "plan listo"
         }
       }
       break
@@ -270,7 +311,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.uiMode = "clarify"
       next.thinking = false
       next.planPinned = true
-      next.statusLine = "Clarificación · 1/2/3 o texto libre"
+      next.statusLine = "clarificar"
       break
     case "plan_ready":
       next.plan = (event.plan as Plan) ?? next.plan
@@ -278,20 +319,22 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.phase = "esperando_plan"
       next.uiMode = "prompt"
       next.thinking = false
-      next.statusLine = "Plan listo. a aprobar · e supuesto · x cancelar"
+      next.statusLine = "plan listo"
       break
     case "plan_approved":
       next.plan = (event.plan as Plan) ?? next.plan
       next.question = null
-      next.statusLine = "Plan aprobado. Redactando…"
+      next.statusLine = "aprobado · redactando"
       next.thinking = true
-      next.thinkingLabel = "escribiendo borrador"
+      next.thinkingLabel = "borrador"
+      next.planDetail = false
       break
     case "plan_cancelled":
       next.phase = "idle"
       next.plan = null
       next.question = null
       next.planPinned = false
+      next.planDetail = false
       next.uiMode = "prompt"
       next.thinking = false
       next.proposal = ""
@@ -299,7 +342,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.evidence = []
       next.warnings = []
       next.screen = "home"
-      next.statusLine = "Plan cancelado. Elige un rumbo o escribe de nuevo."
+      next.statusLine = "plan cancelado"
       break
     case "proposal_cleared":
       next.proposal = ""
@@ -334,7 +377,8 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.phase = "esperando_criterio"
       next.thinking = false
       next.thinkingLabel = ""
-      next.statusLine = "s sí · n no · b borrador · c corregir"
+      next.planDetail = false
+      next.statusLine = "tu turno"
       next.turns = next.turns.map((turn, i) =>
         i === next.turns.length - 1
           ? { ...turn, titulo: artifact?.titulo, tipo: artifact?.tipo_label, phase: "esperando_criterio" }
@@ -356,7 +400,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
     case "accepted":
       next.phase = "listo"
       next.lastPath = String(event.path ?? "")
-      next.statusLine = `Aceptado → ${next.lastPath}`
+      next.statusLine = `aceptado · ${shortPath(next.lastPath)}`
       next.uiMode = "prompt"
       next.thinking = false
       stampPath(next, String(event.path ?? ""))
@@ -364,14 +408,14 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
     case "draft_saved":
       next.phase = "listo"
       next.lastPath = String(event.path ?? "")
-      next.statusLine = `Borrador → ${next.lastPath}  ·  /export md funciona también desde borradores/`
+      next.statusLine = `borrador · ${shortPath(next.lastPath)} · /export`
       next.uiMode = "prompt"
       next.thinking = false
       stampPath(next, String(event.path ?? ""))
       break
     case "discarded":
       next.phase = "idle"
-      next.statusLine = "Descartado. Nada se escribió."
+      next.statusLine = "descartado"
       next.uiMode = "prompt"
       next.thinking = false
       break
@@ -379,11 +423,9 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.lastExport = String(event.path ?? "")
       const kind = event.source_kind === "borrador" ? "borrador" : "derivado"
       const fmt = event.format ? String(event.format) : "md"
-      const base = `Exportado ${fmt} (${kind}) → ${event.path}`
-      const pdf = event.pdf ? `  ·  pdf → ${event.pdf}` : ""
-      next.statusLine = event.feedback
-        ? `${base}${pdf}  ·  feedback → ${event.feedback}`
-        : `${base}${pdf}`
+      const base = `${fmt} (${kind}) · ${shortPath(String(event.path ?? ""))}`
+      const pdf = event.pdf ? ` · pdf ${shortPath(String(event.pdf))}` : ""
+      next.statusLine = event.feedback ? `${base}${pdf} · feedback` : `${base}${pdf}`
       break
     }
     case "critique_saved":
@@ -552,7 +594,7 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
         ...state,
         screen: "home",
         phase: "home",
-        statusLine: "Pregunta, explora o crea con tero…",
+        statusLine: "elige rumbo o escribe",
       },
     }
   }
@@ -762,7 +804,15 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
     return { kind: "state", state: { ...state, focusPanel: "evidence" } }
   }
   if (key === "p" && state.plan) {
-    return { kind: "state", state: { ...state, planPinned: !state.planPinned } }
+    return {
+      kind: "state",
+      state: {
+        ...state,
+        planDetail: !state.planDetail,
+        planPinned: true,
+        statusLine: !state.planDetail ? "plan · detalle" : "plan · resumen",
+      },
+    }
   }
   if (key === "[") {
     if (state.evidence.length <= 1) {
@@ -811,7 +861,7 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
         ...state,
         uiMode: "prompt",
         assumptionEditId: "",
-        statusLine: "a aprobar · e supuesto · x cancelar",
+        statusLine: "plan listo",
       },
     }
   }
@@ -841,7 +891,7 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
         message: { type: "plan.decide", decision: "approve", plan: state.plan ?? undefined },
         state: {
           ...state,
-          statusLine: "Plan aprobado. Redactando…",
+          statusLine: "aprobado · redactando",
           thinking: true,
           thinkingLabel: "escribiendo",
         },
@@ -890,7 +940,7 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
   if (state.uiMode === "critique" && key === "escape") {
     return {
       kind: "state",
-      state: { ...state, uiMode: "prompt", statusLine: "s sí · n no · b borrador · c corregir" },
+      state: { ...state, uiMode: "prompt", statusLine: "tu turno" },
     }
   }
   if (
@@ -906,24 +956,24 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
 
 export function gateStrip(state: AppState): string {
   if (state.uiMode === "critique") {
-    return "crítica abierta · Enter envía (se guarda) · esc vuelve a s/n/b/c"
+    return "crítica · Enter envía · esc vuelve"
   }
   if (state.uiMode === "assumption") {
-    return "editando SUPUESTO · Enter guarda · esc cancela"
+    return "supuesto · Enter guarda · esc cancela"
   }
   if (state.phase === "esperando_clarificacion") {
-    return "clarificación · [1] [2] [3] elige · o escribe abajo · x cancela plan"
+    return "[1] [2] [3] elige · o escribe · x cancela"
   }
   if (state.phase === "esperando_plan") {
-    return "[ a ] aprobar     [ e ] supuesto     [ x ] cancelar     /oa /objetivo"
+    return "[a] aprobar   [e] supuesto   [x] cancelar"
   }
   if (state.phase === "esperando_criterio") {
     const n = state.evidence.length
-    const mark = n ? `     evid ${state.evidenceIndex + 1}/${n}` : "     sin evid"
-    return `[ s ] sí→derivados/  [ n ] no  [ b ] borrador  [ c ] corregir${mark}`
+    const mark = n ? `   evid ${state.evidenceIndex + 1}/${n}` : ""
+    return `[s] sí→derivados/  [n] no  [b] borrador  [c] corregir${mark}`
   }
   if (state.phase === "error" && state.retryable) {
-    return "[ r ] reintentar     /home volver al inicio"
+    return "[r] reintentar   /home inicio"
   }
   return ""
 }
@@ -947,16 +997,30 @@ export function showChips(state: AppState): boolean {
   return chips(state.encargo).length > 0
 }
 
+/** True if text repeats HITL key legends (should not appear in footer/status). */
+export function hasKeyLegend(text: string): boolean {
+  const t = text.toLowerCase()
+  return (
+    /\ba\s*aprobar\b/.test(t) ||
+    /\be\s*supuesto\b/.test(t) ||
+    /\bx\s*cancelar\b/.test(t) ||
+    /\bs\s*sí\b/.test(t) ||
+    /\bn\s*no\b/.test(t) ||
+    /\bb\s*borrador\b/.test(t) ||
+    /\bc\s*corregir\b/.test(t) ||
+    /\[\s*a\s*\]/.test(t) ||
+    /\[\s*s\s*\]/.test(t)
+  )
+}
+
 export function footerFor(state: AppState): string {
-  if (state.help) return "PgUp/PgDn desplaza  esc cierra ayuda"
-  if (state.uiMode === "critique") return "crítica → Enter envía · esc cancela"
-  if (state.uiMode === "assumption") return "supuesto → Enter · esc cancela"
-  if (state.phase === "esperando_clarificacion") return "1/2/3 elige  texto libre  ? ayuda"
-  if (state.phase === "esperando_plan") return "a aprobar  e supuesto  x cancelar  Tab  ? "
-  if (state.phase === "esperando_criterio") return "s sí  n no  b borrador  c corregir  [ ] evid  ?"
-  if (state.phase === "error") return state.retryable ? "r reintenta  /home  ? " : "/home  ? "
-  if (state.screen === "home") return "1–4 rumbo  Enter envía  ? ayuda  q salir"
-  return "Enter  /oa /curso /export latex  Tab  ?  q"
+  if (state.help) return "PgUp/PgDn  esc cierra"
+  // Primary actions live in the gate strip — keep footer quiet (no key echo).
+  if (gateStrip(state)) return ""
+  if (state.uiMode === "critique") return "Enter envía · esc cancela"
+  if (state.uiMode === "assumption") return "Enter guarda · esc cancela"
+  if (state.screen === "home") return "1–4 rumbo  Enter  ?  q"
+  return "/export  Tab  ?  q"
 }
 
 export function helpFor(state: AppState): string {

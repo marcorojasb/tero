@@ -30,6 +30,15 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 - Evidencia ✓ (en archivo) / ? (parafraseo) + snippet; contador `1/N`; no-op limpio si N≤1.
 - Avisos no bloqueantes visibles; panel de error dedicado + `r` / `/retry`.
 
+### Densidad / flujo (hackathon UX)
+- Menos leyendas duplicadas: atajos viven en la franja de puerta/plan; el pie no los repite.
+- Home más quieto (sin repetir offline/modelo); chips y paths recortados.
+- Etapas adaptativas: en plan/clarificar se oculta el chrome vacío de propuesta+evidencia; en puerta el plan pasa a resumen (`p` detalle) y mandan propuesta + s/n/b/c.
+- Evidencia con wrap de OA/sección (menos cortes a mitad de frase); títulos de plan acortados.
+
+### Stress Bedrock (2026-09-10)
+- Ver [STRESS-BEDROCK.md](STRESS-BEDROCK.md): EventStreamError bajo carga, hangs del bridge, evidencia thin/unknown aceptada en `derivados/`, demos flaky en carpetas no-demo.
+
 ### Robustez
 - Sync de chips desde el prompt (curso/asignatura/tema/tipo/rumbo).
 - Aviso `domain_mismatch` si el encargo no calza con la carpeta.
