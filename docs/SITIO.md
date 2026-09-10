@@ -22,25 +22,17 @@ puerta `s` / `n` / `b` / `c`. El modelo de la demo en esa página es
 
 ## GitHub Pages
 
-URL esperada: `https://marcorojasb.github.io/tero/`.
+URL: `https://marcorojasb.github.io/tero/`.
 
-Ese link **404** mientras Pages no esté encendido en el repo
-(`has_pages: false`). El token de GitHub Actions puede *publicar* el
-sitio, pero **no puede crearlo** (`enablement: true` responde
-`403 Resource not accessible by integration`). Hay que hacerlo una vez,
-con cuenta de admin:
+Source en Settings es **GitHub Actions**. `.github/workflows/pages.yml`
+publica `site/` desde `main`. El token de Actions puede publicar, pero
+no crear el sitio (`403 Resource not accessible by integration`); por
+eso el workflow hace preflight `GET /pages` y si 404, avisa y no falla.
+Fallback: [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages).
 
-1. Abre [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages).
-2. Source: **GitHub Actions** (preferido) y guarda.
-3. Re-ejecuta el workflow `pages` (Actions → pages → Run workflow).
-
-Alternativa igual de válida: Source **Deploy from a branch**, branch
-`gh-pages`, folder `/`. Esa rama ya tiene la ficha en la raíz (GitHub
-no acepta `/site` como path de rama; solo `/` o `/docs`).
-
-Después, `.github/workflows/pages.yml` publica `site/` desde `main`
-cuando Pages ya existe. Si todavía está apagado, el workflow **no
-falla**: avisa y sale.
+Un push a `main` que toque `site/` o el workflow dispara el deploy.
+`workflow_dispatch` desde este agente da 403; hay que tocar esos paths
+o Run workflow con cuenta de admin.
 
 Vista previa local (404.html incluido, como en GitHub Pages):
 

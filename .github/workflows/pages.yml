@@ -18,10 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # GITHUB_TOKEN can deploy to Pages but cannot create the site
-  # (403 Resource not accessible by integration, even if configure-pages
-  # tries to create it). Skip instead of failing main until Settings →
-  # Pages is set once.
+  # Settings → Pages → Source GitHub Actions is on (2026-09-10).
+  # GITHUB_TOKEN can deploy but cannot create the site (403). If GET
+  # /pages 404s, skip instead of failing main.
   check:
     runs-on: ubuntu-latest
     outputs:
