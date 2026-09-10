@@ -159,6 +159,9 @@ def infer_tema(text: str) -> str:
     raw = " ".join((text or "").strip().split())
     if not raw:
         return ""
+    # A greeting is not a lesson topic (e.g. "hola" must not become chip tema).
+    if raw.lower().rstrip("!?.") in {"hola", "holi", "holis", "hi", "hello", "buenas", "gracias"}:
+        return ""
     cleaned = re.sub(
         r"^(prepara|haz|crea|quiero|necesito|arma|diseña|diseña)\w*\s+",
         "",
