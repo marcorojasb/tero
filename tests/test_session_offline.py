@@ -92,3 +92,20 @@ def test_guia_short_encargo_still_starts(workspace: Workspace):
     session.start_turn("guía del cuento")
     assert session.phase in {"esperando_plan", "esperando_clarificacion", "error"}
     assert session.turns
+
+
+def test_callback_emits_one_activity_per_tool_use(workspace: Workspace):
+    settings = Settings(offline=True, carpeta=workspace.root)
+    events: list[dict] = []
+    session = TeacherSession(workspace, settings, emit=events.append)
+    session._callback(current_tool_use={"name": "draft_artifact", "toolUseId": "u1", "input": "{"})
+    session._callback(
+        current_tool_use={"name": "draft_artifact", "toolUseId": "u1", "input": '{"tipo"'}
+    )
+    session._callback(
+        current_tool_use={"name": "draft_artifact", "toolUseId": "u1", "input": '{"tipo":"guia"}'}
+    )
+    session._callback(current_tool_use={"name": "cite_evidence", "toolUseId": "u2", "input": "{}"})
+    activities = [row for row in events if row.get("type") == "activity"]
+    assert [row["tool"] for row in activities] == ["draft_artifact", "cite_evidence"]
+    assert all(row.get("state") == "start" for row in activities)
