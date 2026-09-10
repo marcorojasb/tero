@@ -30,3 +30,28 @@ b) El río
 
 def test_salvage_ignores_plain_prose():
     assert salvage_draft_from_text("Solo un comentario sin herramienta.") is None
+
+
+def test_salvage_propose_plan_python_style():
+    from tero.salvage import salvage_plan_from_text
+    from tero.types import Encargo
+
+    blob = """
+Voy a planificar. propose_plan(
+  objetivo="Relacionar la distribución del agua dulce y salada con el entorno",
+  tipo="planificacion",
+  oa="CIE-5B-OA06",
+  duracion="90 min",
+  titulo="Agua en la Tierra",
+  curso="5° básico",
+  asignatura="Ciencias Naturales"
+)
+"""
+    plan = salvage_plan_from_text(
+        blob,
+        encargo=Encargo(curso="5° básico", tipo=ArtifactType.PLANIFICACION),
+    )
+    assert plan is not None
+    assert plan.tipo == ArtifactType.PLANIFICACION
+    assert "agua dulce" in plan.objetivo.lower()
+    assert "CIE-5B-OA06" in plan.oa

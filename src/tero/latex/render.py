@@ -14,6 +14,8 @@ from tero.config import PACKAGE_ROOT
 from tero.errors import TeroError
 from tero.latex.schemas import (
     _apply_meta,
+    _fill_empty_fields,
+    _strip_json_fence,
     _vf_from_section,
     extract_payload_from_markdown,
     repair_payload,
@@ -686,6 +688,13 @@ def export_latex(
     if payload is not None:
         data = repair_payload(art_tipo or str(payload.get("tipo") or "guia"), payload)
         _apply_meta(data, meta, body)
+        if body.strip():
+            md_data = extract_payload_from_markdown(
+                _strip_json_fence(body),
+                tipo=art_tipo or str(data.get("tipo") or "guia"),
+                meta=meta,
+            )
+            _fill_empty_fields(data, md_data)
     else:
         data = extract_payload_from_markdown(body, tipo=art_tipo or None, meta=meta)
     tex = render_latex(data, tipo=str(data.get("tipo") or art_tipo or "guia"))

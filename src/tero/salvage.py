@@ -1,12 +1,13 @@
-"""Recover a draft when the model prints draft_artifact(...) as prose, not a tool."""
+"""Recover a draft or plan when the model prints tools as prose, not a tool call."""
 
 from __future__ import annotations
 
 import re
 
-from tero.types import ArtifactDraft, ArtifactType, Evidence
+from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
 
 _CALL = re.compile(r"draft_artifact\s*\(", re.IGNORECASE)
+_PLAN_CALL = re.compile(r"propose_plan\s*\(", re.IGNORECASE)
 
 
 def salvage_draft_from_text(
@@ -48,6 +49,41 @@ def salvage_draft_from_text(
         evidencias=list(evidencias or []),
         payload=payload,
     )
+
+
+def salvage_plan_from_text(text: str, *, encargo: Encargo | None = None) -> Plan | None:
+    """Parse a leaked Python-style propose_plan(...) call from streamed text."""
+    blob = text or ""
+    if "propose_plan" not in blob:
+        return None
+    match = _PLAN_CALL.search(blob)
+    if not match:
+        return None
+    src = blob[match.start() :]
+    objetivo = _unescape(_kw_string(src, "objetivo") or "")
+    tipo_raw = _unescape(_kw_string(src, "tipo") or "")
+    if not objetivo.strip():
+        return None
+    from tero.errors import TeroError
+    from tero.plan import build_plan
+
+    try:
+        return build_plan(
+            objetivo=objetivo.strip(),
+            tipo=tipo_raw or (encargo.tipo.value if encargo and encargo.tipo else "guia"),
+            oa=_unescape(_kw_string(src, "oa") or ""),
+            duracion=_unescape(_kw_string(src, "duracion") or ""),
+            notas=_unescape(_kw_string(src, "notas") or ""),
+            titulo=_unescape(_kw_string(src, "titulo") or ""),
+            encargo=encargo,
+            decisiones={
+                "curso": _unescape(_kw_string(src, "curso") or ""),
+                "asignatura": _unescape(_kw_string(src, "asignatura") or ""),
+                "tema": _unescape(_kw_string(src, "tema") or ""),
+            },
+        )
+    except TeroError:
+        return None
 
 
 def _kw_string(src: str, name: str) -> str | None:

@@ -206,6 +206,9 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
                 else:
                     fixed.append(str(row))
             merged["criterios"] = fixed
+    if key == "planificacion":
+        for field in ("objetivo", "inicio", "desarrollo", "cierre", "evaluacion"):
+            merged[field] = _as_plan_prose(merged.get(field))
     if key == "pauta":
         merged["criterios"] = _as_pauta_criterios(merged.get("criterios"))
         if not merged.get("niveles"):
@@ -268,6 +271,10 @@ def extract_payload_from_markdown(
             inferred = str(parsed.get("tipo") or tipo or "guia")
             payload = repair_payload(inferred, parsed)
             _apply_meta(payload, meta, body)
+            md_only = _strip_json_fence(body)
+            if md_only.strip() and md_only.strip() != (markdown or "").strip():
+                filled = extract_payload_from_markdown(md_only, tipo=inferred, meta=meta)
+                _fill_empty_fields(payload, filled)
             return payload
 
     art = ArtifactType.parse(str(tipo) if tipo else None)
@@ -696,6 +703,93 @@ def _front_matter_value(markdown: str, key: str) -> str:
             if name.strip() == key:
                 return value.strip().strip("\"'")
     return ""
+
+
+def _strip_json_fence(markdown: str) -> str:
+    return re.sub(
+        r"```json\s*\{.*?\}\s*```",
+        "",
+        markdown or "",
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+
+def _fill_empty_fields(dst: dict[str, Any], src: dict[str, Any]) -> None:
+    for key, value in src.items():
+        if key in {"tipo"}:
+            continue
+        current = dst.get(key)
+        empty = current is None or current == "" or current == [] or current == {}
+        incoming_empty = value is None or value == "" or value == [] or value == {}
+        if empty and not incoming_empty:
+            dst[key] = value
+
+
+def _as_plan_prose(value: Any) -> str:
+    """Turn nested plan JSON (momentos, actividades, ítems) into classroom prose."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("{") and ("titulo" in text or "actividades" in text):
+            return text  # leftover repr; caller should pass dicts
+        return text
+    if isinstance(value, list):
+        parts = [_as_plan_prose(item) for item in value]
+        return "\n\n".join(part for part in parts if part)
+    if not isinstance(value, dict):
+        return str(value).strip()
+    pregunta = str(value.get("pregunta") or value.get("enunciado") or "").strip()
+    if pregunta:
+        opts = value.get("opciones") or []
+        if isinstance(opts, list) and opts:
+            letters = "abcd"
+            lines = [pregunta]
+            for idx, opt in enumerate(opts[:8]):
+                letter = letters[idx] if idx < len(letters) else str(idx + 1)
+                lines.append(f"{letter}) {opt}")
+            return "\n".join(lines)
+        return pregunta
+    chunks: list[str] = []
+    titulo = str(value.get("titulo") or value.get("nombre") or "").strip()
+    duracion = str(value.get("duracion") or value.get("tiempo") or "").strip()
+    if titulo and duracion:
+        chunks.append(f"{titulo} ({duracion})")
+    elif titulo:
+        chunks.append(titulo)
+    for key in (
+        "objetivo",
+        "descripcion",
+        "detalle",
+        "texto",
+        "prosa",
+        "inicio",
+        "desarrollo",
+        "cierre",
+        "actividades",
+        "pasos",
+        "items",
+        "momentos",
+        "items_ticket_salida",
+    ):
+        if key not in value:
+            continue
+        nested = value[key]
+        if nested is value:
+            continue
+        chunk = _as_plan_prose(nested)
+        if chunk and chunk not in chunks:
+            chunks.append(chunk)
+    if chunks:
+        return "\n\n".join(chunks)
+    bits: list[str] = []
+    for key, nested in value.items():
+        if key in {"id", "tipo", "clave", "respuesta_correcta"}:
+            continue
+        chunk = _as_plan_prose(nested)
+        if chunk:
+            bits.append(chunk)
+    return "\n".join(bits)
 
 
 def _strip_host_appendix(markdown: str) -> str:

@@ -421,6 +421,55 @@ Compara tu par ordenado con el ejemplo de la carpeta.
     assert "par ordenado" in payload["cierre"]
 
 
+def test_plan_payload_empty_fields_fill_from_markdown():
+    md = """---
+tipo: planificacion
+titulo: Agua
+curso: 5° básico
+---
+# Plan
+
+## Objetivo
+Explicar la distribución del agua.
+
+## Inicio
+Pregunta del patio sobre la lluvia.
+
+## Desarrollo
+Lectura de la carpeta y globo terráqueo.
+
+## Cierre
+Ticket de salida sin laboratorio.
+
+```json
+{"tipo": "planificacion", "titulo": "Agua", "objetivo": "Explicar la distribución del agua.", "inicio": "", "desarrollo": "", "cierre": ""}
+```
+"""
+    payload = extract_payload_from_markdown(md, tipo="planificacion")
+    assert "patio" in payload["inicio"].lower()
+    assert "globo" in payload["desarrollo"].lower()
+    assert "ticket" in payload["cierre"].lower()
+
+
+def test_plan_nested_dict_becomes_prose():
+    from tero.latex.schemas import repair_payload
+
+    payload = repair_payload(
+        "planificacion",
+        {
+            "titulo": "Agua",
+            "inicio": {
+                "titulo": "Activación",
+                "duracion": "15 minutos",
+                "actividades": ["Pregunta de apertura", "Foco del OA"],
+            },
+        },
+    )
+    assert "Activación" in payload["inicio"]
+    assert "{" not in payload["inicio"]
+    assert "Pregunta de apertura" in payload["inicio"]
+
+
 def test_extract_evaluacion_item_i_sm_heading():
     md = """# Evaluación
 

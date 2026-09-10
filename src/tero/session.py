@@ -17,7 +17,7 @@ from tero.gate import GateResult, apply_gate, persist_critique
 from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
-from tero.salvage import salvage_draft_from_text
+from tero.salvage import salvage_draft_from_text, salvage_plan_from_text
 from tero.tools import (
     DRAFT_AGENT_TURNS,
     DRAFT_TOOL_BUDGET,
@@ -229,7 +229,28 @@ class TeacherSession:
                 "progress": "1/2",
             }
         )
+        self._stream_buf = []
         agent(self._user_payload(prompt), limits={"turns": PLAN_AGENT_TURNS})
+        if self.ctx.pending_plan is None:
+            salvaged = salvage_plan_from_text(
+                "".join(self._stream_buf),
+                encargo=self.encargo,
+            )
+            if salvaged is not None:
+                self.ctx.pending_plan = salvaged
+                self.emit(
+                    {
+                        "type": "warning",
+                        "warning": {
+                            "code": "plan_salvaged",
+                            "message": (
+                                "El modelo escribió propose_plan como texto. "
+                                "tero armó el plan igual para que puedas decidir."
+                            ),
+                            "blocking": False,
+                        },
+                    }
+                )
         if self.ctx.pending_plan is None:
             self._set_phase("error")
             self.emit(
