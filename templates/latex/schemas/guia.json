@@ -3,7 +3,7 @@
   "$id": "tero/latex/guia",
   "title": "Guía de aprendizaje (JSON → LaTeX)",
   "type": "object",
-  "required": ["tipo", "titulo", "proposito", "actividades"],
+  "required": ["tipo", "titulo"],
   "additionalProperties": true,
   "properties": {
     "tipo": {"const": "guia"},
@@ -23,6 +23,17 @@
         "properties": {
           "enunciado": {"type": "string"},
           "opciones": {"type": "array", "items": {"type": "string"}},
+          "clave": {"type": "string"}
+        },
+        "required": ["enunciado"]
+      }
+    },
+    "vf_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "enunciado": {"type": "string"},
           "clave": {"type": "string"}
         },
         "required": ["enunciado"]

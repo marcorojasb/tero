@@ -28,6 +28,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "materiales": [],
         "instrucciones": [],
         "sm_items": [],
+        "vf_items": [],
         "desarrollo_prompts": [],
         "actividades": [],
         "cierre": "",
@@ -90,6 +91,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "materiales": [],
         "instrucciones": [],
         "sm_items": [],
+        "vf_items": [],
         "desarrollo_prompts": [],
         "actividades": [],
         "cierre": "",
@@ -181,8 +183,10 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
         merged["criterios"] = _as_str_list(merged.get("criterios"))
     if key in {"guia", "actividad"}:
         merged["sm_items"] = _as_sm_items(merged.get("sm_items"))
+        merged["vf_items"] = _as_vf_items(merged.get("vf_items"))
         merged["actividades"] = _as_actividades(merged.get("actividades"))
-        if not merged["actividades"] and merged.get("proposito"):
+        has_items = bool(merged["sm_items"] or merged["vf_items"] or merged["desarrollo_prompts"])
+        if not merged["actividades"] and merged.get("proposito") and not has_items:
             merged["actividades"] = [
                 {
                     "titulo": "Actividad principal",
@@ -202,6 +206,9 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
                 else:
                     fixed.append(str(row))
             merged["criterios"] = fixed
+    if key == "planificacion":
+        for field in ("objetivo", "inicio", "desarrollo", "cierre", "evaluacion"):
+            merged[field] = _as_plan_prose(merged.get(field))
     if key == "pauta":
         merged["criterios"] = _as_pauta_criterios(merged.get("criterios"))
         if not merged.get("niveles"):
@@ -211,6 +218,25 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
     if not merged.get("titulo"):
         merged["titulo"] = base.get("titulo") or key
     return merged
+
+
+def parse_payload_json(tipo: str, raw: Any) -> dict[str, Any] | None:
+    """Parse optional draft_artifact payload_json. Empty or garbage → None (markdown stays)."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, dict):
+        data: dict[str, Any] | None = raw
+    elif isinstance(raw, (list, tuple)):
+        text = "\n".join(str(item) for item in raw).strip()
+        data = _parse_json_blob(text) if text else None
+    else:
+        text = str(raw).strip()
+        if not text:
+            return None
+        data = _parse_json_blob(text)
+    if not data:
+        return None
+    return repair_payload(tipo, data)
 
 
 def validate_payload(tipo: str, payload: dict[str, Any]) -> list[str]:
@@ -245,6 +271,10 @@ def extract_payload_from_markdown(
             inferred = str(parsed.get("tipo") or tipo or "guia")
             payload = repair_payload(inferred, parsed)
             _apply_meta(payload, meta, body)
+            md_only = _strip_json_fence(body)
+            if md_only.strip() and md_only.strip() != (markdown or "").strip():
+                filled = extract_payload_from_markdown(md_only, tipo=inferred, meta=meta)
+                _fill_empty_fields(payload, filled)
             return payload
 
     art = ArtifactType.parse(str(tipo) if tipo else None)
@@ -252,6 +282,7 @@ def extract_payload_from_markdown(
         fm_tipo = _front_matter_value(body, "tipo")
         art = ArtifactType.parse(fm_tipo) or ArtifactType.GUIA
     key = art.value
+    body = _strip_host_appendix(body)
     sections = _split_sections(body)
     titulo = _first_heading(body) or meta.get("titulo") or art.label.capitalize()
 
@@ -263,19 +294,38 @@ def extract_payload_from_markdown(
             "inicio": sections.get("inicio") or "",
             "desarrollo": sections.get("desarrollo") or "",
             "cierre": sections.get("cierre") or "",
-            "evaluacion": sections.get("evaluación") or sections.get("evaluacion") or "",
+            "evaluacion": sections.get("evaluacion")
+            or sections.get("evaluación")
+            or sections.get("criterios")
+            or "",
             "recursos": _bullets(sections.get("recursos") or sections.get("materiales") or ""),
             "oa": meta.get("oa") or _front_matter_value(body, "oa") or "",
             "duracion": meta.get("duracion") or _front_matter_value(body, "duracion") or "",
         }
     elif art == ArtifactType.EVALUACION:
+        extracted = body
+        items_from_sections = _eval_items_from_typed_sections(sections)
+        if items_from_sections:
+            items = items_from_sections
+        else:
+            items = _eval_items_from_markdown(
+                sections.get("items") or sections.get("preguntas") or sections.get("sm") or "",
+                vf_md=sections.get("vf") or "",
+                desarrollo_md=sections.get("desarrollo") or "",
+            )
+        if not any(row.get("tipo_item") == "sm" for row in items):
+            extra = _eval_items_from_heading_blocks(extracted)
+            sm_extra = [row for row in extra if row.get("tipo_item") == "sm"]
+            if sm_extra:
+                others = [row for row in items if row.get("tipo_item") != "sm"]
+                items = sm_extra + others
+        if not items:
+            items = _eval_items_from_heading_blocks(extracted)
         raw = {
             "tipo": "evaluacion",
             "titulo": titulo,
             "instrucciones": _bullets(sections.get("instrucciones") or ""),
-            "items": _items_from_section(
-                sections.get("ítems") or sections.get("items") or sections.get("preguntas") or ""
-            ),
+            "items": items,
             "criterios": _bullets(sections.get("criterios") or ""),
             "puntaje_total": _guess_puntaje(
                 sections.get("puntaje") or sections.get("puntaje total") or ""
@@ -295,27 +345,56 @@ def extract_payload_from_markdown(
         }
     else:
         # guía / actividad
+        actividades: list[dict[str, str]] = []
+        if sections.get("actividades"):
+            actividades.append(
+                {
+                    "titulo": "Actividades",
+                    "inicio": sections.get("inicio") or "",
+                    "desarrollo": sections.get("actividades"),
+                    "cierre": "",
+                }
+            )
+        if sections.get("vf"):
+            actividades.append(
+                {
+                    "titulo": "Verdadero o falso",
+                    "inicio": "",
+                    "desarrollo": sections["vf"],
+                    "cierre": "",
+                }
+            )
+        if sections.get("completar"):
+            actividades.append(
+                {
+                    "titulo": "Completar",
+                    "inicio": "",
+                    "desarrollo": sections["completar"],
+                    "cierre": "",
+                }
+            )
+        if not actividades:
+            actividades = [
+                {
+                    "titulo": "Secuencia",
+                    "inicio": sections.get("inicio") or "",
+                    "desarrollo": sections.get("desarrollo") or "",
+                    "cierre": sections.get("cierre") or "",
+                }
+            ]
         raw = {
             "tipo": "guia",
             "titulo": titulo,
-            "proposito": sections.get("propósito")
-            or sections.get("proposito")
+            "proposito": sections.get("proposito")
+            or sections.get("propósito")
             or sections.get("objetivo")
             or "",
             "instrucciones": _bullets(sections.get("instrucciones") or ""),
             "materiales": _bullets(sections.get("materiales") or ""),
-            "desarrollo_prompts": _bullets(
-                sections.get("desarrollo") or sections.get("actividades") or ""
-            ),
-            "actividades": [
-                {
-                    "titulo": "Secuencia",
-                    "inicio": sections.get("inicio") or "",
-                    "desarrollo": sections.get("desarrollo") or sections.get("actividades") or "",
-                    "cierre": sections.get("cierre") or "",
-                }
-            ],
-            "sm_items": [],
+            "desarrollo_prompts": _bullets(sections.get("desarrollo") or ""),
+            "actividades": actividades,
+            "sm_items": _sm_from_section(sections.get("sm") or ""),
+            "vf_items": _vf_from_section(sections.get("vf") or ""),
             "cierre": sections.get("cierre") or "",
             "tiempo": meta.get("duracion") or "",
         }
@@ -365,13 +444,47 @@ def _as_str_list(value: Any) -> list[str]:
         out: list[str] = []
         for item in value:
             if isinstance(item, dict):
-                out.append(str(item.get("texto") or item.get("label") or item))
+                name = str(
+                    item.get("nombre")
+                    or item.get("texto")
+                    or item.get("label")
+                    or item.get("criterio")
+                    or ""
+                ).strip()
+                desc = str(
+                    item.get("descripcion") or item.get("descriptor") or item.get("detalle") or ""
+                ).strip()
+                if name and desc and desc != name:
+                    out.append(f"{name}: {desc}")
+                elif name or desc:
+                    out.append(name or desc)
             else:
                 text = str(item).strip()
                 if text:
                     out.append(text)
         return out
     return [str(value)]
+
+
+def _as_vf_items(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for row in value:
+        if isinstance(row, str):
+            parsed = _vf_statement(row)
+            if parsed:
+                items.append(parsed)
+            continue
+        if not isinstance(row, dict):
+            continue
+        parsed = _vf_statement(str(row.get("enunciado") or row.get("texto") or "").strip())
+        if not parsed:
+            continue
+        if row.get("clave"):
+            parsed["clave"] = str(row.get("clave") or "").strip()[:8]
+        items.append(parsed)
+    return [item for item in items if item["enunciado"]]
 
 
 def _as_sm_items(value: Any) -> list[dict[str, Any]]:
@@ -431,6 +544,7 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
                 "enunciado": str(row.get("enunciado") or "").strip(),
                 "puntaje": str(row.get("puntaje") or ""),
                 "opciones": _as_str_list(row.get("opciones")),
+                "clave": str(row.get("clave") or "").strip(),
             }
         )
     return [item for item in out if item["enunciado"]]
@@ -474,6 +588,82 @@ def _as_slides(value: Any) -> list[dict[str, Any]]:
     return [item for item in out if item["titulo"]]
 
 
+# Canonical keys the markdown→schema extractor understands.
+# Longer aliases first so "objetivo de aprendizaje" wins over a bare prefix check.
+_SECTION_ALIASES: tuple[tuple[str, str], ...] = (
+    ("objetivo de aprendizaje", "objetivo"),
+    ("objetivos de aprendizaje", "objetivo"),
+    ("objetivo general", "objetivo"),
+    ("evaluación formativa", "evaluacion"),
+    ("evaluacion formativa", "evaluacion"),
+    ("criterios de éxito", "evaluacion"),
+    ("criterios de exito", "evaluacion"),
+    ("objetivo", "objetivo"),
+    ("objetivos", "objetivo"),
+    ("inicio", "inicio"),
+    ("desarrollo", "desarrollo"),
+    ("cierre", "cierre"),
+    ("evaluación", "evaluacion"),
+    ("evaluacion", "evaluacion"),
+    ("recursos", "recursos"),
+    ("materiales", "materiales"),
+    ("instrucciones", "instrucciones"),
+    ("propósito", "proposito"),
+    ("proposito", "proposito"),
+    ("selección múltiple", "sm"),
+    ("seleccion multiple", "sm"),
+    ("ítems de selección", "sm"),
+    ("items de seleccion", "sm"),
+    ("verdadero o falso", "vf"),
+    ("verdadero/falso", "vf"),
+    ("ítems de desarrollo", "desarrollo"),
+    ("items de desarrollo", "desarrollo"),
+    ("completar", "completar"),
+    ("actividades", "actividades"),
+    ("ítems", "items"),
+    ("items", "items"),
+    ("preguntas", "preguntas"),
+    ("criterios", "criterios"),
+    ("descriptores", "descriptores"),
+    ("niveles", "niveles"),
+    ("puntaje total", "puntaje"),
+    ("puntaje", "puntaje"),
+    ("nota", "nota"),
+    ("evidencia", "_host"),
+)
+
+
+def _canonical_section_key(title: str) -> str | None:
+    """Map '## 1. Inicio (8-10 min)' / '#### Objetivo' onto schema field names."""
+    raw = title.strip().lower()
+    raw = re.sub(r"^\*+\s*", "", raw)
+    raw = re.sub(r"\s*\*+$", "", raw)
+    raw = raw.replace("**", "").strip()
+    raw = re.sub(r"^[^a-záéíóúñü0-9]+", "", raw)
+    raw = re.sub(r"^[ivxlcdm]+\.\s+", "", raw)
+    raw = re.sub(r"^[\d]+(?:\.[\d]+)*[.)]\s*", "", raw)
+    raw = re.sub(r"^[\d]+\s+", "", raw)
+    for alias, key in _SECTION_ALIASES:
+        if raw == alias:
+            return key
+        if raw.startswith(alias) and (len(raw) == len(alias) or raw[len(alias)] in " \t(-–—:."):
+            return key
+    folded = (
+        raw.replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+    if "seleccion multiple" in folded or "items de seleccion" in folded:
+        return "sm"
+    if "verdadero" in folded and "falso" in folded:
+        return "vf"
+    if "items de desarrollo" in folded or folded.startswith("desarrollo "):
+        return "desarrollo"
+    return None
+
+
 def _split_sections(markdown: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     current = "_preamble"
@@ -482,8 +672,13 @@ def _split_sections(markdown: str) -> dict[str, str]:
         # ATX headings are 1–6 hashes. Nova Lite drafts often use #### for body sections.
         heading = re.match(r"^#{1,6}\s+(.*?)(?:\s+#*)?$", line.strip())
         if heading:
-            current = heading.group(1).strip().lower()
-            chunks.setdefault(current, [])
+            key = _canonical_section_key(heading.group(1))
+            if key is not None:
+                current = key
+                chunks.setdefault(current, [])
+                continue
+            # Nested unknown heading (### Lectura guiada): keep as body.
+            chunks.setdefault(current, []).append(line)
             continue
         chunks.setdefault(current, []).append(line)
     for key, lines in chunks.items():
@@ -511,14 +706,342 @@ def _front_matter_value(markdown: str, key: str) -> str:
     return ""
 
 
+def _strip_json_fence(markdown: str) -> str:
+    return re.sub(
+        r"```json\s*\{.*?\}\s*```",
+        "",
+        markdown or "",
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+
+def _fill_empty_fields(dst: dict[str, Any], src: dict[str, Any]) -> None:
+    for key, value in src.items():
+        if key in {"tipo"}:
+            continue
+        current = dst.get(key)
+        empty = current is None or current == "" or current == [] or current == {}
+        incoming_empty = value is None or value == "" or value == [] or value == {}
+        if empty and not incoming_empty:
+            dst[key] = value
+
+
+def _as_plan_prose(value: Any) -> str:
+    """Turn nested plan JSON (momentos, actividades, ítems) into classroom prose."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("{") and ("titulo" in text or "actividades" in text):
+            return text  # leftover repr; caller should pass dicts
+        return text
+    if isinstance(value, list):
+        parts = [_as_plan_prose(item) for item in value]
+        return "\n\n".join(part for part in parts if part)
+    if not isinstance(value, dict):
+        return str(value).strip()
+    pregunta = str(value.get("pregunta") or value.get("enunciado") or "").strip()
+    if pregunta:
+        opts = value.get("opciones") or []
+        if isinstance(opts, list) and opts:
+            letters = "abcd"
+            lines = [pregunta]
+            for idx, opt in enumerate(opts[:8]):
+                letter = letters[idx] if idx < len(letters) else str(idx + 1)
+                lines.append(f"{letter}) {opt}")
+            return "\n".join(lines)
+        return pregunta
+    chunks: list[str] = []
+    titulo = str(value.get("titulo") or value.get("nombre") or "").strip()
+    duracion = str(value.get("duracion") or value.get("tiempo") or "").strip()
+    if titulo and duracion:
+        chunks.append(f"{titulo} ({duracion})")
+    elif titulo:
+        chunks.append(titulo)
+    for key in (
+        "objetivo",
+        "descripcion",
+        "detalle",
+        "texto",
+        "prosa",
+        "inicio",
+        "desarrollo",
+        "cierre",
+        "actividades",
+        "pasos",
+        "items",
+        "momentos",
+        "items_ticket_salida",
+    ):
+        if key not in value:
+            continue
+        nested = value[key]
+        if nested is value:
+            continue
+        chunk = _as_plan_prose(nested)
+        if chunk and chunk not in chunks:
+            chunks.append(chunk)
+    if chunks:
+        return "\n\n".join(chunks)
+    bits: list[str] = []
+    for key, nested in value.items():
+        if key in {"id", "tipo", "clave", "respuesta_correcta"}:
+            continue
+        chunk = _as_plan_prose(nested)
+        if chunk:
+            bits.append(chunk)
+    return "\n".join(bits)
+
+
+def _strip_host_appendix(markdown: str) -> str:
+    """Drop host-added evidence so export does not parse it as ítems."""
+    text = markdown or ""
+    cut = re.search(r"^##\s+Evidencia\b", text, flags=re.MULTILINE | re.IGNORECASE)
+    if cut:
+        text = text[: cut.start()]
+    return text.rstrip() + ("\n" if text.strip() else "")
+
+
+def _is_answer_chrome(text: str) -> bool:
+    cleaned = re.sub(r"^[\s☐\[\]\*#_]+", "", (text or "").strip())
+    if not cleaned:
+        return True
+    if re.match(
+        r"^(respuesta(?:\s+correcta)?|justifica|puntaje total|nota:|clave)\b",
+        cleaned,
+        flags=re.IGNORECASE,
+    ):
+        return True
+    compact = re.sub(r"[^a-záéíóúñü]", "", cleaned.lower())
+    if compact in {"verdadero", "falso", "vf", "verdaderofalso"}:
+        return True
+    if "fuentes/" in cleaned.lower() and "verific" in cleaned.lower():
+        return True
+    return False
+
+
+def _item_kind_from_heading(title: str) -> str | None:
+    raw = (title or "").strip().lower()
+    folded = (
+        raw.replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
+    if "seleccion multiple" in folded or "opcion multiple" in folded:
+        return "sm"
+    if "verdadero" in folded and "falso" in folded:
+        return "vf"
+    if "desarrollo" in folded:
+        return "desarrollo"
+    # ### 1. (3 puntos) — numbered stem without a kind word
+    if re.match(r"^\d+[.)]", raw) and "punto" in folded:
+        return "sm"
+    return None
+
+
+def _eval_items_from_typed_sections(sections: dict[str, str]) -> list[dict[str, Any]]:
+    sm_md = sections.get("sm") or ""
+    vf_md = sections.get("vf") or ""
+    desarrollo_md = sections.get("desarrollo") or ""
+    if not (sm_md or vf_md or desarrollo_md):
+        return []
+    return _eval_items_from_markdown(sm_md, vf_md=vf_md, desarrollo_md=desarrollo_md)
+
+
+def _eval_items_from_heading_blocks(markdown: str) -> list[dict[str, Any]]:
+    """Split ### 1. Selección múltiple / V-F / Desarrollo into typed items."""
+    blocks: list[tuple[str, str]] = []
+    current: str | None = None
+    buf: list[str] = []
+    for line in (markdown or "").splitlines():
+        heading = re.match(r"^#{1,6}\s+(.*?)(?:\s+#*)?$", line.strip())
+        if heading:
+            kind = _item_kind_from_heading(heading.group(1))
+            if kind:
+                if current is not None:
+                    blocks.append((current, "\n".join(buf)))
+                current = kind
+                buf = []
+                continue
+        if current is not None:
+            buf.append(line)
+    if current is not None:
+        blocks.append((current, "\n".join(buf)))
+    out: list[dict[str, Any]] = []
+    for kind, chunk in blocks:
+        if kind == "sm":
+            out.extend(_eval_items_from_markdown(chunk, vf_md="", desarrollo_md=""))
+        elif kind == "vf":
+            out.extend(_eval_items_from_markdown("", vf_md=chunk, desarrollo_md=""))
+        else:
+            out.extend(_eval_items_from_markdown("", vf_md="", desarrollo_md=chunk))
+    return [
+        row for row in out if row.get("enunciado") and not _is_answer_chrome(str(row["enunciado"]))
+    ]
+
+
 def _bullets(text: str) -> list[str]:
     items: list[str] = []
     for line in text.splitlines():
         cleaned = re.sub(r"^[-*•]\s+", "", line.strip())
         cleaned = re.sub(r"^\d+\.\s+", "", cleaned)
-        if cleaned:
+        if cleaned and cleaned not in {"---", "***", "___", "-", "—", "–"}:
             items.append(cleaned)
     return items
+
+
+def _sm_from_section(text: str) -> list[dict[str, Any]]:
+    """Best-effort SM items from markdown (numbered stems + a/b/c options)."""
+    if not (text or "").strip():
+        return []
+    items: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    preamble: list[str] = []
+    for raw in text.splitlines():
+        line = re.sub(r"^#+\s*", "", raw.strip())
+        if not line or line in {"---", "***"}:
+            continue
+        if _is_answer_chrome(line):
+            continue
+        numbered = re.match(r"^(?:\*{0,2})(\d+)[.)](?:\*{0,2})\s+(.*)$", line)
+        if numbered:
+            if current and current.get("enunciado"):
+                items.append(current)
+            current = {"enunciado": numbered.group(2).strip(), "opciones": [], "clave": ""}
+            preamble = []
+            continue
+        option = re.match(r"^([a-dA-D])[.)]\s+(.*)$", line)
+        if option:
+            if current is None:
+                stem = " ".join(preamble).strip() or "Ítem"
+                current = {"enunciado": stem, "opciones": [], "clave": ""}
+                preamble = []
+            current["opciones"].append(option.group(2).strip())
+            continue
+        clave = re.match(r"^(?:clave|correcta|respuesta)\s*[:\-]\s*(.+)$", line, flags=re.I)
+        if clave and current is not None:
+            current["clave"] = clave.group(1).strip()[:8]
+            continue
+        if current is not None and not current.get("opciones"):
+            current["enunciado"] = (current["enunciado"] + " " + line).strip()
+        elif current is None:
+            preamble.append(line)
+    if current and current.get("enunciado"):
+        items.append(current)
+    return [
+        item
+        for item in items
+        if item["enunciado"] and (item["enunciado"] != "Ítem" or item.get("opciones"))
+    ]
+
+
+def _vf_statement(text: str) -> dict[str, str] | None:
+    cleaned = (text or "").strip()
+    if _is_answer_chrome(cleaned):
+        return None
+    if re.fullmatch(r"(v\s*/\s*f|respuesta.*|_+)", cleaned, flags=re.IGNORECASE):
+        return None
+    if len(cleaned) < 8:
+        return None
+    clave = ""
+    tagged = re.search(
+        r"[\(\[]\s*(V|F|verdadero|falso)\s*[\)\]]\s*$",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if tagged:
+        raw = tagged.group(1).lower()
+        clave = "F" if raw.startswith("f") else "V"
+        cleaned = cleaned[: tagged.start()].strip()
+    keyed = re.search(
+        r"(?:clave|respuesta)\s*[:\-]\s*(V|F|verdadero|falso)\s*$", cleaned, flags=re.I
+    )
+    if keyed:
+        raw = keyed.group(1).lower()
+        clave = "F" if raw.startswith("f") else "V"
+        cleaned = cleaned[: keyed.start()].strip()
+    return {"enunciado": cleaned, "clave": clave}
+
+
+def _vf_from_section(text: str) -> list[dict[str, Any]]:
+    if not (text or "").strip():
+        return []
+    items: list[dict[str, Any]] = []
+    for bullet in _bullets(text):
+        parsed = _vf_statement(bullet)
+        if parsed:
+            items.append(parsed)
+    if not items:
+        for para in re.split(r"\n\s*\n", text):
+            parsed = _vf_statement(para.strip())
+            if parsed:
+                items.append(parsed)
+                break
+    return items
+
+
+def _eval_items_from_markdown(
+    items_md: str,
+    *,
+    vf_md: str = "",
+    desarrollo_md: str = "",
+) -> list[dict[str, Any]]:
+    """Prefer SM/V-F structure when the evaluación markdown has it."""
+    out: list[dict[str, Any]] = []
+    sm = _sm_from_section(items_md)
+    if sm:
+        for row in sm:
+            out.append(
+                {
+                    "tipo_item": "sm",
+                    "enunciado": row["enunciado"],
+                    "opciones": list(row.get("opciones") or []),
+                    "puntaje": "",
+                    "clave": row.get("clave") or "",
+                }
+            )
+    elif items_md.strip() and not re.search(r"^[a-dA-D][.)]\s+", items_md, flags=re.MULTILINE):
+        out.extend(_items_from_section(items_md))
+    for row in _vf_from_section(vf_md):
+        if _is_answer_chrome(row["enunciado"]):
+            continue
+        out.append(
+            {
+                "tipo_item": "vf",
+                "enunciado": row["enunciado"],
+                "opciones": ["Verdadero", "Falso"],
+                "puntaje": "",
+                "clave": row.get("clave") or "",
+            }
+        )
+    for prompt in _desarrollo_prompts(desarrollo_md):
+        out.append(
+            {
+                "tipo_item": "desarrollo",
+                "enunciado": prompt,
+                "opciones": [],
+                "puntaje": "",
+            }
+        )
+    return [row for row in out if not _is_answer_chrome(str(row.get("enunciado") or ""))]
+
+
+def _desarrollo_prompts(text: str) -> list[str]:
+    prompts: list[str] = []
+    for bullet in _bullets(text):
+        if not _is_answer_chrome(bullet):
+            prompts.append(bullet)
+    if prompts:
+        return prompts
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text or "") if p.strip()]
+    for para in paras:
+        line = re.sub(r"\s+", " ", para).strip()
+        line = re.sub(r"^\*+\s*|\s*\*+$", "", line)
+        if line and not _is_answer_chrome(line) and line not in {"---", "***"}:
+            return [line[:500]]
+    return []
 
 
 def _items_from_section(text: str) -> list[dict[str, Any]]:

@@ -14,6 +14,7 @@ from tero.export import export_docx, export_latex, export_markdown
 from tero.offline import model_label
 from tero.protocol import decode, encode
 from tero.session import TeacherSession
+from tero.transcript import public_inbound
 from tero.types import Encargo
 from tero.workspace import Workspace
 
@@ -59,13 +60,18 @@ class Bridge:
         self.stdout = stdout or sys.stdout
         self.auto_yes = auto_yes
         self.workspace = Workspace(settings.carpeta)
-        self.session = TeacherSession(self.workspace, settings, emit=self.emit)
+        self.session = TeacherSession(self.workspace, settings, emit=self._client_emit)
 
-    def emit(self, event: dict[str, Any]) -> None:
+    def _client_emit(self, event: dict[str, Any]) -> None:
         self.stdout.write(encode(event) + "\n")
         self.stdout.flush()
         if self.auto_yes:
             self._maybe_autogate(event)
+
+    def emit(self, event: dict[str, Any]) -> None:
+        """Stdout (+ autogate). Transcript even if tests swap `session`."""
+        self.session.record(event)
+        self._client_emit(event)
 
     def _maybe_autogate(self, event: dict[str, Any]) -> None:
         kind = event.get("type")
@@ -96,6 +102,7 @@ class Bridge:
                 "mode": "offline" if self.settings.offline else "bedrock",
                 "model": model_label(self.settings.offline, self.settings.model_id),
                 "carpeta": str(self.workspace.root),
+                "transcript": str(self.session.transcript.path),
             }
         )
         for line in self.stdin:
@@ -155,8 +162,9 @@ class Bridge:
                     self.workspace,
                     self.settings,
                     encargo=self.session.encargo,
-                    emit=self.emit,
+                    emit=self._client_emit,
                 )
+            self.session.record({"type": "inbound", "command": public_inbound(message)})
             sources = self.workspace.list_sources()
             self.emit(
                 {
@@ -167,10 +175,12 @@ class Bridge:
                     "changed": sum(1 for item in sources if item.changed),
                     "sessions": _recent_sessions(self.workspace),
                     "curriculum": catalog_summary(),
+                    "transcript": str(self.session.transcript.path),
                 }
             )
             _emit_oa_options(self, self.session.encargo)
             return
+        self.session.record({"type": "inbound", "command": public_inbound(message)})
         if kind == "encargo.update":
             encargo = Encargo.from_dict(message.get("encargo") or {})
             # Validate /oa against catalog when possible; keep chip but warn if unknown.

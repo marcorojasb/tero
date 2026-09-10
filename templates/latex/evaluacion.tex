@@ -1,46 +1,47 @@
 % Auto-generado por tero — JSON → plantilla (sin TeX libre del modelo).
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2cm]{geometry}
+\usepackage[margin=1.6cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{booktabs}
 \usepackage{enumitem}
-\title{{{titulo}}}
-\author{tero · evaluación}
-\date{}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small {{curso}} · {{asignatura}}}
+\rhead{\small {{oa}}}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlist[itemize]{leftmargin=1.3em,itemsep=0.12em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=0.45em,topsep=0.3em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.35em}
 \begin{document}
-\maketitle
 
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Curso} & {{curso}} \\
-\textbf{Asignatura} & {{asignatura}} \\
-\textbf{OA} & {{oa}} \\
-\textbf{Puntaje total} & {{puntaje_total}} \\
-\bottomrule
-\end{tabular}
-\end{center}
+{\LARGE\bfseries {{titulo}}}
+
+\vspace{0.25em}
+{{ficha_header}}
 
 \vspace{0.5em}
-\noindent\textit{{{oa_texto}}}
+{{oa_texto_line}}
 
-\section*{Instrucciones}
-\begin{enumerate}
-{{instrucciones_items}}
-\end{enumerate}
+{{instrucciones_section}}
 
-\section*{Ítems}
-{{items_block}}
+{{items_section}}
 
-\section*{Criterios}
-\begin{itemize}
-{{criterios_items}}
-\end{itemize}
+{{criterios_section}}
 
-\section*{Nota al docente}
-{{nota_docente}}
+{{nota_docente_section}}
+
+{{clave_section}}
 
 \vfill
 {\footnotesize tero · alineación formativa/sumativa orientativa (ver curriculum/chile/evaluacion/lineamientos.md).}

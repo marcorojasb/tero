@@ -43,6 +43,7 @@ class Workspace:
         (self.root / "derivados").mkdir(exist_ok=True)
         (self.root / "borradores").mkdir(exist_ok=True)
         (self.root / ".tero").mkdir(exist_ok=True)
+        (self.root / ".tero" / "transcripciones").mkdir(exist_ok=True)
 
     @property
     def index_path(self) -> Path:

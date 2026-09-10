@@ -376,9 +376,10 @@ class ArtifactDraft:
     cuerpo_markdown: str
     evidencias: list[Evidence] = field(default_factory=list)
     warnings: list[WarningItem] = field(default_factory=list)
+    payload: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "tipo": self.tipo.value,
             "tipo_label": self.tipo.label,
             "titulo": self.titulo,
@@ -386,6 +387,9 @@ class ArtifactDraft:
             "evidencias": [item.as_dict() for item in self.evidencias],
             "warnings": [item.as_dict() for item in self.warnings],
         }
+        if self.payload:
+            data["payload"] = self.payload
+        return data
 
 
 @dataclass

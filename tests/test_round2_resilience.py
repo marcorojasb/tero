@@ -109,12 +109,12 @@ def test_empty_draft_retries_once(workspace: Workspace):
         def __init__(self, real):
             self._real = real
 
-        def __call__(self, prompt: str):
+        def __call__(self, prompt: str, **kwargs):
             calls["n"] += 1
             if calls["n"] == 1:
                 session.ctx.pending_draft = None
                 return "ok (sin tool)"
-            return self._real(prompt)
+            return self._real(prompt, **kwargs)
 
     def agent_for(phase: str):
         agent = real_agent_for(phase)

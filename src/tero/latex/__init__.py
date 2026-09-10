@@ -13,6 +13,7 @@ from tero.latex.schemas import (
     SCHEMA_TYPES,
     extract_payload_from_markdown,
     load_schema,
+    parse_payload_json,
     repair_payload,
     validate_payload,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "export_latex",
     "extract_payload_from_markdown",
     "load_schema",
+    "parse_payload_json",
     "render_latex",
     "repair_payload",
     "validate_payload",

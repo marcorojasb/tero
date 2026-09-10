@@ -1,15 +1,33 @@
 % Auto-generado por tero — JSON → plantilla.
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2cm]{geometry}
+\usepackage[margin=1.7cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small {{curso}} · {{asignatura}}}
+\rhead{\small {{oa}}}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlist[itemize]{leftmargin=1.3em,itemsep=0.12em,topsep=0.2em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.35em}
 \title{{{titulo}}}
 \author{tero · planificación}
 \date{}
 \begin{document}
 \maketitle
+\thispagestyle{fancy}
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -23,28 +41,20 @@
 \end{center}
 
 \vspace{0.5em}
-\noindent\textit{{{oa_texto}}}
+{{oa_texto_line}}
 
-\section*{Objetivo}
-{{objetivo}}
+{{objetivo_section}}
 
-\section*{Inicio}
-{{inicio}}
+{{inicio_section}}
 
-\section*{Desarrollo}
-{{desarrollo}}
+{{desarrollo_plan_section}}
 
-\section*{Cierre}
-{{cierre}}
+{{cierre_plan_section}}
 
-\section*{Evaluación}
-{{evaluacion}}
+{{evaluacion_section}}
 
-\section*{Recursos}
-\begin{itemize}
-{{recursos_items}}
-\end{itemize}
+{{recursos_section}}
 
 \vfill
-{\footnotesize Generado con tero (JSON→LaTeX).}
+{\footnotesize Generado con tero (JSON→LaTeX). El docente decide.}
 \end{document}

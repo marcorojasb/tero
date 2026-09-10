@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from tero.artifacts import missing_headings
@@ -104,6 +105,18 @@ def collect_warnings(
         warnings.append(WarningItem(code="domain_mismatch", message=mismatch))
 
     plan_oa = (plan.oa if plan else "") or encargo.oa
+    expected_tipo = (plan.tipo if plan is not None else None) or encargo.tipo
+    if expected_tipo is not None and draft.tipo != expected_tipo:
+        warnings.append(
+            WarningItem(
+                code="tipo_desviado",
+                message=(
+                    f"El rumbo/plan pedía {expected_tipo.label} y el borrador llegó como "
+                    f"{draft.tipo.label}. El plan no se cambia: decide s, o c si quieres "
+                    "el otro entregable."
+                ),
+            )
+        )
     if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
         # Allow "OA 4" vs "OA 4 (LEN-4B-OA04)" when same catalog id / codigo
         from tero.curriculum.catalog import resolve_oa
@@ -133,9 +146,24 @@ def collect_warnings(
                     ),
                 )
             )
+        if (
+            check
+            and "medio" in (encargo.curso or "").lower()
+            and re.search(r"-(4B|5B|6B)-", check, flags=re.IGNORECASE)
+        ):
+            warnings.append(
+                WarningItem(
+                    code="oa_wrong_level",
+                    message=(
+                        f"OA «{check}» es de básica y el encargo es {encargo.curso}. "
+                        "El catálogo host no cubre media: no uses un OA de 4°–6° básico de relleno."
+                    ),
+                )
+            )
 
     body = as_text(draft.cuerpo_markdown).strip()
-    if len(body) < THIN_CHARS:
+    payload_rich = bool(draft.payload)
+    if len(body) < THIN_CHARS and not payload_rich:
         warnings.append(
             WarningItem(
                 code="thin_skeleton",
@@ -144,7 +172,7 @@ def collect_warnings(
         )
 
     missing = missing_headings(draft.tipo, body)
-    if missing:
+    if missing and not payload_rich:
         warnings.append(
             WarningItem(
                 code="missing_structure",

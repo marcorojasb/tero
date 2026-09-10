@@ -117,14 +117,14 @@ Detalle adversarial: [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICUL
 | Nova Lite entrega tools/texto sin `draft_artifact` | `_draft_phase` reintenta **una** vez con nudge explícito (`step=draft_retry`); luego `r`/`/retry`. |
 | Juez sin AWS | Offline `tero-offline` intacto; README reserva video day al demo offline. |
 | Confusión de env vars | `.env.example` + README checklist free tier; `TERO_MODEL` canónico, alias `TERO_MODEL_ID`. |
-| Tentación de “completar AWS” con infra | **Defer explícito:** no AgentCore, no multi-agent, no servicios cloud nuevos. Un solo path Strands→Bedrock. |
+| Tentación de “completar AWS” con infra | **Precisado.** No AgentCore Runtime / Gateway / multi-agente / Code Interpreter. Observability + Memory docente *después* de que el loop entregue el artefacto. Ver [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md). |
 
 ## Diferido (a propósito, ~video day)
 
-- AgentCore / runtime managed / multi-agent orchestration
+- AgentCore **Runtime / Gateway / A2A** (la carpeta es SoR local). Observability/Memory: ver [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) — solo tras P0 de calidad.
 - Live Bedrock en CI (hace falta secret + smoke barato)
 - Source viewer con highlight de línea
-- Catálogo curricular MINEDUC completo (el JSON es mínimo 4°–6°)
+- Catálogo curricular MINEDUC completo (el JSON es mínimo 4°–6°; media no está)
 - PDF LaTeX obligatorio en CI (`.tex` basta; `latexmk` opcional en host)
 - Ollama / local LLM como default
 

@@ -18,7 +18,16 @@ from tero.gate import GateResult, apply_gate, persist_critique
 from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
-from tero.tools import TurnContext, build_tools
+from tero.salvage import salvage_draft_from_text, salvage_plan_from_text
+from tero.tools import (
+    DRAFT_AGENT_TURNS,
+    DRAFT_TOOL_BUDGET,
+    PLAN_AGENT_TURNS,
+    PLAN_TOOL_BUDGET,
+    TurnContext,
+    build_tools,
+)
+from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
 from tero.workspace import Workspace
 
@@ -67,12 +76,23 @@ class TeacherSession:
         self.workspace = workspace
         self.settings = settings
         self.encargo = encargo or Encargo()
-        self.emit = emit or (lambda _event: None)
+        self._downstream: EmitFn = emit or (lambda _event: None)
+        self.transcript = TranscriptLog.open(workspace, settings)
+        self.emit: EmitFn = self._emit
         self.turns: list[Turn] = []
         self.phase: ProtocolPhase = "idle"
         self.ctx = TurnContext(workspace=workspace, encargo=self.encargo, emit=self.emit)
         self._agent: Agent | None = None
         self.last_prompt: str = ""
+        self._stream_buf: list[str] = []
+
+    def _emit(self, event: dict[str, Any]) -> None:
+        self.transcript.append(event)
+        self._downstream(event)
+
+    def record(self, event: dict[str, Any]) -> None:
+        """Transcript-only (inbound commands / host actions). Not sent to the TUI."""
+        self.transcript.append(event)
 
     def set_encargo(self, encargo: Encargo) -> None:
         self.encargo = encargo
@@ -94,7 +114,9 @@ class TeacherSession:
 
     def _callback(self, **kwargs: Any) -> None:
         if "data" in kwargs and kwargs["data"]:
-            self.emit({"type": "delta", "text": str(kwargs["data"])})
+            chunk = str(kwargs["data"])
+            self._stream_buf.append(chunk)
+            self.emit({"type": "delta", "text": chunk})
         tool = kwargs.get("current_tool_use") or {}
         if tool.get("name"):
             self.emit(
@@ -162,6 +184,15 @@ class TeacherSession:
         self.last_prompt = cleaned
         turn = Turn(id=uuid.uuid4().hex[:10], prompt=cleaned, phase="leyendo")
         self.turns.append(turn)
+        self.record(
+            {
+                "type": "host_action",
+                "action": "start_turn",
+                "id": turn.id,
+                "prompt": cleaned,
+                "encargo": self.encargo.as_dict(),
+            }
+        )
         self.ctx.pending_plan = None
         self.ctx.pending_draft = None
         self.ctx.evidence = []
@@ -194,6 +225,7 @@ class TeacherSession:
             }
         )
         agent = self._agent_for("plan")
+        self.ctx.reset_tool_budget(PLAN_TOOL_BUDGET)
         self._set_phase("proponiendo_plan")
         self.emit(
             {
@@ -204,7 +236,28 @@ class TeacherSession:
                 "progress": "1/2",
             }
         )
-        agent(self._user_payload(prompt))
+        self._stream_buf = []
+        agent(self._user_payload(prompt), limits={"turns": PLAN_AGENT_TURNS})
+        if self.ctx.pending_plan is None:
+            salvaged = salvage_plan_from_text(
+                "".join(self._stream_buf),
+                encargo=self.encargo,
+            )
+            if salvaged is not None:
+                self.ctx.pending_plan = salvaged
+                self.emit(
+                    {
+                        "type": "warning",
+                        "warning": {
+                            "code": "plan_salvaged",
+                            "message": (
+                                "El modelo escribió propose_plan como texto. "
+                                "tero armó el plan igual para que puedas decidir."
+                            ),
+                            "blocking": False,
+                        },
+                    }
+                )
         if self.ctx.pending_plan is None:
             self._set_phase("error")
             self.emit(
@@ -284,6 +337,15 @@ class TeacherSession:
         turn = self._current_turn()
         if turn is None or turn.plan is None:
             raise RuntimeError("No hay plan pendiente.")
+        self.record(
+            {
+                "type": "host_action",
+                "action": "decide_plan",
+                "id": turn.id,
+                "decision": decision,
+                "edits": edits or {},
+            }
+        )
         if decision == "cancel":
             turn.phase = "listo"
             turn.plan.status = "cancelado"
@@ -324,7 +386,10 @@ class TeacherSession:
         follow = (
             f"El docente aprobó el plan:\n{turn.plan.as_dict()}\n"
             f"Encargo original: {turn.prompt}\n"
-            "Redacta ahora el artefacto con cite_evidence y draft_artifact."
+            "Redacta ahora el artefacto con cite_evidence y draft_artifact. "
+            "Respeta el tipo del plan aprobado. "
+            "Si list_oa trae catalog_covers=false, no uses un OA de otro curso. "
+            "Si puedes, pasa payload_json con el schema del tipo (ítems SM/V-F, propósito, etc.)."
         )
         try:
             self._draft_phase(turn, follow, phase="draft")
@@ -348,6 +413,8 @@ class TeacherSession:
         # Bedrock sometimes returns tools/text without draft_artifact — retry once.
         for attempt in (1, 2):
             self.ctx.pending_draft = None
+            self._stream_buf = []
+            self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
             if attempt == 2:
                 self.emit(
                     {
@@ -375,7 +442,10 @@ class TeacherSession:
                     "No te detengas solo en texto."
                 )
             try:
-                agent(self._user_payload(nudge))
+                agent(
+                    self._user_payload(nudge),
+                    limits={"turns": DRAFT_AGENT_TURNS},
+                )
             except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
                 if attempt == 1 and _is_retryable_stream_error(exc):
                     self.emit(
@@ -390,6 +460,35 @@ class TeacherSession:
                     continue
                 raise
             if self.ctx.pending_draft is not None:
+                break
+            salvaged = salvage_draft_from_text(
+                "".join(self._stream_buf),
+                fallback_tipo=self.encargo.tipo or (turn.plan.tipo if turn.plan else None),
+                evidencias=list(self.ctx.evidence),
+            )
+            if salvaged is not None:
+                self.ctx.pending_draft = salvaged
+                self.emit(
+                    {
+                        "type": "warning",
+                        "warning": {
+                            "code": "draft_salvaged",
+                            "message": (
+                                "El modelo escribió draft_artifact como texto. "
+                                "tero armó el borrador igual para que puedas decidir s/n/b/c."
+                            ),
+                            "blocking": False,
+                        },
+                    }
+                )
+                self.emit(
+                    {
+                        "type": "activity",
+                        "tool": "draft",
+                        "state": "end",
+                        "detail": "recuperado desde texto",
+                    }
+                )
                 break
         if self.ctx.pending_draft is None:
             self._set_phase("error")
@@ -406,6 +505,37 @@ class TeacherSession:
             )
             return
         draft = self.ctx.pending_draft
+        expected = (turn.plan.tipo if turn.plan is not None else None) or self.encargo.tipo
+        if expected is not None and draft.tipo != expected:
+            # Keep plan.tipo / encargo.tipo. The draft tipo is what the model delivered.
+            self.emit(
+                {
+                    "type": "warning",
+                    "warning": {
+                        "code": "tipo_desviado",
+                        "message": (
+                            f"El plan pedía {expected.label} y el borrador llegó como "
+                            f"{draft.tipo.label}. No cambié el tipo del plan: decide s, "
+                            "o c si quieres el otro entregable."
+                        ),
+                        "blocking": False,
+                    },
+                }
+            )
+        if self.ctx.budget_exhausted:
+            self.emit(
+                {
+                    "type": "warning",
+                    "warning": {
+                        "code": "tool_budget_exhausted",
+                        "message": (
+                            "Se cortó el loop de herramientas en el borrador "
+                            f"(tope {DRAFT_TOOL_BUDGET}). Revisa si el material quedó corto."
+                        ),
+                        "blocking": False,
+                    },
+                }
+            )
         draft.warnings = collect_warnings(
             workspace=self.workspace,
             encargo=self.encargo,
@@ -422,6 +552,15 @@ class TeacherSession:
         turn = self._current_turn()
         if turn is None or turn.draft is None:
             raise RuntimeError("No hay propuesta pendiente.")
+        self.record(
+            {
+                "type": "host_action",
+                "action": "decide_gate",
+                "id": turn.id,
+                "decision": decision,
+                "note": note,
+            }
+        )
         if decision == "c" and note.strip():
             turn.critique_notes.append(note.strip())
             persist_critique(self.workspace, turn.id, note.strip())

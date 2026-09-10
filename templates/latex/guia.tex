@@ -1,60 +1,57 @@
 % Auto-generado por tero — NO editar a mano el flujo del modelo (JSON → plantilla).
 % Compilar: latexmk -pdf -no-shell-escape archivo.tex
+% Ficha de aula (pdflatex): tcolorbox + enumitem; no TeX libre del modelo.
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2cm]{geometry}
+\usepackage[margin=1.6cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{booktabs}
 \usepackage{enumitem}
-\usepackage{hyperref}
+\usepackage{array}
+\usepackage{tabularx}
 \usepackage{xcolor}
-\setlist[itemize]{leftmargin=1.4em,itemsep=0.2em}
-\setlist[enumerate]{leftmargin=1.6em,itemsep=0.25em}
-\title{{{titulo}}}
-\author{tero · guía de aprendizaje}
-\date{}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small {{curso}} · {{asignatura}}}
+\rhead{\small {{oa}}}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlist[itemize]{leftmargin=1.3em,itemsep=0.12em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=0.4em,topsep=0.3em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.35em}
 \begin{document}
-\maketitle
 
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Curso} & {{curso}} \\
-\textbf{Asignatura} & {{asignatura}} \\
-\textbf{OA} & {{oa}} \\
-\textbf{Tiempo} & {{tiempo}} \\
-\bottomrule
-\end{tabular}
-\end{center}
+{\LARGE\bfseries {{titulo}}}
 
-\vspace{0.6em}
-\noindent\textit{{{oa_texto}}}
+\vspace{0.25em}
+{{ficha_header}}
 
-\section*{Propósito}
-{{proposito}}
+\vspace{0.5em}
+{{oa_texto_line}}
 
-\section*{Materiales}
-\begin{itemize}
-{{materiales_items}}
-\end{itemize}
+{{proposito_block}}
 
-\section*{Instrucciones}
-\begin{enumerate}
-{{instrucciones_items}}
-\end{enumerate}
+{{materiales_section}}
 
-\section*{Selección múltiple}
-{{sm_block}}
+{{instrucciones_section}}
 
-\section*{Desarrollo}
-{{desarrollo_block}}
+{{sm_section}}
 
-\section*{Actividades}
-{{actividades_block}}
+{{vf_section}}
 
-\section*{Cierre}
-{{cierre}}
+{{desarrollo_section}}
+
+{{actividades_section}}
+
+{{cierre_section}}
+
+{{clave_section}}
 
 \vfill
 {\footnotesize Generado con tero (JSON→LaTeX). El docente decide. Catálogo curricular no oficial MINEDUC.}
