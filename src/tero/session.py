@@ -17,6 +17,7 @@ from tero.gate import GateResult, apply_gate, persist_critique
 from tero.offline import OfflineModel
 from tero.plan import answer_question, apply_plan_edits, edit_assumption
 from tero.prompts import system_prompt
+from tero.salvage import salvage_draft_from_text
 from tero.tools import TurnContext, build_tools
 from tero.transcript import TranscriptLog
 from tero.types import Encargo, GateDecision, ProtocolPhase, Turn
@@ -75,6 +76,7 @@ class TeacherSession:
         self.ctx = TurnContext(workspace=workspace, encargo=self.encargo, emit=self.emit)
         self._agent: Agent | None = None
         self.last_prompt: str = ""
+        self._stream_buf: list[str] = []
 
     def _emit(self, event: dict[str, Any]) -> None:
         self.transcript.append(event)
@@ -104,7 +106,9 @@ class TeacherSession:
 
     def _callback(self, **kwargs: Any) -> None:
         if "data" in kwargs and kwargs["data"]:
-            self.emit({"type": "delta", "text": str(kwargs["data"])})
+            chunk = str(kwargs["data"])
+            self._stream_buf.append(chunk)
+            self.emit({"type": "delta", "text": chunk})
         tool = kwargs.get("current_tool_use") or {}
         if tool.get("name"):
             self.emit(
@@ -370,6 +374,7 @@ class TeacherSession:
         # Bedrock sometimes returns tools/text without draft_artifact — retry once.
         for attempt in (1, 2):
             self.ctx.pending_draft = None
+            self._stream_buf = []
             if attempt == 2:
                 self.emit(
                     {
@@ -412,6 +417,35 @@ class TeacherSession:
                     continue
                 raise
             if self.ctx.pending_draft is not None:
+                break
+            salvaged = salvage_draft_from_text(
+                "".join(self._stream_buf),
+                fallback_tipo=self.encargo.tipo or (turn.plan.tipo if turn.plan else None),
+                evidencias=list(self.ctx.evidence),
+            )
+            if salvaged is not None:
+                self.ctx.pending_draft = salvaged
+                self.emit(
+                    {
+                        "type": "warning",
+                        "warning": {
+                            "code": "draft_salvaged",
+                            "message": (
+                                "El modelo escribió draft_artifact como texto. "
+                                "tero armó el borrador igual para que puedas decidir s/n/b/c."
+                            ),
+                            "blocking": False,
+                        },
+                    }
+                )
+                self.emit(
+                    {
+                        "type": "activity",
+                        "tool": "draft",
+                        "state": "end",
+                        "detail": "recuperado desde texto",
+                    }
+                )
                 break
         if self.ctx.pending_draft is None:
             self._set_phase("error")

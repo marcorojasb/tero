@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from tero.artifacts import missing_headings
@@ -130,6 +131,20 @@ def collect_warnings(
                     message=(
                         f"OA «{check}» no está en el catálogo Chile host-side. "
                         "El agente no debería inventar ids; usa list_oa/get_oa."
+                    ),
+                )
+            )
+        if (
+            check
+            and "medio" in (encargo.curso or "").lower()
+            and re.search(r"-(4B|5B|6B)-", check, flags=re.IGNORECASE)
+        ):
+            warnings.append(
+                WarningItem(
+                    code="oa_wrong_level",
+                    message=(
+                        f"OA «{check}» es de básica y el encargo es {encargo.curso}. "
+                        "El catálogo host no cubre media: no uses un OA de 4°–6° básico de relleno."
                     ),
                 )
             )
