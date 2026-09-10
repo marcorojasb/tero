@@ -1,30 +1,36 @@
-# Sitio — la fotocopia
+# Sitio — la TUI, y el papel al final
 
-tero no se muestra como un producto de IA. Se muestra como **la hoja que
-sale de la fotocopiadora**.
+tero no se muestra como un producto de IA. El chrome de
+[`site/`](../site/) es una **sesión de terminal**: mismos tokens que la
+TUI (`#0b0d10`, acento `#82aaff`, IBM Plex Mono) y un **queltehue en
+ASCII** (`Vanellus chilensis`). El tero avisa. Tú decides.
 
-La landing (`site/`) es una ficha de aula chilena sobre un escritorio:
-sello **REVISAR**, chips de curso, rumbos `1–4`, avisos a la vista, y la
-puerta `s` / `n` / `b` / `c`. El modelo de la demo en esa página es
-`tero-offline` (scripted). No finge Bedrock. AgentCore no es el producto.
+El papel hiperrealista —grano de tóner, ficha fotocopiada— queda
+**solo** en las páginas que tero crea (`#archivo` / `.hoja-frame`),
+después de `s` o `b`. El resto no finge un escritorio.
+
+La landing lleva rumbos `1–4`, avisos a la vista y la puerta `s` / `n`
+/ `b` / `c`. El modelo de la demo es `tero-offline` (scripted). No
+finge Bedrock. AgentCore no es el producto.
 
 ## Cómo se ve
 
-- Fondo de escritorio, papel con grano de tóner, sello rojo chueco.
+- Ventana `tero@carpeta:~`, arte ASCII del queltehue (cresta, pecho,
+  carúncula, patas de teru), panes de carpeta / sesión / TUI.
 - Un rumbo (`1` Planificar · `2` Crear · `3` Evaluar · `4` Adaptar)
   dispara una **consulta con reloj**: `list_sources`, `read_source`,
   `propose_plan`, `draft_artifact`. Los milisegundos de la hoja están
   comprimidos; al lado va el tiempo de la corrida real (p. ej. MiniMax
   92.5 s / 94.9 s, GLM 29.1 s).
-- El borrador en la ficha trae **varios tipos de pregunta** (SM, V/F,
+- El borrador en la sesión trae **varios tipos de pregunta** (SM, V/F,
   desarrollo) y, en matemática, **gráficos de rectas** (sistemas 2×2).
 - Las **páginas LaTeX reales** (capturas de las mejores corridas) se
   muestran **al final**, cuando `s` deja el archivo en `derivados/` o
-  `b` en `borradores/`. `n` no publica hojas.
+  `b` en `borradores/`. `n` no publica hojas. Ahí sí: fotocopia.
 - Un aviso `unverified_citation` aparece **y no bloquea** `s`. Eso es la
   tesis, no un bug. Ver [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
-- La franja de abajo es la TUI (fondo `#0b0d10`, acento `#82aaff`).
-- Imprimir (`Ctrl+P`) deja la hoja. Sirve de ficha.
+- La franja de abajo es la barra de la TUI.
+- Imprimir (`Ctrl+P`) deja las hojas creadas.
 
 ## GitHub Pages
 
@@ -50,5 +56,5 @@ python3 site/serve.py
 ## Qué no es
 
 No es Electron, TipTap, Meridian, Biblioteca ni un dashboard de
-AgentCore. No hay CTA de “Get started free”. La marca en la hoja es
-**tero — agente docente** y el tagline **tus fuentes, tu criterio**.
+AgentCore. No hay CTA de “Get started free”. La marca es **tero**
+(queltehue) y el tagline **tus fuentes, tu criterio**.
