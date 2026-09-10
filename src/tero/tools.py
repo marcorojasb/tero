@@ -484,6 +484,9 @@ def _draft_artifact(ctx: TurnContext):
         titulo = as_text(titulo, joiner=" ")
         cuerpo_markdown = as_text(cuerpo_markdown, joiner="\n")
         payload_json = as_text(payload_json, joiner="\n")
+        from tero.sanitize import strip_tool_traces, strip_tool_traces_value
+
+        cuerpo_markdown = strip_tool_traces(cuerpo_markdown)
         looks_real = ArtifactType.parse(tipo) is not None and bool(
             cuerpo_markdown.strip() or payload_json.strip()
         )
@@ -508,6 +511,7 @@ def _draft_artifact(ctx: TurnContext):
             merged.append(checked)
         schema = parse_payload_json(parsed.value, payload_json)
         schema = enrich_payload_from_markdown(parsed.value, schema, cuerpo_markdown)
+        schema = strip_tool_traces_value(schema)
         if schema:
             _fill_payload_from_encargo(schema, ctx.encargo)
         ctx.pending_draft = ArtifactDraft(

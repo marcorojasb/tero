@@ -355,7 +355,9 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
         merged["slides"] = _as_slides(merged.get("slides"))
     if not merged.get("titulo"):
         merged["titulo"] = base.get("titulo") or key
-    return merged
+    from tero.sanitize import strip_tool_traces_value
+
+    return strip_tool_traces_value(merged)
 
 
 _PLAN_CARD_KEYS = frozenset(
