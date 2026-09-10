@@ -14,7 +14,10 @@ import {
   gateStrip,
   helpFor,
   PHASE_LABEL,
+  planShowsDetail,
   RUMBOS,
+  shortModel,
+  shortPath,
   showChips,
   spinnerGlyph,
   TOOL_LABEL,
@@ -100,7 +103,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   })
   const tagline = new TextRenderable(renderer, {
     id: "tagline",
-    content: "tus fuentes, tu criterio — prepara, no decide",
+    content: "tus fuentes, tu criterio",
     fg: theme.homeMuted,
     wrapMode: "word",
   })
@@ -112,7 +115,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   })
   const homeHint = new TextRenderable(renderer, {
     id: "home-hint",
-    content: "1–4 elige rumbo · o escribe el encargo abajo",
+    content: "1–4 rumbo · o escribe abajo",
     fg: theme.faint,
     wrapMode: "word",
   })
@@ -388,46 +391,60 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   input.focus()
 
   const sync = (state: AppState) => {
-    const mode = state.mode === "offline" ? "offline" : "bedrock"
-    const sources = state.sourceCount ? `  ·  ${state.sourceCount} fuentes` : ""
-    const dirty = state.changedCount ? `  ·  ${state.changedCount} hash≠` : ""
+    const phase = PHASE_LABEL[state.phase] ?? state.phase
+    const sources = state.sourceCount ? ` · ${state.sourceCount} fuentes` : ""
+    const dirty = state.changedCount ? ` · ${state.changedCount}≠` : ""
     const think = state.thinking
-      ? `  ·  ${spinnerGlyph(state.spinnerFrame)} ${state.thinkingLabel || PHASE_LABEL[state.phase]}`
+      ? ` · ${spinnerGlyph(state.spinnerFrame)} ${state.thinkingLabel || phase}`
       : ""
-    headerLine.content = `${mode}  ·  ${state.model}  ·  ${PHASE_LABEL[state.phase] ?? state.phase}${sources}${dirty}${think}`
+    if (state.screen === "home" && !state.started) {
+      headerLine.content =
+        state.mode === "offline" ? `offline · ${phase}${sources}` : `${phase}${sources}`
+    } else if (state.mode === "offline") {
+      headerLine.content = `offline · ${phase}${sources}${dirty}${think}`
+    } else {
+      headerLine.content = `${shortModel(state.model)} · ${phase}${sources}${dirty}${think}`
+    }
     if (showChips(state)) {
       chipLine.content = chips(state.encargo)
-        .map((c) => `[ ${c} ]`)
+        .map((c) => `[ ${clipChip(c)} ]`)
         .join("  ")
     } else {
-      chipLine.content = state.screen === "home" ? "" : "[ sin encargo — elige rumbo 1–4 o escribe ]"
+      chipLine.content = state.screen === "home" ? "" : "[ sin encargo — 1–4 o escribe ]"
     }
     header.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
     header.height = showChips(state) || state.screen !== "home" ? 4 : 3
 
     const isHome = state.screen === "home" && !state.thinking && !state.plan && !state.proposal
-    const clarifying = state.phase === "esperando_clarificacion"
+    const planFocus =
+      !state.proposal &&
+      (state.phase === "esperando_plan" ||
+        state.phase === "esperando_clarificacion" ||
+        state.phase === "proponiendo_plan")
+    const gateFocus =
+      state.phase === "esperando_criterio" ||
+      state.phase === "listo" ||
+      (state.phase === "escribiendo" && Boolean(state.proposal))
     home.visible = isHome
-    // During clarification, focus the plan card + question (Pteron-style), hide 3-pane chrome.
-    body.visible = !isHome && !clarifying
+    // Plan wait: lead with plan card. Gate: lead with propuesta + evidencia.
+    body.visible = !isHome && !planFocus
 
-    // Home content
     rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ")
     homeHint.visible = !state.compact
     if (state.recentSessions.length) {
       recentText.content =
         "\nrecientes\n" +
         state.recentSessions
-          .slice(0, state.compact ? 2 : 4)
-          .map((s) => `  · ${s.kind} · ${s.label}`)
+          .slice(0, state.compact ? 2 : 3)
+          .map((s) => `  · ${s.kind} · ${clipChip(s.label, 36)}`)
           .join("\n")
     } else {
-      recentText.content = state.compact ? "" : "\n(sin sesiones recientes en esta carpeta)"
+      recentText.content = ""
     }
 
-    // Compact layout: hide left session on narrow terminals
-    left.visible = !state.compact
-    right.width = state.compact ? 28 : 34
+    // Compact / gate: hide session column to give propuesta room.
+    left.visible = !state.compact && !gateFocus
+    right.width = state.compact ? 28 : gateFocus ? 36 : 34
 
     left.borderColor = state.focusPanel === "session" ? theme.borderFocus : theme.border
     center.borderColor = state.focusPanel === "proposal" ? theme.borderFocus : theme.border
@@ -458,19 +475,21 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
         state.phase === "esperando_criterio")
     if (showPlan && state.plan) {
       planBar.visible = true
-      // Keep evidence panel usable at the gate: shorter plan when drafting/waiting.
-      // Clarification: taller scrollable card so the plan stays readable.
-      if (state.phase === "esperando_criterio" || state.phase === "escribiendo") {
-        planBar.height = state.compact ? 5 : 7
-        planScroll.height = state.compact ? 3 : 5
-      } else if (state.phase === "esperando_clarificacion") {
-        planBar.height = state.compact ? 10 : 14
-        planScroll.height = state.compact ? 8 : 12
+      const detail = planShowsDetail(state)
+      if (planFocus) {
+        planBar.height = state.compact ? 12 : state.phase === "esperando_clarificacion" ? 14 : 16
+        planScroll.height = planBar.height - 2
+        planBar.title = " plan "
+      } else if (gateFocus) {
+        planBar.height = detail ? (state.compact ? 8 : 10) : state.compact ? 4 : 5
+        planScroll.height = planBar.height - 2
+        planBar.title = detail ? " plan " : " plan · p detalle "
       } else {
-        planBar.height = state.compact ? 9 : 13
-        planScroll.height = state.compact ? 7 : 11
+        planBar.height = state.compact ? 8 : 11
+        planScroll.height = planBar.height - 2
+        planBar.title = " plan "
       }
-      planText.content = renderPlanCard(state)
+      planText.content = renderPlanCard(state, detail)
     } else {
       planBar.visible = false
     }
@@ -508,7 +527,10 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     helpBox.visible = state.help
     if (state.help) helpText.content = helpFor(state)
 
-    footer.content = ` ${state.statusLine}     ${footerFor(state)}`
+    {
+      const foot = footerFor(state)
+      footer.content = foot ? ` ${state.statusLine}     ${foot}` : ` ${state.statusLine}`
+    }
     promptRow.title =
       state.uiMode === "critique"
         ? " crítica docente "
@@ -626,45 +648,60 @@ function renderActivity(state: AppState): string {
 function emptyProposal(state: AppState): string {
   if (state.thinking) {
     return [
-      `# ${spinnerGlyph(state.spinnerFrame)} El agente trabaja`,
+      `# ${spinnerGlyph(state.spinnerFrame)} trabajando`,
       "",
       state.thinkingLabel || PHASE_LABEL[state.phase],
-      "",
-      "_La propuesta aparecerá aquí. El plan queda fijado arriba._",
     ].join("\n")
   }
   return [
     "# El agente prepara. Tú decides.",
     "",
-    state.plan
-      ? "Revisa el plan (y la clarificación). `a` aprueba."
-      : "Desde el inicio: elige un rumbo o escribe el encargo.",
-    "",
-    state.lastError ? `> ${state.lastError}` : "_Sin propuesta en esta sesión._",
+    state.plan ? "Revisa el plan. `a` aprueba." : "Elige un rumbo o escribe el encargo.",
+    state.lastError ? `\n> ${state.lastError}` : "",
   ].join("\n")
 }
 
-function renderPlanCard(state: AppState): string {
+function renderPlanCard(state: AppState, detail = true): string {
   const plan = state.plan!
   const lines: string[] = []
-  lines.push(plan.titulo || `Plan de ${plan.tipo_label || plan.tipo}`)
-  if (plan.meta) lines.push(plan.meta)
+  lines.push(shortPlanTitle(plan, state))
+  if (detail && plan.meta) lines.push(clipChip(plan.meta, 72))
   lines.push("")
   lines.push(plan.objetivo)
+  if (!detail) {
+    const bits = [
+      plan.decisiones?.curso || state.encargo.curso,
+      plan.oa || state.encargo.oa,
+      plan.duracion || state.encargo.duracion,
+    ].filter(Boolean)
+    if (bits.length) lines.push(bits.join(" · "))
+    lines.push(plan.supuestos?.length ? `supuestos ${plan.supuestos.length} · p detalle` : "p detalle")
+    return lines.join("\n")
+  }
   lines.push("")
   if (plan.resultado_previsto?.length) {
     lines.push("RESULTADO PREVISTO")
     for (const item of plan.resultado_previsto) lines.push(`  · ${item}`)
     lines.push("")
   }
+  const chipSet = new Set(chips(state.encargo).map((c) => c.toLowerCase()))
   const d = plan.decisiones || {}
-  lines.push("DECISIONES CONFIRMADAS")
-  lines.push(`  Curso        ${d.curso || state.encargo.curso || "—"}`)
-  lines.push(`  Asignatura   ${d.asignatura || state.encargo.asignatura || "—"}`)
-  lines.push(`  Tema         ${d.tema || state.encargo.tema || "—"}`)
-  if (plan.oa) lines.push(`  OA           ${plan.oa}`)
-  if (plan.duracion) lines.push(`  Duración     ${plan.duracion}`)
-  lines.push("")
+  const rows: string[] = []
+  const curso = d.curso || state.encargo.curso || ""
+  const asig = d.asignatura || state.encargo.asignatura || ""
+  const tema = d.tema || state.encargo.tema || ""
+  if (curso && !chipSet.has(curso.toLowerCase())) rows.push(`  Curso        ${curso}`)
+  if (asig && !chipSet.has(asig.toLowerCase())) rows.push(`  Asignatura   ${asig}`)
+  if (tema && !chipSet.has(tema.toLowerCase())) rows.push(`  Tema         ${clipChip(tema, 48)}`)
+  if (plan.oa && !chipSet.has(String(plan.oa).toLowerCase())) rows.push(`  OA           ${plan.oa}`)
+  if (plan.duracion && !chipSet.has(String(plan.duracion).toLowerCase())) {
+    rows.push(`  Duración     ${plan.duracion}`)
+  }
+  if (rows.length) {
+    lines.push("DECISIONES CONFIRMADAS")
+    lines.push(...rows)
+    lines.push("")
+  }
   if (plan.como_abordare?.length) {
     lines.push("CÓMO LO ABORDARÉ")
     plan.como_abordare.forEach((step, i) => {
@@ -673,7 +710,7 @@ function renderPlanCard(state: AppState): string {
     lines.push("")
   }
   if (plan.supuestos?.length) {
-    lines.push("SUPUESTOS QUE PUEDES CAMBIAR  (e)")
+    lines.push("SUPUESTOS  (e)")
     for (const s of plan.supuestos) lines.push(`  · ${s.text}`)
   }
   if (plan.entregables && plan.entregables.length > 1) {
@@ -693,27 +730,32 @@ function renderQuestion(state: AppState): string {
     lines.push(`  [${n}]${badge}  ${opt.label}`)
   })
   lines.push("")
-  lines.push("1/2/3 · o escribe abajo")
+  lines.push("Responde con tus palabras · o 1/2/3")
   return lines.join("\n")
 }
 
 function renderEvidence(state: AppState): string {
   if (!state.evidence.length) {
-    return "Las citas aparecen al redactar.\npath + fragmento + sección.\n\n[ ] recorre  ·  ✓ en el archivo  ·  ? parafraseo"
+    return "Citas al redactar.\n[ ] recorre · ✓ archivo · ? parafraseo"
   }
   const total = state.evidence.length
   return state.evidence
     .map((item, i) => {
       const selected = i === state.evidenceIndex
-      const snippet = item.snippet.replace(/\s+/g, " ").slice(0, selected ? 420 : 140)
-      const sec = item.seccion ? ` · ${item.seccion}` : ""
-      const mark = selected ? "▸" : " "
       const trust = item.verified ? "✓" : "?"
-      const trustLabel = item.verified ? "en el archivo" : "parafraseo / no encontrado"
+      const trustLabel = item.verified ? "en archivo" : "parafraseo"
+      const mark = selected ? "▸" : " "
+      const path = shortPath(item.path)
       if (selected) {
-        return `${mark} ${i + 1}/${total}  ${trust} ${trustLabel}\n  ${item.path}${sec}\n  “${snippet}”`
+        const sec = item.seccion ? wrapLine(item.seccion, 42) : ""
+        const snippet = wrapLine(item.snippet.replace(/\s+/g, " "), 44)
+        const lines = [`${mark} ${i + 1}/${total}  ${trust} ${trustLabel}`, `  ${path}`]
+        if (sec) lines.push(`  ${sec}`)
+        lines.push(`  “${snippet}”`)
+        return lines.join("\n")
       }
-      return `${mark} ${i + 1}/${total}  ${trust}  ${item.path}${sec}`
+      const secShort = item.seccion ? ` · ${clipChip(item.seccion, 28)}` : ""
+      return `${mark} ${i + 1}/${total}  ${trust}  ${path}${secShort}`
     })
     .join("\n\n")
 }
@@ -729,10 +771,10 @@ function placeholderFor(state: AppState): string {
   if (state.uiMode === "clarify" || state.phase === "esperando_clarificacion") {
     return "Responde con tus palabras…"
   }
-  if (state.phase === "esperando_criterio") return "s/n/b/c — o c + crítica"
-  if (state.phase === "esperando_plan") return "a aprueba · e supuesto · /objetivo …"
-  if (state.phase === "error" && state.retryable) return "r reintenta · o escribe otro encargo"
-  if (state.screen === "home") return "Pregunta, explora o crea con tero…"
+  if (state.phase === "esperando_criterio") return "c + crítica · o teclas arriba"
+  if (state.phase === "esperando_plan") return "/objetivo · /oa · teclas arriba"
+  if (state.phase === "error" && state.retryable) return "r reintenta · o otro encargo"
+  if (state.screen === "home") return "Pregunta, explora o crea…"
   return "Describe el material…  Enter envía"
 }
 
@@ -743,7 +785,34 @@ function gateColor(state: AppState): string {
   return theme.borderFocus
 }
 
-function shortPath(path: string): string {
-  const parts = path.split("/")
-  return parts.length > 3 ? `…/${parts.slice(-3).join("/")}` : path
+function clipChip(text: string, max = 22): string {
+  const t = (text || "").trim()
+  if (t.length <= max) return t
+  return `${t.slice(0, Math.max(1, max - 1))}…`
+}
+
+function wrapLine(text: string, width: number): string {
+  const words = text.replace(/\s+/g, " ").trim().split(" ")
+  const lines: string[] = []
+  let row = ""
+  for (const w of words) {
+    const next = row ? `${row} ${w}` : w
+    if (next.length > width && row) {
+      lines.push(row)
+      row = w
+    } else {
+      row = next
+    }
+  }
+  if (row) lines.push(row)
+  return lines.join("\n  ")
+}
+
+function shortPlanTitle(plan: NonNullable<AppState["plan"]>, state: AppState): string {
+  const tipo = plan.tipo_label || plan.tipo || "plan"
+  const tema = plan.decisiones?.tema || state.encargo.tema || ""
+  if (tema) return clipChip(`${tipo} · ${tema}`, 64)
+  const raw = (plan.titulo || "").replace(/^Plan de\s+/i, "").trim()
+  if (raw) return clipChip(raw, 64)
+  return String(tipo)
 }

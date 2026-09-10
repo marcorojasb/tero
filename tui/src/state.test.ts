@@ -33,10 +33,11 @@ describe("chips y pie", () => {
     expect(home.screen).toBe("home")
     expect(showChips(home)).toBe(false)
   })
-  test("footer changes at the gate", () => {
+  test("footer stays quiet at the gate (actions live in gate strip)", () => {
     const state = { ...initialState(encargo), phase: "esperando_criterio" as const, screen: "workspace" as const }
-    expect(footerFor(state)).toContain("s sí")
-    expect(footerFor(state)).toContain("c corregir")
+    expect(footerFor(state)).toContain("?")
+    expect(footerFor(state)).not.toMatch(/s sí/)
+    expect(footerFor(state)).not.toMatch(/c corregir/)
   })
 })
 
@@ -57,7 +58,7 @@ describe("host events", () => {
     expect(state.phase).toBe("esperando_criterio")
     expect(state.evidence).toHaveLength(1)
     expect(state.warnings[0]?.code).toBe("thin_skeleton")
-    expect(state.statusLine).toContain("s sí")
+    expect(state.statusLine).toMatch(/tu turno|sí/)
   })
 
   test("plan with questions enters clarification", () => {
