@@ -27,10 +27,10 @@ Workflow: `.github/workflows/pages.yml` publica `site/` desde `main`.
 En el repo: Settings → Pages → Source **GitHub Actions** (una vez).
 URL esperada: `https://marcorojasb.github.io/tero/`.
 
-Vista previa local:
+Vista previa local (404.html incluido, como en GitHub Pages):
 
 ```bash
-python3 -m http.server 4173 --directory site
+python3 site/serve.py
 # abrir http://127.0.0.1:4173/
 ```
 

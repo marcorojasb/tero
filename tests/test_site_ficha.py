@@ -67,6 +67,39 @@ def test_ficha_assets_and_pages_workflow():
     assert "deploy-pages" in workflow
 
 
+def test_ficha_serve_maps_missing_path_to_extraviada_sheet():
+    import importlib.util
+    import threading
+    from http.client import HTTPConnection
+
+    spec = importlib.util.spec_from_file_location("ficha_serve", SITE / "serve.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    from functools import partial
+    from http.server import ThreadingHTTPServer
+
+    handler = partial(mod.FichaHandler, directory=str(SITE))
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = httpd.server_address
+        conn = HTTPConnection(host, port, timeout=3)
+        conn.request("GET", "/no-existe")
+        response = conn.getresponse()
+        body = response.read().decode("utf-8")
+        assert response.status == 404
+        assert "Esta hoja no está en la carpeta" in body
+        assert "unknown_source" in body
+        assert "tero-offline" in body
+        conn.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_docs_record_pr8_decision_and_index():
     puerta = _read(DOCS / "PUERTA-Y-PR8.md")
     assert "no se mergea" in puerta.lower() or "no se mergea" in puerta
