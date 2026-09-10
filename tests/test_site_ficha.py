@@ -43,8 +43,11 @@ def test_ficha_landing_is_the_github_page():
     assert "hojas/guia-sistemas" in js or "guia-sistemas/p1.png" in js
 
     assert "--tui-bg: #0b0d10" in css
-    assert "--tui-accent: #82aaff" in css
-    assert "ascii-tero" in html
+    assert "--tui-accent: #22d3ee" in css
+    assert 'id="splash"' in html
+    assert 'id="wave"' in html
+    assert "Presiona Enter para comenzar" in html
+    assert "asistente pedagógico" in html
     assert "Vanellus chilensis" in html
     assert "queltehue" in html
     assert "El tero avisa" in html
@@ -52,7 +55,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".hoja-frame" in css
     assert "photocopied" in css.lower()
     header = "\n".join(css.splitlines()[:6]).lower()
-    assert "tui" in header or "terminal" in header
+    assert "brand" in header or "terminal" in header or "tui" in header
 
     assert "WARNINGS_BLOCK_S = false" in js
     assert "function canAccept" in js
@@ -79,7 +82,14 @@ def test_ficha_assets_and_pages_workflow():
     assert (SITE / "assets" / "tero-og.png").is_file()
     assert (SITE / "assets" / "tero-stamp.png").is_file()
     assert (SITE / "assets" / "tero-mark.svg").is_file()
+    assert (SITE / "assets" / "tero-wordmark.svg").is_file()
     assert (SITE / "assets" / "tero.txt").is_file()
+    assert (SITE / "brand.json").is_file()
+    assert (SITE / "wave.js").is_file()
+    assert (SITE / "stamp.py").is_file()
+    brand = _read(SITE / "brand.json")
+    assert "22D3EE" in brand
+    assert "Vanellus chilensis" in brand
     mark = _read(SITE / "assets" / "tero.txt")
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
@@ -98,18 +108,21 @@ def test_ficha_assets_and_pages_workflow():
     not_found = _read(SITE / "404.html")
     assert "unknown_source" in not_found
     assert "no bloquea" in not_found
-    assert "ascii-tero" in not_found
+    assert "window-chrome" in not_found
     workflow = _read(ROOT / ".github" / "workflows" / "pages.yml")
     assert "path: site" in workflow
     assert "deploy-pages" in workflow
     assert "enablement: true" not in workflow
     assert "repos/${GITHUB_REPOSITORY}/pages" in workflow
     assert "enabled=false" in workflow
+    assert "site/stamp.py" in workflow
     sitio = _read(DOCS / "SITIO.md")
     assert "settings/pages" in sitio
     assert "Resource not accessible by integration" in sitio
     assert "marcorojasb.github.io/tero" in sitio
     assert "queltehue" in sitio.lower()
+    assert "stamp.py" in sitio
+    assert "wave.js" in sitio
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
 

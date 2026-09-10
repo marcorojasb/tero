@@ -6,7 +6,7 @@ docente decide** (`s` / `n` / `b` / `c`).
 | Doc | Para qué |
 | --- | --- |
 | [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md) | Por qué los avisos no bloquean `s` (decisión con evidencia de corridas). |
-| [SITIO.md](SITIO.md) | Landing TUI + ASCII queltehue; el papel es solo de las hojas creadas. |
+| [SITIO.md](SITIO.md) | Splash TUI + ola ASCII; el papel es solo de las hojas creadas. |
 | [NORMAS.md](NORMAS.md) | Normas de producto e ingeniería. |
 | [ARCHITECTURE.md](../ARCHITECTURE.md) | Host + OpenTUI + carpeta. |
 | [STRESS-BEDROCK.md](STRESS-BEDROCK.md) | Stress Nova Lite y qué se hizo después. |

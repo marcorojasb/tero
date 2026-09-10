@@ -33,11 +33,11 @@
         </g>
         <line x1="20" y1="155" x2="228" y2="155" stroke="#d8dee9" stroke-width="1.2"/>
         <line x1="20" y1="155" x2="20" y2="12" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="20" y1="75" x2="100" y2="155" stroke="#82aaff" stroke-width="2.2"/>
+        <line x1="20" y1="75" x2="100" y2="155" stroke="#22d3ee" stroke-width="2.2"/>
         <line x1="40" y1="12" x2="40" y2="155" stroke="#e06c75" stroke-width="2.2"/>
-        <circle cx="40" cy="95" r="3.4" fill="#9ece6a"/>
-        <text x="48" y="92" font-size="11" fill="#d8dee9">(1,3)</text>
-        <text x="104" y="150" font-size="11" fill="#82aaff">x+y=4</text>
+        <circle cx="40" cy="95" r="3.4" fill="#86efac"/>
+        <text x="48" y="92" font-size="11" fill="#e8eee6">(1,3)</text>
+        <text x="104" y="150" font-size="11" fill="#22d3ee">x+y=4</text>
         <text x="46" y="22" font-size="11" fill="#e06c75">x=1</text>
         <text x="222" y="168" font-size="10" fill="#7a8490">x</text>
         <text x="8" y="16" font-size="10" fill="#7a8490">y</text>
@@ -54,11 +54,11 @@
         </g>
         <line x1="28" y1="178" x2="255" y2="178" stroke="#d8dee9" stroke-width="1.2"/>
         <line x1="28" y1="178" x2="28" y2="18" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="28" y1="48" x2="158" y2="178" stroke="#82aaff" stroke-width="2.2"/>
+        <line x1="28" y1="48" x2="158" y2="178" stroke="#22d3ee" stroke-width="2.2"/>
         <line x1="80" y1="178" x2="184" y2="74" stroke="#e06c75" stroke-width="2.2"/>
-        <circle cx="119" cy="139" r="3.4" fill="#9ece6a"/>
-        <text x="126" y="136" font-size="11" fill="#d8dee9">(7,3)</text>
-        <text x="162" y="174" font-size="11" fill="#82aaff">x+y=10</text>
+        <circle cx="119" cy="139" r="3.4" fill="#86efac"/>
+        <text x="126" y="136" font-size="11" fill="#e8eee6">(7,3)</text>
+        <text x="162" y="174" font-size="11" fill="#22d3ee">x+y=10</text>
         <text x="188" y="72" font-size="11" fill="#e06c75">x−y=4</text>
         <text x="250" y="192" font-size="10" fill="#7a8490">x</text>
         <text x="10" y="22" font-size="10" fill="#7a8490">y</text>
@@ -572,6 +572,31 @@
       "1–4 rumbos · s sí · n no · b borrador · c corregir · avisos nunca bloquean s · modelo tero-offline";
   }
 
+  function inSplash() {
+    return $("splash") && !$("splash").hidden;
+  }
+
+  function enterSession() {
+    const splash = $("splash");
+    const session = $("session");
+    if (!splash || splash.hidden) return;
+    splash.hidden = true;
+    session.hidden = false;
+    document.body.dataset.view = "session";
+    $("ficha").focus();
+    setPhase("home", "rumbos 1–4 · puerta s n b c · ? ayuda");
+    const mini = $("wave-mini");
+    if (mini && window.teroWave) window.teroWave.mount(mini, { compact: true });
+  }
+
+  $("comenzar").addEventListener("click", enterSession);
+  $("skip-session").addEventListener("click", (ev) => {
+    if (inSplash()) {
+      ev.preventDefault();
+      enterSession();
+      $("ficha").focus();
+    }
+  });
   document.querySelectorAll("[data-rumbo]").forEach((btn) => {
     btn.addEventListener("click", () => prepare(btn.dataset.rumbo));
   });
@@ -588,6 +613,19 @@
 
   document.addEventListener("keydown", (ev) => {
     if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
+    if (inSplash()) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        enterSession();
+        return;
+      }
+      if (["1", "2", "3", "4"].includes(ev.key)) {
+        enterSession();
+        prepare(ev.key);
+        return;
+      }
+      return;
+    }
     if (ev.key === "?" || (ev.shiftKey && ev.key === "/")) {
       ev.preventDefault();
       help();
@@ -615,5 +653,6 @@
   const now = new Date();
   $("fecha").textContent = `Fecha: ${now.toLocaleDateString("es-CL")}`;
   setGateEnabled(false);
-  setPhase("home", "rumbos 1–4 · puerta s n b c · ? ayuda");
+  setPhase("splash", "Enter comienza · 1–4 rumbos · s n b c");
+  if ($("wave") && window.teroWave) window.teroWave.mount($("wave"));
 })();

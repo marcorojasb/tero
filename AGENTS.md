@@ -7,8 +7,8 @@ Instructions for AI contributors working on tero.
 - Spanish UI copy. Chilean classroom tone, not marketing Spanish.
 - Carpeta de trabajo is the system of record. Never overwrite originals. Hash-check reads.
 - Default model id: `amazon.nova-lite-v1:0`. Offline scripted path must stay green.
-- Public face: TUI + ASCII queltehue in `site/` (GitHub Pages). Photocopied
-  paper only for pages tero creates. Not a SaaS hero.
+- Public face: Terminal UI splash + ASCII wave in `site/` (GitHub Pages).
+  Photocopied paper only for pages tero creates. Not a SaaS hero.
   Warnings never block `s` — see `docs/PUERTA-Y-PR8.md`.
 
 ## Stack

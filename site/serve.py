@@ -30,6 +30,15 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4173)
     args = parser.parse_args()
+    try:
+        import sys
+
+        sys.path.insert(0, str(ROOT))
+        import stamp as stamp_mod
+
+        stamp_mod.stamp()
+    except Exception:
+        pass
     handler = partial(FichaHandler, directory=str(ROOT))
     httpd = ThreadingHTTPServer((args.host, args.port), handler)
     print(f"ficha tero en http://{args.host}:{args.port}/", flush=True)

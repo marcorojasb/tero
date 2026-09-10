@@ -15,43 +15,29 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-offline-model="tero-offline">
-    <div class="term not-found">
-      <header class="term-chrome">
-        <span class="term-mark" aria-hidden="true">▲*</span>
-        <span class="term-title">tero@carpeta:~</span>
-        <span class="term-tty">tty1 · unknown_source</span>
-      </header>
-      <section class="banner">
-        <pre class="ascii-tero" aria-hidden="true">           ▲
-          ╱│
-   ▄▄▄▄▄ ╱(<span class="ascii-eye">?</span>)
-  █     █▀
-  █      █
-   ▀▄▄▄▄▄▀
-     <span class="ascii-legs">║  ║
-    ─┘  └─</span></pre>
-        <div class="banner-id">
-          <p class="brand">tero</p>
-          <p class="species">Vanellus chilensis · queltehue</p>
-          <p class="tag">tus fuentes, tu criterio</p>
-          <p class="motto">El tero avisa. Tú decides.</p>
-        </div>
-      </section>
-      <main class="pane sheet" id="ficha">
-        <p class="pane-title">
-          ~/sesión
-          <span class="stamp-label">EXTRAVIADA</span>
-        </p>
-        <p class="err-code">$ ls esa/ruta</p>
-        <h1>Esta hoja no está en la carpeta</h1>
-        <p>
-          tero no inventa fuentes. Si la ruta no está en <code>fuentes/</code>,
-          el host avisa <code>unknown_source</code> y <strong>no bloquea</strong>
-          la puerta: tú decides
-          <kbd>s</kbd> / <kbd>n</kbd> / <kbd>b</kbd> / <kbd>c</kbd>.
-        </p>
-        <p><a href="./">cd ~</a> — volver a la sesión</p>
-      </main>
+    <div class="splash">
+      <div class="window" style="min-height: auto">
+        <header class="window-chrome">
+          <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="window-title">tero</span>
+          <span class="window-path">~/tero · unknown_source</span>
+        </header>
+        <main class="pane sheet" id="ficha" style="border: none">
+          <p class="pane-title">
+            ~/sesión
+            <span class="stamp-label">EXTRAVIADA</span>
+          </p>
+          <p class="err-code">$ ls esa/ruta</p>
+          <h1>Esta hoja no está en la carpeta</h1>
+          <p>
+            tero no inventa fuentes. Si la ruta no está en <code>fuentes/</code>,
+            el host avisa <code>unknown_source</code> y <strong>no bloquea</strong>
+            la puerta: tú decides
+            <kbd>s</kbd> / <kbd>n</kbd> / <kbd>b</kbd> / <kbd>c</kbd>.
+          </p>
+          <p><a href="./">cd ~</a> — volver a tero</p>
+        </main>
+      </div>
     </div>
     <div class="tui" role="status">
       <span class="tui-brand">tero</span>

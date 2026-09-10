@@ -5,21 +5,17 @@
 ```
 tero@carpeta:~
 
-              ▲
-             ╱│
-    ▄▄▄▄▄   ╱(o)*     tero
-   █     █▄▀          Vanellus chilensis
-   █ ▓▓▓▓  █          el tero avisa. tú decides.
-    ▀▄▓▓▄▄▄▀
-      ║   ║           s sí   n no
-     ─┘   └─          b borrador   c corregir
+preguntas
+mejores          ~~~  ola ASCII (cian / menta / lima)
+aprendizajes     tero
+reales           asistente pedagógico
+                 > Presiona Enter para comenzar
 ```
 
-Esto no es un dashboard de IA. El chrome es la **TUI**. Las hojas que
-tero crea —la fotocopia que sale mañana a la sala— aparecen al final,
-después de `s` o `b`. La [página de GitHub](https://marcorojasb.github.io/tero/)
-es esa sesión: queltehue en ASCII, rumbos `1–4`, avisos a la vista,
-puerta `s` / `n` / `b` / `c`.
+El chrome es la **TUI**. Las hojas que tero crea —la fotocopia que sale
+mañana a la sala— aparecen al final, después de `s` o `b`. La
+[página de GitHub](https://marcorojasb.github.io/tero/) es esa sesión:
+ola ASCII, rumbos `1–4`, avisos a la vista, puerta `s` / `n` / `b` / `c`.
 Si el link da 404, enciende Pages una vez en
 [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages)
 (Source **GitHub Actions**) y re-ejecuta el workflow `pages` — el token
@@ -27,7 +23,7 @@ de Actions no puede crear el sitio. Detalle: [docs/SITIO.md](docs/SITIO.md).
 El modelo de la demo en el sitio es `tero-offline` (Strands scripted).
 No finge Bedrock. AgentCore no es el producto.
 
-![Terminal tero con ASCII del queltehue](site/assets/tero-og.png)
+![Splash tero: terminal, ola ASCII, wordmark pixel](site/assets/tero-og.png)
 
 Teacher agent for [Agents for Humans](https://aws.amazon.com/): AWS
 **Strands** behind a dense **OpenTUI** shell (same TUI family as

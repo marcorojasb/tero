@@ -8,13 +8,13 @@
       name="description"
       content="tero es el queltehue del aula: avisa, no decide. Prepara material en tu carpeta. Tú eliges s / n / b / c. Offline honesto (tero-offline)."
     />
-    <meta name="theme-color" content="#0b0d10" />
+    <meta name="theme-color" content="#070B0C" />
     <link rel="icon" href="./assets/tero-mark.svg" type="image/svg+xml" />
     <link rel="icon" href="./assets/tero-stamp.png" type="image/png" />
     <meta property="og:title" content="tero — tus fuentes, tu criterio" />
     <meta
       property="og:description"
-      content="Vanellus chilensis. El tero avisa. Tú decides."
+      content="Asistente pedagógico. El tero avisa. Tú decides."
     />
     <meta property="og:image" content="./assets/tero-og.png" />
     <meta property="og:type" content="website" />
@@ -28,25 +28,61 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-warnings-block-s="false" data-offline-model="tero-offline">
-    <a class="skip" href="#ficha">Saltar a la sesión</a>
+  <body data-warnings-block-s="false" data-offline-model="tero-offline" data-view="splash">
+    <a class="skip" href="#ficha" id="skip-session">Saltar a la sesión</a>
 
-    <div class="term">
+    <section class="splash" id="splash" aria-label="Splash tero">
+      <div class="window">
+        <header class="window-chrome">
+          <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="window-title">tero</span>
+          <span class="window-path">~/tero</span>
+        </header>
+        <div class="splash-stage">
+          <canvas id="wave" class="wave" aria-hidden="true"></canvas>
+          <p class="splash-verse">
+            preguntas<br />
+            mejores<br />
+            aprendizajes<br />
+            reales
+            <span class="splash-rule" aria-hidden="true"></span>
+          </p>
+          <p class="splash-aside">
+            Curiosidad<br />
+            hoy.<br />
+            Mundos<br />
+            mañana.
+          </p>
+          <div class="splash-mark">
+            <img
+              class="wordmark"
+              src="./assets/tero-wordmark.svg"
+              alt="tero"
+              width="230"
+              height="48"
+            />
+            <p class="role">asistente pedagógico</p>
+            <p class="enter-hint">
+              <span class="chevron" aria-hidden="true">&gt;</span>
+              Presiona Enter para comenzar
+            </p>
+            <button type="button" id="comenzar" class="enter-btn">comenzar</button>
+            <p class="axis">APRENDER · PENSAR · AVANZAR</p>
+          </div>
+          <p class="deploy" id="deploy-sha"></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="term" id="session" hidden>
       <header class="term-chrome">
-        <span class="term-mark" aria-hidden="true">▲*</span>
+        <span class="term-mark" aria-hidden="true">+</span>
         <span class="term-title">tero@carpeta:~</span>
         <span class="term-tty">tty1 · Vanellus chilensis</span>
       </header>
 
       <section class="banner" aria-label="Marca tero">
-        <pre class="ascii-tero" aria-hidden="true">              ▲
-             ╱│
-    ▄▄▄▄▄   ╱(<span class="ascii-eye">o</span>)<span class="ascii-wattle">*</span>
-   █     █▄▀
-   █ <span class="ascii-breast">▓▓▓▓</span>  █
-    ▀▄▓▓▄▄▄▀
-      <span class="ascii-legs">║   ║
-     ─┘   └─</span></pre>
+        <canvas id="wave-mini" class="wave-mini" aria-hidden="true"></canvas>
         <div class="banner-id">
           <p class="brand">tero</p>
           <p class="species">Vanellus chilensis · queltehue</p>
@@ -239,9 +275,9 @@
       <span class="tui-sep">·</span>
       <span id="tui-model">tero-offline</span>
       <span class="tui-sep">·</span>
-      <span id="tui-phase">home</span>
+      <span id="tui-phase">splash</span>
       <span class="tui-sep">·</span>
-      <span id="tui-activity">rumbos 1–4 · puerta s n b c · ? ayuda</span>
+      <span id="tui-activity">Enter comienza · 1–4 rumbos · s n b c</span>
     </div>
 
     <dialog id="critica" aria-labelledby="critica-title">
@@ -260,6 +296,7 @@
       </form>
     </dialog>
 
+    <script src="./wave.js"></script>
     <script src="./ficha.js"></script>
   </body>
 </html>

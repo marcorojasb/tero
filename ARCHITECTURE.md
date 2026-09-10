@@ -4,8 +4,8 @@ tero is a **Strands agent** plus an **OpenTUI** shell. The agent prepares;
 the teacher decides. The only artifact writes are `derivados/` (accepted)
 and `borradores/` (draft). Originals are hashed and never overwritten.
 
-The public face of the repo is a **TUI session** with ASCII queltehue,
-not a SaaS page. Photocopied paper is only for pages tero creates:
+The public face of the repo is a **Terminal UI splash** with a live ASCII
+wave, not a SaaS page. Photocopied paper is only for pages tero creates:
 [site/](site/) → <https://marcorojasb.github.io/tero/>.
 
 ## Thesis

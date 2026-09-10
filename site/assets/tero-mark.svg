@@ -1,13 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="tero, queltehue">
-  <rect width="64" height="64" fill="#0b0d10"/>
-  <g fill="#82aaff">
-    <path d="M14 28 h22 v18 H18 l-4-6 z"/>
-    <rect x="20" y="32" width="12" height="8" fill="#5b6a7c"/>
-    <path d="M36 30 l10-16 2 16-6 4z" fill="none" stroke="#82aaff" stroke-width="1.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="tero">
+  <rect width="64" height="64" fill="#070B0C"/>
+  <g fill="#F4F1DE">
+    <rect x="12" y="14" width="40" height="8" rx="1.5"/>
+    <rect x="28" y="14" width="8" height="36" rx="1.5"/>
   </g>
-  <circle cx="46" cy="28" r="3.2" fill="none" stroke="#d8dee9" stroke-width="1.4"/>
-  <circle cx="46" cy="28" r="1.1" fill="#d8dee9"/>
-  <circle cx="51.5" cy="30.5" r="1.5" fill="#c9a227"/>
-  <path d="M24 46 v10 M34 46 v10" stroke="#c45c62" stroke-width="1.8" fill="none"/>
-  <path d="M20 56 h8 M30 56 h8" stroke="#c45c62" stroke-width="1.8" fill="none"/>
+  <rect x="12" y="52" width="8" height="6" rx="1" fill="#22D3EE"/>
+  <rect x="22" y="52" width="8" height="6" rx="1" fill="#14B8A6"/>
+  <rect x="32" y="52" width="8" height="6" rx="1" fill="#86EFAC"/>
+  <rect x="42" y="52" width="8" height="6" rx="1" fill="#A3E635"/>
 </svg>
