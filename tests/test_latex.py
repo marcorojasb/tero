@@ -259,3 +259,23 @@ def test_prose_latex_lists_are_host_itemize_not_raw_tex():
     evil = prose_latex(r"\write18{rm -rf /}")
     assert r"\write18" not in evil
     assert r"\textbackslash{}" in evil
+
+
+def test_escape_latex_drops_narrow_nbsp_for_pdflatex():
+    from tero.latex.render import escape_latex, render_latex
+
+    escaped = escape_latex("Lectura guiada (15\u202fmin)")
+    assert "\u202f" not in escaped
+    assert "15 min" in escaped
+    tex = render_latex(
+        {
+            "tipo": "planificacion",
+            "titulo": "Plan",
+            "objetivo": "Leer",
+            "inicio": "15\u202fmin",
+            "desarrollo": "Práctica",
+            "cierre": "Ticket",
+        }
+    )
+    assert "\u202f" not in tex
+    assert "15 min" in tex

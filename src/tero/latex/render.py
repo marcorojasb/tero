@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -36,9 +37,40 @@ _LATEX_SPECIALS = {
 
 def escape_latex(text: str) -> str:
     out: list[str] = []
-    for ch in text or "":
+    for ch in _pdflatex_safe(text):
         out.append(_LATEX_SPECIALS.get(ch, ch))
     return "".join(out)
+
+
+def _pdflatex_safe(text: str) -> str:
+    """NFKC + drop chars pdflatex/inputenc utf8 cannot ingest (e.g. U+202F)."""
+    normalized = unicodedata.normalize("NFKC", text or "")
+    punct = str.maketrans(
+        {
+            "\u2018": "'",
+            "\u2019": "'",
+            "\u201c": '"',
+            "\u201d": '"',
+            "\u2013": "-",
+            "\u2014": "-",
+            "\u2026": "...",
+        }
+    )
+    normalized = normalized.translate(punct)
+    chars: list[str] = []
+    for ch in normalized:
+        code = ord(ch)
+        if ch in "\n\t" or code == 32:
+            chars.append(ch)
+        elif code < 32:
+            continue
+        elif code < 127:
+            chars.append(ch)
+        elif 0xA1 <= code <= 0xFF:
+            chars.append(ch)
+        else:
+            chars.append(" ")
+    return "".join(chars)
 
 
 def _strip_md_inline(text: str) -> str:
@@ -368,7 +400,8 @@ def compile_pdf(tex_path: Path) -> Path | None:
             cwd=str(tex_path.parent),
             check=False,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired):
