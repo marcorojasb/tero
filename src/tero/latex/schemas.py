@@ -28,6 +28,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "materiales": [],
         "instrucciones": [],
         "sm_items": [],
+        "vf_items": [],
         "desarrollo_prompts": [],
         "actividades": [],
         "cierre": "",
@@ -90,6 +91,7 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "materiales": [],
         "instrucciones": [],
         "sm_items": [],
+        "vf_items": [],
         "desarrollo_prompts": [],
         "actividades": [],
         "cierre": "",
@@ -181,8 +183,10 @@ def repair_payload(tipo: str, raw: dict[str, Any] | str | None) -> dict[str, Any
         merged["criterios"] = _as_str_list(merged.get("criterios"))
     if key in {"guia", "actividad"}:
         merged["sm_items"] = _as_sm_items(merged.get("sm_items"))
+        merged["vf_items"] = _as_vf_items(merged.get("vf_items"))
         merged["actividades"] = _as_actividades(merged.get("actividades"))
-        if not merged["actividades"] and merged.get("proposito"):
+        has_items = bool(merged["sm_items"] or merged["vf_items"] or merged["desarrollo_prompts"])
+        if not merged["actividades"] and merged.get("proposito") and not has_items:
             merged["actividades"] = [
                 {
                     "titulo": "Actividad principal",
@@ -272,12 +276,21 @@ def extract_payload_from_markdown(
             "duracion": meta.get("duracion") or _front_matter_value(body, "duracion") or "",
         }
     elif art == ArtifactType.EVALUACION:
+        items_md = (
+            sections.get("ítems")
+            or sections.get("items")
+            or sections.get("preguntas")
+            or sections.get("sm")
+            or ""
+        )
         raw = {
             "tipo": "evaluacion",
             "titulo": titulo,
             "instrucciones": _bullets(sections.get("instrucciones") or ""),
-            "items": _items_from_section(
-                sections.get("ítems") or sections.get("items") or sections.get("preguntas") or ""
+            "items": _eval_items_from_markdown(
+                items_md,
+                vf_md=sections.get("vf") or "",
+                desarrollo_md=sections.get("desarrollo") or "",
             ),
             "criterios": _bullets(sections.get("criterios") or ""),
             "puntaje_total": _guess_puntaje(
@@ -347,6 +360,7 @@ def extract_payload_from_markdown(
             "desarrollo_prompts": _bullets(sections.get("desarrollo") or ""),
             "actividades": actividades,
             "sm_items": _sm_from_section(sections.get("sm") or ""),
+            "vf_items": _vf_from_section(sections.get("vf") or ""),
             "cierre": sections.get("cierre") or "",
             "tiempo": meta.get("duracion") or "",
         }
@@ -403,6 +417,27 @@ def _as_str_list(value: Any) -> list[str]:
                     out.append(text)
         return out
     return [str(value)]
+
+
+def _as_vf_items(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for row in value:
+        if isinstance(row, str):
+            parsed = _vf_statement(row)
+            if parsed:
+                items.append(parsed)
+            continue
+        if not isinstance(row, dict):
+            continue
+        parsed = _vf_statement(str(row.get("enunciado") or row.get("texto") or "").strip())
+        if not parsed:
+            continue
+        if row.get("clave"):
+            parsed["clave"] = str(row.get("clave") or "").strip()[:8]
+        items.append(parsed)
+    return [item for item in items if item["enunciado"]]
 
 
 def _as_sm_items(value: Any) -> list[dict[str, Any]]:
@@ -462,6 +497,7 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
                 "enunciado": str(row.get("enunciado") or "").strip(),
                 "puntaje": str(row.get("puntaje") or ""),
                 "opciones": _as_str_list(row.get("opciones")),
+                "clave": str(row.get("clave") or "").strip(),
             }
         )
     return [item for item in out if item["enunciado"]]
@@ -647,6 +683,89 @@ def _sm_from_section(text: str) -> list[dict[str, Any]]:
     if current and current.get("enunciado"):
         items.append(current)
     return [item for item in items if item["enunciado"]]
+
+
+def _vf_statement(text: str) -> dict[str, str] | None:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return None
+    clave = ""
+    tagged = re.search(
+        r"[\(\[]\s*(V|F|verdadero|falso)\s*[\)\]]\s*$",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if tagged:
+        raw = tagged.group(1).lower()
+        clave = "F" if raw.startswith("f") else "V"
+        cleaned = cleaned[: tagged.start()].strip()
+    keyed = re.search(
+        r"(?:clave|respuesta)\s*[:\-]\s*(V|F|verdadero|falso)\s*$", cleaned, flags=re.I
+    )
+    if keyed:
+        raw = keyed.group(1).lower()
+        clave = "F" if raw.startswith("f") else "V"
+        cleaned = cleaned[: keyed.start()].strip()
+    return {"enunciado": cleaned, "clave": clave}
+
+
+def _vf_from_section(text: str) -> list[dict[str, Any]]:
+    if not (text or "").strip():
+        return []
+    items: list[dict[str, Any]] = []
+    for bullet in _bullets(text):
+        parsed = _vf_statement(bullet)
+        if parsed:
+            items.append(parsed)
+    if not items and text.strip():
+        parsed = _vf_statement(text.strip()[:500])
+        if parsed:
+            items.append(parsed)
+    return items
+
+
+def _eval_items_from_markdown(
+    items_md: str,
+    *,
+    vf_md: str = "",
+    desarrollo_md: str = "",
+) -> list[dict[str, Any]]:
+    """Prefer SM/V-F structure when the evaluación markdown has it."""
+    out: list[dict[str, Any]] = []
+    sm = _sm_from_section(items_md)
+    if sm:
+        for row in sm:
+            out.append(
+                {
+                    "tipo_item": "sm",
+                    "enunciado": row["enunciado"],
+                    "opciones": list(row.get("opciones") or []),
+                    "puntaje": "",
+                    "clave": row.get("clave") or "",
+                }
+            )
+    else:
+        out.extend(_items_from_section(items_md))
+    for row in _vf_from_section(vf_md):
+        out.append(
+            {
+                "tipo_item": "vf",
+                "enunciado": row["enunciado"],
+                "opciones": ["Verdadero", "Falso"],
+                "puntaje": "",
+                "clave": row.get("clave") or "",
+            }
+        )
+    for prompt in _bullets(desarrollo_md):
+        out.append(
+            {
+                "tipo_item": "desarrollo",
+                "enunciado": prompt,
+                "opciones": [],
+                "puntaje": "",
+            }
+        )
+    return out
 
 
 def _items_from_section(text: str) -> list[dict[str, Any]]:

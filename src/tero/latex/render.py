@@ -13,6 +13,7 @@ from tero.artifacts import slugify
 from tero.config import PACKAGE_ROOT
 from tero.errors import TeroError
 from tero.latex.schemas import (
+    _vf_from_section,
     extract_payload_from_markdown,
     repair_payload,
     validate_payload,
@@ -136,14 +137,119 @@ def _fill(template: str, mapping: dict[str, str]) -> str:
 
 def _itemize(lines: list[str]) -> str:
     if not lines:
-        return r"\item \emph{(sin ítems)}"
+        return ""
     return "\n".join(rf"\item {escape_latex(line)}" for line in lines)
 
 
 def _enumerate(lines: list[str]) -> str:
     if not lines:
-        return r"\item \emph{(sin instrucciones)}"
+        return ""
     return "\n".join(rf"\item {escape_latex(line)}" for line in lines)
+
+
+def _tcolor(title: str | None, body: str) -> str:
+    if not (body or "").strip():
+        return ""
+    opts = (
+        r"colback=black!3,colframe=black!45,boxrule=0.5pt,arc=0pt,"
+        r"left=8pt,right=8pt,top=5pt,bottom=5pt"
+    )
+    if title:
+        opts += r",fonttitle=\bfseries\small,title=" + escape_latex(title)
+    return "\n".join([rf"\begin{{tcolorbox}}[{opts}]", body, r"\end{tcolorbox}"])
+
+
+def _prose_section(title: str, text: str, *, boxed: bool = False) -> str:
+    body = prose_latex(text)
+    if not body.strip():
+        return ""
+    heading = rf"\needspace{{7\baselineskip}}\section*{{{escape_latex(title)}}}"
+    if boxed:
+        return heading + "\n" + _tcolor(None, body)
+    return heading + "\n" + body
+
+
+def _itemize_section(title: str, lines: list[str]) -> str:
+    cleaned = [line for line in lines if str(line).strip()]
+    if not cleaned:
+        return ""
+    inner = "\n".join(
+        [
+            r"\begin{itemize}",
+            _itemize(cleaned),
+            r"\end{itemize}",
+        ]
+    )
+    return rf"\needspace{{6\baselineskip}}\section*{{{escape_latex(title)}}}" + "\n" + inner
+
+
+def _enumerate_section(title: str, lines: list[str]) -> str:
+    cleaned = [line for line in lines if str(line).strip()]
+    if not cleaned:
+        return ""
+    inner = "\n".join(
+        [
+            r"\begin{enumerate}",
+            _enumerate(cleaned),
+            r"\end{enumerate}",
+        ]
+    )
+    return rf"\needspace{{6\baselineskip}}\section*{{{escape_latex(title)}}}" + "\n" + inner
+
+
+def _oa_texto_line(text: str) -> str:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return ""
+    return r"{\small\textit{" + escape_latex(cleaned) + r"}}\par"
+
+
+def _ficha_header(data: dict[str, Any], *, kind: str) -> str:
+    """Student ID strip — photocopied-ficha look, not a title page."""
+    label = {
+        "guia": "guía de trabajo",
+        "actividad": "actividad de aula",
+        "evaluacion": "prueba / evaluación",
+    }.get(kind, "material de aula")
+    curso = escape_latex(str(data.get("curso") or "—"))
+    asignatura = escape_latex(str(data.get("asignatura") or "—"))
+    oa = escape_latex(str(data.get("oa") or "—"))
+    tiempo = escape_latex(
+        str(data.get("tiempo") or data.get("duracion") or data.get("puntaje_total") or "—")
+    )
+    tiempo_label = "Puntaje" if kind == "evaluacion" else "Tiempo"
+    return "\n".join(
+        [
+            rf"{{\footnotesize tero · {escape_latex(label)} · el docente decide}}",
+            r"\vspace{0.45em}",
+            r"\begin{tabularx}{\textwidth}{|X|X|}",
+            r"\hline",
+            r"\rule{0pt}{3.1ex}Nombre: \hrulefill & Fecha: \hrulefill \\",
+            rf"Curso: {curso} & Asignatura: {asignatura} \\",
+            rf"OA: {oa} & {escape_latex(tiempo_label)}: {tiempo} \\",
+            r"\hline",
+            r"\end{tabularx}",
+        ]
+    )
+
+
+def _answer_rules(n: int = 3) -> str:
+    count = max(1, min(n, 4))
+    return "\n".join([r"\par\vspace{0.45em}\noindent\rule{\textwidth}{0.4pt}"] * count)
+
+
+def _choice_list(opciones: list[str]) -> str:
+    if not opciones:
+        return r"\hfill\textit{Marco:}\,\fbox{\phantom{XX}}"
+    parts = [r"\begin{itemize}[leftmargin=2.2em,itemsep=0.18em,topsep=0.2em]"]
+    for idx, opt in enumerate(opciones):
+        letter = chr(ord("A") + idx) if idx < 26 else str(idx + 1)
+        parts.append(
+            rf"\item[\fbox{{\makebox[0.9em]{{\strut {letter}}}}}] " + escape_latex(str(opt))
+        )
+    parts.append(r"\end{itemize}")
+    parts.append(r"\hfill\textit{Marco:}\,\fbox{\phantom{XX}}")
+    return "\n".join(parts)
 
 
 def render_latex(payload: dict[str, Any] | str, *, tipo: str | None = None) -> str:
@@ -180,40 +286,79 @@ def render_latex(payload: dict[str, Any] | str, *, tipo: str | None = None) -> s
 
 
 def _mapping_for(key: str, data: dict[str, Any]) -> dict[str, str]:
+    materiales = [str(x) for x in (data.get("materiales") or []) if str(x).strip()]
+    instrucciones = [str(x) for x in (data.get("instrucciones") or []) if str(x).strip()]
+    sm_items = list(data.get("sm_items") or [])
+    vf_items = list(data.get("vf_items") or [])
+    desarrollo = _group_desarrollo_prompts(list(data.get("desarrollo_prompts") or []))
+    proposito = str(data.get("proposito") or "")
+    acts = _usable_actividades(
+        list(data.get("actividades") or []),
+        proposito=proposito,
+        vf_items=vf_items,
+    )
+    eval_items = list(data.get("items") or [])
+    criterios_eval = (
+        [
+            str(x) if not isinstance(x, dict) else str(x.get("nombre") or x)
+            for x in (data.get("criterios") or [])
+        ]
+        if key == "evaluacion"
+        else []
+    )
+    recursos = [str(x) for x in (data.get("recursos") or []) if str(x).strip()]
+    nota_docente = str(data.get("nota_docente") or "")
+    lineamientos = str(data.get("lineamientos_nota") or "")
+    ficha_kind = "guia" if key == "actividad" else key
     base = {
         "titulo": escape_latex(str(data.get("titulo") or "")),
         "curso": escape_latex(str(data.get("curso") or "—")),
         "asignatura": escape_latex(str(data.get("asignatura") or "—")),
         "oa": escape_latex(str(data.get("oa") or "—")),
         "oa_texto": escape_latex(str(data.get("oa_texto") or "")),
+        "oa_texto_line": _oa_texto_line(str(data.get("oa_texto") or "")),
         "tiempo": escape_latex(str(data.get("tiempo") or data.get("duracion") or "—")),
         "duracion": escape_latex(str(data.get("duracion") or data.get("tiempo") or "—")),
-        "proposito": prose_latex(str(data.get("proposito") or "")),
+        "proposito": prose_latex(proposito),
+        "proposito_block": _tcolor("Propósito", prose_latex(proposito)),
         "cierre": prose_latex(str(data.get("cierre") or "")),
         "objetivo": prose_latex(str(data.get("objetivo") or "")),
         "inicio": prose_latex(str(data.get("inicio") or "")),
         "desarrollo": prose_latex(str(data.get("desarrollo") or "")),
         "evaluacion": prose_latex(str(data.get("evaluacion") or "")),
         "puntaje_total": escape_latex(str(data.get("puntaje_total") or "—")),
-        "nota_docente": escape_latex(str(data.get("nota_docente") or "")),
-        "lineamientos_nota": escape_latex(str(data.get("lineamientos_nota") or "")),
+        "nota_docente": escape_latex(nota_docente),
+        "lineamientos_nota": escape_latex(lineamientos),
         "subtitulo": escape_latex(str(data.get("subtitulo") or "")),
         "autor": escape_latex(str(data.get("autor") or "tero")),
-        "materiales_items": _itemize(list(data.get("materiales") or [])),
-        "instrucciones_items": _enumerate(list(data.get("instrucciones") or [])),
-        "criterios_items": _itemize(
-            [
-                str(x) if not isinstance(x, dict) else str(x.get("nombre") or x)
-                for x in (data.get("criterios") or [])
-            ]
-            if key == "evaluacion"
-            else []
-        ),
-        "recursos_items": _itemize(list(data.get("recursos") or [])),
-        "sm_block": _sm_block(list(data.get("sm_items") or [])),
-        "desarrollo_block": _desarrollo_block(list(data.get("desarrollo_prompts") or [])),
-        "actividades_block": _actividades_block(list(data.get("actividades") or [])),
-        "items_block": _eval_items_block(list(data.get("items") or [])),
+        "ficha_header": _ficha_header(data, kind=ficha_kind)
+        if ficha_kind in {"guia", "evaluacion", "actividad"}
+        else "",
+        "materiales_items": _itemize(materiales),
+        "instrucciones_items": _enumerate(instrucciones),
+        "criterios_items": _itemize(criterios_eval),
+        "recursos_items": _itemize(recursos),
+        "materiales_section": _itemize_section("Materiales", materiales),
+        "instrucciones_section": _enumerate_section("Instrucciones", instrucciones),
+        "sm_section": _sm_section(sm_items),
+        "vf_section": _vf_section(vf_items),
+        "desarrollo_section": _desarrollo_section(desarrollo),
+        "actividades_section": _actividades_section(acts),
+        "cierre_section": _prose_section("Cierre", str(data.get("cierre") or "")),
+        "clave_section": _clave_section(sm_items, vf_items, eval_items),
+        "objetivo_section": _prose_section("Objetivo", str(data.get("objetivo") or ""), boxed=True),
+        "inicio_section": _prose_section("Inicio", str(data.get("inicio") or "")),
+        "desarrollo_plan_section": _prose_section("Desarrollo", str(data.get("desarrollo") or "")),
+        "cierre_plan_section": _prose_section("Cierre", str(data.get("cierre") or "")),
+        "evaluacion_section": _prose_section("Evaluación", str(data.get("evaluacion") or "")),
+        "recursos_section": _itemize_section("Recursos", recursos),
+        "items_section": _eval_items_section(eval_items),
+        "criterios_section": _itemize_section("Criterios", criterios_eval),
+        "nota_docente_section": _prose_section("Nota al docente", nota_docente),
+        "sm_block": _sm_block(sm_items),
+        "desarrollo_block": _desarrollo_block(desarrollo),
+        "actividades_block": _actividades_block(acts),
+        "items_block": _eval_items_block(eval_items),
         "niveles_line": escape_latex(" · ".join(str(x) for x in (data.get("niveles") or []))),
         "criterios_block": _pauta_block(list(data.get("criterios") or []))
         if key == "pauta"
@@ -223,43 +368,184 @@ def _mapping_for(key: str, data: dict[str, Any]) -> dict[str, str]:
     return base
 
 
+def _group_desarrollo_prompts(prompts: list[str]) -> list[str]:
+    """Collapse markdown fragments into a few student-facing items."""
+    skip = {
+        "desarrollo",
+        "items de desarrollo",
+        "ítems de desarrollo",
+        "actividad",
+        "actividades",
+    }
+    cleaned: list[str] = []
+    for raw in prompts:
+        text = re.sub(r"\s+", " ", str(raw or "")).strip()
+        if not text:
+            continue
+        if text.lower().strip(".:") in skip:
+            continue
+        cleaned.append(text)
+    if len(cleaned) <= 5:
+        return cleaned
+    grouped: list[str] = []
+    buf = ""
+    verb = re.compile(
+        r"^(resuelve|explica|escribe|justifica|calcula|grafica|verifica|plantea|"
+        r"analiza|redacta|completa|compara|interpreta|demuestra)\b",
+        re.IGNORECASE,
+    )
+    for text in cleaned:
+        looks_new = text.endswith("?") or len(text) >= 55 or bool(verb.match(text))
+        if looks_new:
+            if buf:
+                grouped.append(buf)
+            buf = text
+        else:
+            buf = f"{buf} {text}".strip() if buf else text
+    if buf:
+        grouped.append(buf)
+    return grouped or cleaned
+
+
+def _usable_actividades(
+    acts: list[dict[str, Any]],
+    *,
+    proposito: str,
+    vf_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    proposito_s = (proposito or "").strip()
+    out: list[dict[str, Any]] = []
+    for act in acts:
+        title = str(act.get("titulo") or "").strip()
+        low = title.lower()
+        if vf_items and ("falso" in low or "verdadero" in low):
+            continue
+        inicio = str(act.get("inicio") or "").strip()
+        desarrollo = str(act.get("desarrollo") or "").strip()
+        cierre = str(act.get("cierre") or "").strip()
+        if not (inicio or desarrollo or cierre):
+            continue
+        if title == "Actividad principal" and desarrollo == proposito_s:
+            continue
+        if title.lower() == "secuencia" and desarrollo == proposito_s:
+            continue
+        out.append(act)
+    return out
+
+
+def _sm_section(items: list[dict[str, Any]]) -> str:
+    body = _sm_block(items)
+    if not body:
+        return ""
+    return r"\needspace{8\baselineskip}\section*{Selección múltiple}" + "\n" + body
+
+
+def _vf_section(items: list[dict[str, Any]]) -> str:
+    body = _vf_block(items)
+    if not body:
+        return ""
+    return r"\needspace{8\baselineskip}\section*{Verdadero o falso}" + "\n" + body
+
+
+def _desarrollo_section(prompts: list[str]) -> str:
+    body = _desarrollo_block(prompts)
+    if not body:
+        return ""
+    return r"\needspace{8\baselineskip}\section*{Desarrollo}" + "\n" + body
+
+
+def _actividades_section(acts: list[dict[str, Any]]) -> str:
+    body = _actividades_block(acts)
+    if not body:
+        return ""
+    return r"\needspace{8\baselineskip}\section*{Actividades}" + "\n" + body
+
+
+def _eval_items_section(items: list[dict[str, Any]]) -> str:
+    body = _eval_items_block(items)
+    if not body:
+        return ""
+    return r"\needspace{8\baselineskip}\section*{Ítems}" + "\n" + body
+
+
+def _clave_section(
+    sm_items: list[dict[str, Any]],
+    vf_items: list[dict[str, Any]],
+    eval_items: list[dict[str, Any]] | None = None,
+) -> str:
+    lines: list[str] = []
+    for idx, item in enumerate(sm_items, start=1):
+        clave = str(item.get("clave") or "").strip()
+        if clave:
+            lines.append(f"SM {idx}: {clave}")
+    for idx, item in enumerate(vf_items, start=1):
+        clave = str(item.get("clave") or "").strip()
+        if clave:
+            lines.append(f"V/F {idx}: {clave}")
+    for idx, item in enumerate(eval_items or [], start=1):
+        clave = str(item.get("clave") or "").strip()
+        if clave:
+            kind = str(item.get("tipo_item") or "ítem")
+            lines.append(f"{kind} {idx}: {clave}")
+    if not lines:
+        return ""
+    inner = r"\begin{itemize}" + "\n" + _itemize(lines) + "\n" + r"\end{itemize}"
+    return "\n".join(
+        [
+            r"\newpage",
+            r"\needspace{8\baselineskip}",
+            _tcolor("Clave docente (no fotocopiar al curso)", inner),
+        ]
+    )
+
+
 def _sm_block(items: list[dict[str, Any]]) -> str:
     if not items:
-        return r"\emph{(sin ítems SM en el JSON)}"
+        return ""
     parts: list[str] = [r"\begin{enumerate}"]
     for item in items:
         parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}")
-        opciones = list(item.get("opciones") or [])
-        if opciones:
-            parts.append(r"\begin{itemize}")
-            for idx, opt in enumerate(opciones):
-                letter = chr(ord("A") + idx) if idx < 26 else str(idx + 1)
-                parts.append(rf"\item [{letter}] {escape_latex(str(opt))}")
-            parts.append(r"\end{itemize}")
-        clave = str(item.get("clave") or "").strip()
-        if clave:
-            parts.append(rf"\textit{{clave docente: {escape_latex(clave)}}}")
+        parts.append(_choice_list(list(item.get("opciones") or [])))
+    parts.append(r"\end{enumerate}")
+    return "\n".join(parts)
+
+
+def _vf_block(items: list[dict[str, Any]]) -> str:
+    if not items:
+        return ""
+    parts: list[str] = [r"\begin{enumerate}"]
+    for item in items:
+        parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}")
+        parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
 
 
 def _desarrollo_block(prompts: list[str]) -> str:
     if not prompts:
-        return r"\emph{(sin prompts de desarrollo)}"
+        return ""
     parts = [r"\begin{enumerate}"]
     for prompt in prompts:
+        n_rules = 3 if len(prompt) >= 80 else 2
         parts.append(rf"\item {escape_latex(prompt)}")
-        parts.append(r"\par\vspace{1.2em}\noindent\rule{\textwidth}{0.3pt}")
+        parts.append(_answer_rules(n_rules))
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
 
 
 def _actividades_block(acts: list[dict[str, Any]]) -> str:
     if not acts:
-        return r"\emph{(sin actividades)}"
+        return ""
     parts: list[str] = []
     for act in acts:
-        parts.append(rf"\subsection*{{{escape_latex(str(act.get('titulo') or 'Actividad'))}}}")
+        title = str(act.get("titulo") or "Actividad")
+        low = title.lower()
+        parts.append(rf"\subsection*{{{escape_latex(title)}}}")
+        if "falso" in low or "verdadero" in low:
+            vf = _vf_from_section(str(act.get("desarrollo") or ""))
+            if vf:
+                parts.append(_vf_block(vf))
+                continue
         if act.get("inicio"):
             parts.append(r"\textbf{Inicio.}")
             parts.append(prose_latex(str(act["inicio"])))
@@ -274,22 +560,22 @@ def _actividades_block(acts: list[dict[str, Any]]) -> str:
 
 def _eval_items_block(items: list[dict[str, Any]]) -> str:
     if not items:
-        return r"\emph{(sin ítems)}"
+        return ""
     parts = [r"\begin{enumerate}"]
     for item in items:
         pts = str(item.get("puntaje") or "").strip()
         suffix = f" ({escape_latex(pts)} pts)" if pts else ""
-        parts.append(
-            rf"\item [{escape_latex(str(item.get('tipo_item') or 'ítem'))}] "
-            rf"{escape_latex(str(item.get('enunciado') or ''))}{suffix}"
-        )
+        kind = str(item.get("tipo_item") or "ítem").strip().lower()
+        parts.append(rf"\item {escape_latex(str(item.get('enunciado') or ''))}{suffix}")
         opciones = list(item.get("opciones") or [])
-        if opciones:
-            parts.append(r"\begin{itemize}")
-            for idx, opt in enumerate(opciones):
-                letter = chr(ord("A") + idx) if idx < 26 else str(idx + 1)
-                parts.append(rf"\item [{letter}] {escape_latex(str(opt))}")
-            parts.append(r"\end{itemize}")
+        if kind in {"sm", "seleccion", "selección"} or (
+            opciones and kind not in {"vf", "verdadero"}
+        ):
+            parts.append(_choice_list(opciones))
+        elif kind in {"vf", "verdadero", "falso", "verdadero/falso"}:
+            parts.append(r"\hfill \fbox{\strut V}\;\fbox{\strut F}")
+        else:
+            parts.append(_answer_rules(3 if len(str(item.get("enunciado") or "")) >= 80 else 2))
     parts.append(r"\end{enumerate}")
     return "\n".join(parts)
 

@@ -44,11 +44,82 @@ def test_repair_and_render_guia_schema():
     assert r"\documentclass" in tex
     assert "Guía de inferencias" in tex
     assert "LEN-4B-OA04" in tex
-    assert r"\begin{tabular}" in tex
+    assert r"\begin{tabular" in tex
+    assert r"\fbox{" in tex
+    assert "clave docente:" not in tex.lower()
+    assert "Clave docente" in tex
+    assert r"\write18" not in tex or r"\textbackslash{}" in tex
     # Model must not inject raw TeX commands via fields — they get escaped
     evil = repair_payload("guia", {**raw, "proposito": r"\write18{rm -rf /}"})
     safe = render_latex(evil)
     assert r"\write18" not in safe or r"\textbackslash{}" in safe
+
+
+def test_guia_omits_empty_sections_and_keeps_student_header():
+    tex = render_latex(
+        {
+            "tipo": "guia",
+            "titulo": "Ficha corta",
+            "curso": "4° básico",
+            "asignatura": "Lenguaje",
+            "oa": "LEN-4B-OA04",
+            "proposito": "Marcar pistas.",
+            "sm_items": [
+                {
+                    "enunciado": "¿Quién preguntó?",
+                    "opciones": ["El cóndor", "El huemul", "El río"],
+                    "clave": "B",
+                }
+            ],
+            "vf_items": [{"enunciado": "El valle tenía sed.", "clave": "V"}],
+            "desarrollo_prompts": ["Escribe una inferencia con cita del cuento."],
+        }
+    )
+    assert "Nombre:" in tex
+    assert "Fecha:" in tex
+    assert "Selección múltiple" in tex
+    assert "Verdadero o falso" in tex
+    assert r"\fbox{\strut V}" in tex
+    assert "Materiales" not in tex
+    assert "sin ítems" not in tex
+    assert "(sin " not in tex
+    assert tex.count(r"\rule{\textwidth}") >= 2
+    # many short fragments collapse (worksheet, not one blank line per markdown line)
+    bloated = render_latex(
+        {
+            "tipo": "guia",
+            "titulo": "Ficha",
+            "proposito": "Practicar.",
+            "desarrollo_prompts": [
+                "Resuelve el sistema.",
+                "x+y=5",
+                "x-y=1",
+                "verifica el par",
+                "otra pista corta",
+                "más texto corto",
+                "y otro",
+                "Escribe el procedimiento completo con verificación del par ordenado.",
+            ],
+        }
+    )
+    assert bloated.count(r"\item ") <= 4
+
+
+def test_planificacion_omits_empty_evaluacion_section():
+    tex = render_latex(
+        {
+            "tipo": "planificacion",
+            "titulo": "Plan valle",
+            "curso": "4° básico",
+            "objetivo": "Leer el cuento.",
+            "inicio": "Activar saberes.",
+            "desarrollo": "Lectura compartida.",
+            "cierre": "Ticket.",
+        }
+    )
+    assert r"\section*{Objetivo}" in tex
+    assert r"\section*{Evaluación}" not in tex
+    assert r"\section*{Recursos}" not in tex
 
 
 def test_export_latex_from_markdown(tmp_path):
@@ -342,6 +413,57 @@ Compara tu par ordenado con el ejemplo de la carpeta.
     assert vf
     assert any("sustitución" in p or "sustitucion" in p for p in payload["desarrollo_prompts"])
     assert "par ordenado" in payload["cierre"]
+
+
+def test_worksheet_guia_compiles_with_pdflatex(tmp_path):
+    from tero.latex.render import compile_pdf, export_latex
+
+    source = tmp_path / "ficha.md"
+    source.write_text(
+        """---
+generado_por: tero
+tipo: guia
+titulo: Ficha huemul
+curso: 4° básico
+asignatura: Lenguaje
+oa: LEN-4B-OA04
+---
+
+# Guía
+
+## Propósito
+Practicar inferencias.
+
+## Selección múltiple
+1. ¿Quién preguntó al cóndor?
+a) El huemul
+b) El río
+c) La nieve
+Clave: A
+
+## Verdadero o falso
+- El valle tenía sed.
+
+## Ítems de desarrollo
+- Escribe una inferencia con cita.
+""",
+        encoding="utf-8",
+    )
+    dest = tmp_path / "ficha.tex"
+    export_latex(source, dest, try_pdf=True)
+    pdf = dest.with_suffix(".pdf")
+    compiled = compile_pdf(dest)
+    assert dest.exists()
+    text = dest.read_text(encoding="utf-8")
+    assert "Nombre:" in text
+    assert "sin ítems" not in text
+    if compiled is None and not pdf.exists():
+        import shutil
+
+        if shutil.which("latexmk"):
+            raise AssertionError("latexmk está instalado pero la ficha no compiló")
+        return
+    assert pdf.exists()
 
 
 def test_escape_latex_drops_narrow_nbsp_for_pdflatex():
