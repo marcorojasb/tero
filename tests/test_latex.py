@@ -522,6 +522,34 @@ Ticket de salida sin laboratorio.
     assert "ticket" in payload["cierre"].lower()
 
 
+def test_extract_skips_vf_instruction_and_rubric_chrome():
+    md = """# Prueba
+
+## Ítem II: Verdadero o falso (4 puntos)
+Escribe V si es verdadero o F si es falso. Justifica tu respuesta con una frase del texto.
+1. El cóndor sabía que alguien había empujado el agua.
+
+## Ítem III: Desarrollo (5 puntos)
+Responde la siguiente pregunta en forma completa.
+### Pregunta
+¿Por qué el narrador dice que el huemul tenía menos miedo que el que vuela?
+**Tu respuesta debe incluir:**
+- Una explicación de por qué el huemul tiene menos miedo que el cóndor (que vuela).
+- Una cita textual del cuento que apoye tu respuesta.
+"""
+    payload = extract_payload_from_markdown(md, tipo="evaluacion")
+    vf = [row for row in payload["items"] if row.get("tipo_item") == "vf"]
+    des = [row for row in payload["items"] if row.get("tipo_item") == "desarrollo"]
+    blob = " ".join(str(row.get("enunciado") or "") for row in payload["items"]).lower()
+    assert vf
+    assert any("empujado" in row["enunciado"].lower() for row in vf)
+    assert "escribe v" not in blob
+    assert des
+    assert any("miedo" in row["enunciado"].lower() and "?" in row["enunciado"] for row in des)
+    assert "una explicación" not in blob
+    assert all(row["enunciado"].strip().lower() != "pregunta" for row in des)
+
+
 def test_plan_nested_dict_becomes_prose():
     from tero.latex.schemas import repair_payload
 

@@ -11,6 +11,7 @@ from tero.latex.render import (
 )
 from tero.latex.schemas import (
     SCHEMA_TYPES,
+    enrich_payload_from_markdown,
     extract_payload_from_markdown,
     load_schema,
     parse_payload_json,
@@ -22,6 +23,7 @@ __all__ = [
     "SCHEMA_TYPES",
     "TEMPLATES_ROOT",
     "compile_pdf",
+    "enrich_payload_from_markdown",
     "export_latex",
     "extract_payload_from_markdown",
     "load_schema",

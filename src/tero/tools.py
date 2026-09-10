@@ -16,7 +16,7 @@ from tero.curriculum.catalog import list_oa as catalog_list_oa
 from tero.curriculum.catalog import resolve_oa as catalog_resolve_oa
 from tero.curriculum.catalog import search_oa as catalog_search_oa
 from tero.evidence import parse_evidence_blob, snippet_in_text, verify_evidence
-from tero.latex.schemas import parse_payload_json
+from tero.latex.schemas import enrich_payload_from_markdown, parse_payload_json
 from tero.plan import build_plan
 from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
 from tero.workspace import Workspace
@@ -498,6 +498,7 @@ def _draft_artifact(ctx: TurnContext):
             seen.add(key)
             merged.append(checked)
         schema = parse_payload_json(parsed.value, payload_json)
+        schema = enrich_payload_from_markdown(parsed.value, schema, cuerpo_markdown)
         if schema:
             _fill_payload_from_encargo(schema, ctx.encargo)
         ctx.pending_draft = ArtifactDraft(

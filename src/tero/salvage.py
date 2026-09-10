@@ -38,6 +38,9 @@ def salvage_draft_from_text(
         from tero.latex.schemas import parse_payload_json
 
         payload = parse_payload_json(parsed.value, _unescape(payload_raw))
+    from tero.latex.schemas import enrich_payload_from_markdown
+
+    payload = enrich_payload_from_markdown(parsed.value, payload, cuerpo)
     if not cuerpo.strip() and payload:
         cuerpo = f"# {title}\n"
     if not cuerpo.strip():

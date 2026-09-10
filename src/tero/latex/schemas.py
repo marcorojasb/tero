@@ -660,7 +660,7 @@ def _as_eval_items(value: Any) -> list[dict[str, Any]]:
                 "clave": str(row.get("clave") or "").strip(),
             }
         )
-    return [item for item in out if item["enunciado"]]
+    return [item for item in out if item["enunciado"] and not _is_answer_chrome(item["enunciado"])]
 
 
 def _eval_items_from_split_payload(data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -810,6 +810,8 @@ def _canonical_section_key(title: str) -> str | None:
         return "vf"
     if "items de desarrollo" in folded or folded.startswith("desarrollo "):
         return "desarrollo"
+    if "desarrollo" in folded and "item" in folded:
+        return "desarrollo"
     return None
 
 
@@ -873,6 +875,43 @@ def _fill_empty_fields(dst: dict[str, Any], src: dict[str, Any]) -> None:
         incoming_empty = value is None or value == "" or value == [] or value == {}
         if empty and not incoming_empty:
             dst[key] = value
+
+
+def _payload_has_body(payload: dict[str, Any]) -> bool:
+    for key in ("items", "sm_items", "vf_items", "actividades", "criterios"):
+        value = payload.get(key)
+        if isinstance(value, list) and value:
+            return True
+    return any(
+        str(payload.get(field) or "").strip()
+        for field in ("inicio", "desarrollo", "cierre", "objetivo", "proposito")
+    )
+
+
+def enrich_payload_from_markdown(
+    tipo: str,
+    payload: dict[str, Any] | None,
+    markdown: str,
+) -> dict[str, Any] | None:
+    """Fill empty schema fields from the markdown body before the JSON fence."""
+    md = _strip_host_appendix(_strip_json_fence(markdown or ""))
+    if not md.strip():
+        return payload
+    extracted = extract_payload_from_markdown(md, tipo=tipo)
+    if payload is None:
+        return extracted if _payload_has_body(extracted) else None
+    if _schema_key(tipo) == "evaluacion":
+        items = payload.get("items")
+        if isinstance(items, list):
+            payload["items"] = [
+                row
+                for row in items
+                if isinstance(row, dict)
+                and str(row.get("enunciado") or "").strip()
+                and not _is_answer_chrome(str(row.get("enunciado") or ""))
+            ]
+    _fill_empty_fields(payload, extracted)
+    return payload
 
 
 def _as_plan_prose(value: Any) -> str:
@@ -958,13 +997,17 @@ def _is_answer_chrome(text: str) -> bool:
     if _is_tex_chrome(cleaned):
         return True
     if re.match(
-        r"^(respuesta(?:\s+correcta)?|justifica|puntaje total|nota:|clave)\b",
+        r"^(respuesta(?:\s+correcta)?|justificaci[oó]n|justifica|"
+        r"cita textual|tu respuesta|puntaje total|puntuaci[oó]n|nota:|clave|"
+        r"escribe v si|escribe v o f|marca v si|marca v o f|indica v o f|"
+        r"una explicaci[oó]n|una cita|"
+        r"responde la siguiente|lee cada pregunta|marca con una [x×])\b",
         cleaned,
         flags=re.IGNORECASE,
     ):
         return True
     compact = re.sub(r"[^a-záéíóúñü]", "", cleaned.lower())
-    if compact in {"verdadero", "falso", "vf", "verdaderofalso"}:
+    if compact in {"verdadero", "falso", "vf", "verdaderofalso", "pregunta"}:
         return True
     if "fuentes/" in cleaned.lower() and "verific" in cleaned.lower():
         return True
@@ -1180,24 +1223,31 @@ def _eval_items_from_markdown(
 
 
 def _desarrollo_prompts(text: str) -> list[str]:
-    prompts: list[str] = []
-    for bullet in _bullets(text):
-        if not _is_answer_chrome(bullet):
-            prompts.append(bullet)
+    prompts = [bullet for bullet in _bullets(text) if not _is_answer_chrome(bullet)]
+    questions = [row for row in prompts if "?" in row]
+    if questions:
+        return questions
     if prompts:
         return prompts
     paras = [p.strip() for p in re.split(r"\n\s*\n", text or "") if p.strip()]
+    cleaned: list[str] = []
     for para in paras:
         line = re.sub(r"\s+", " ", para).strip()
+        line = re.sub(r"^#+\s*", "", line)
         line = re.sub(r"^\*+\s*|\s*\*+$", "", line)
         if line and not _is_answer_chrome(line) and line not in {"---", "***"}:
-            return [line[:500]]
-    return []
+            cleaned.append(line[:500])
+    questions = [row for row in cleaned if "?" in row]
+    if questions:
+        return questions[:3]
+    return cleaned[:1]
 
 
 def _items_from_section(text: str) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for bullet in _bullets(text):
+        if _is_answer_chrome(bullet):
+            continue
         items.append(
             {"tipo_item": "desarrollo", "enunciado": bullet, "puntaje": "", "opciones": []}
         )
