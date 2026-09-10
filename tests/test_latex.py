@@ -350,6 +350,7 @@ def test_escape_latex_drops_narrow_nbsp_for_pdflatex():
     escaped = escape_latex("Lectura guiada (15\u202fmin)")
     assert "\u202f" not in escaped
     assert "15 min" in escaped
+    assert "x-y" in escape_latex("x\u2212y")
     tex = render_latex(
         {
             "tipo": "planificacion",
