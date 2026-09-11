@@ -335,7 +335,7 @@ python -m tero demo --offline --yes
       promptTitle = "encargo";
       placeholder = "1–4 otro rumbo · o escribe";
       footer = state.stamp === "ACEPTADO" ? "s → derivados/" : state.stamp === "BORRADOR" ? "b → borradores/" : "listo";
-      plan = rumbo ? rumbo.planTitle : "";
+      plan = rumbo ? rumbo.plan.split("\n").slice(1, 5).join("\n") : "";
       gate = "";
       proposal = rumbo ? rumbo.draft : "";
       evidence = rumbo ? rumbo.evidence : evidence;
