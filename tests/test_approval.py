@@ -399,3 +399,37 @@ def test_approval_es_inmutable_con_defaults() -> None:
     assert Approval(kind="aprobar") == Approval(kind="aprobar", note="", raw="")
     with pytest.raises(FrozenInstanceError):
         Approval(kind="aprobar").kind = "cambiar"  # type: ignore[misc]
+
+
+def test_como_no_con_pregunta_no_aprueba() -> None:
+    """La invariante del "?" no tiene excepciones, ni siquiera con "cómo no"."""
+    for texto in (
+        "cómo no, ¿y el OA?",
+        "¡cómo no! ¿cuándo lo hacemos?",
+        "cómo no, ¿ok?",
+        "cómo no po, ¿te tinca?",
+        "cómo no, ¿lo escribes?",
+        "cómo no, ¿me avisas?",
+        "cómo no. ¿quién?",
+        "cómo no, ¿cuánto dura?",
+        "¿cómo no si te lo pedí?",
+        "¿cómo no, si te lo pedí?",
+        "¿cómo no?",
+    ):
+        aprobacion = classify_approval(texto)
+        assert aprobacion.kind != "aprobar", f"{texto!r} no puede aprobar: {aprobacion}"
+
+
+def test_como_no_sin_pregunta_sigue_aprobando() -> None:
+    """El modismo de aceptación no se pierde al cerrar la invariante."""
+    for texto in (
+        "cómo no",
+        "como no",
+        "cómo no, dale",
+        "cómo no po",
+        "¡cómo no!",
+        "cómo no, gracias",
+        "cómo no, obvio",
+        "sí, cómo no",
+    ):
+        assert classify_approval(texto).kind == "aprobar", texto

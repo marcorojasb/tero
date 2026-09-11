@@ -215,8 +215,9 @@ def classify_approval(text: str) -> Approval:
         return Approval(kind="descartar", raw=raw)
 
     # 3b. "cómo no" aprueba, pero arranca con un interrogativo, así que se resuelve
-    #     antes de la regla de consulta. Un "?" explícito lo desactiva.
-    if _COMO_NO_APRUEBA_RE.search(folded):
+    #     antes de la regla de consulta. Un "?" en CUALQUIER parte del texto lo
+    #     desactiva: la invariante "una consulta nunca aprueba" no tiene excepciones.
+    if "?" not in folded and _COMO_NO_APRUEBA_RE.search(folded):
         return Approval(kind="aprobar", note=_approve_note(raw.strip()), raw=raw)
 
     # Basta un "?" en cualquier parte, aunque después venga un emoji o una palabra.
