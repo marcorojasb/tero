@@ -90,10 +90,13 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-hug" in html
+    assert "styles.css?v=vte-nord" in html
     assert "tui-grid.js?v=vte-hotkeys" in html
     assert "ficha.js?v=vte-hotkeys" in html
     assert "min-height: calc(100vh" not in css
+    assert "0 24px 70px" not in css
+    assert "border-radius: 10px" not in css
+    assert "background: var(--tui-bg)" in css
     assert '$("consulta").hidden = false' not in js
     assert '$("consulta").hidden = true' in js
     assert '$("prompt").readOnly' in js

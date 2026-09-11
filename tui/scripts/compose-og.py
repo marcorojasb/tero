@@ -17,7 +17,7 @@ OUT = ROOT / "site" / "assets" / "tero-og.png"
 FONT = Path("/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Medium.ttf")
 
 OG_W, OG_H = 1200, 630
-BG = (5, 7, 8)
+BG = (11, 13, 16)
 PANEL = (18, 21, 26)
 BORDER = (44, 51, 60)
 TEXT = (216, 222, 233)
@@ -25,13 +25,6 @@ MUTED = (122, 132, 144)
 TRAFFIC = ((255, 95, 87), (254, 188, 46), (40, 200, 64))
 CHROME_H = 36
 PAD = 28
-RADIUS = 10
-
-
-def rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
-    mask = Image.new("L", size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size[0] - 1, size[1] - 1), radius, fill=255)
-    return mask
 
 
 def main() -> None:
@@ -49,6 +42,7 @@ def main() -> None:
     draw = ImageDraw.Draw(window)
     draw.rectangle((0, 0, win_w, CHROME_H), fill=PANEL)
     draw.line((0, CHROME_H - 1, win_w, CHROME_H - 1), fill=BORDER)
+    draw.rectangle((0, 0, win_w - 1, win_h - 1), outline=BORDER)
     x = 14
     for color in TRAFFIC:
         draw.ellipse((x, 12, x + 12, 24), fill=color)
@@ -62,11 +56,8 @@ def main() -> None:
     draw.text((win_w - pw - 14, 10), path, fill=MUTED, font=font)
     window.paste(inner, (0, CHROME_H))
 
-    masked = Image.new("RGB", window.size, BG)
-    masked.paste(window, (0, 0), rounded_mask(window.size, RADIUS))
-
     canvas = Image.new("RGB", (OG_W, OG_H), BG)
-    canvas.paste(masked, ((OG_W - win_w) // 2, (OG_H - win_h) // 2))
+    canvas.paste(window, ((OG_W - win_w) // 2, (OG_H - win_h) // 2))
     canvas.save(OUT, optimize=True)
     print(f"wrote {OUT} {canvas.size} from {HOME.name} @{scale:.3f}")
 
