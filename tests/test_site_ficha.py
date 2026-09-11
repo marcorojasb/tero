@@ -91,9 +91,9 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=ave" in html
-    assert "tui-grid.js?v=ave" in html
-    assert "ficha.js?v=ave" in html
+    assert "styles.css?v=chilensis" in html
+    assert "tui-grid.js?v=chilensis" in html
+    assert "ficha.js?v=chilensis" in html
     assert "left: var(--cell-w, 10px)" in css
     assert "top: var(--cell-h, 24px)" in css
     assert "left: 8%" not in css
@@ -126,7 +126,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
-    assert "?v=ave" in js or "ave" in js
+    assert "?v=chilensis" in js or "chilensis" in js
     assert "plan-2" in js
     assert "puerta-2" in js
     assert "leyendo-2" in js
@@ -158,8 +158,10 @@ def test_ficha_assets_and_pages_workflow():
     mark = _read(SITE / "assets" / "tero.txt")
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
-    assert "(•)>" in mark
-    assert "ellipse" in _read(SITE / "assets" / "tero-mark.svg")
+    assert "▀▀▀▀███████" in mark
+    mark_svg = _read(SITE / "assets" / "tero-mark.svg")
+    assert "Vanellus chilensis" in mark_svg
+    assert "<path" in mark_svg
     home_html = _read(SITE / "assets" / "tui" / "frames" / "home.html")
     assert "window-chrome sr-only" in home_html
     assert 'class="traffic"' not in home_html
@@ -173,7 +175,7 @@ def test_ficha_assets_and_pages_workflow():
     assert not home_lines[2].startswith("╰")
     assert "[1] Planificar" in home_frame
     assert "tus fuentes, tu criterio" in home_frame
-    assert "(•)>" in home_frame
+    assert "▀▀▀▀███████" in home_frame
     assert "secuencia de clase" in home_frame
     assert "5 fuentes" in home_frame
     assert "recientes" in home_frame

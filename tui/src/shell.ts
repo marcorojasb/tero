@@ -36,16 +36,22 @@ const syntax = SyntaxStyle.fromStyles({
   "markup.bold": { fg: theme.text, bold: true },
 })
 
-/** Queltehue de perfil — cresta, ojo, carúncula y pico. Líneas al mismo ancho. */
+/** Vanellus chilensis de perfil — silueta de foto: cresta, pico, patas. */
 export const HOME_BIRD = [
-  "              ▲  ",
-  "             ╱   ",
-  "       ▄▄▄▄▄╱(•)>",
-  "      █▀  ▄▄▀▀▀  ",
-  "      █  ▓▓▓  █  ",
-  "       ▀▄▄▄▄▄▀   ",
-  "         ║  ║    ",
-  "        ─┘  └─   ",
+  "      ▄▄▄▄▄      ▄▄▄▄▄   ",
+  "    ▄████████  ▀▀▀▀▀▀▀▀▀▀",
+  "  ▀▀▀▀███████            ",
+  "       ██████            ",
+  "       ██████▄           ",
+  "       ███████▄          ",
+  "      ██████████▄        ",
+  "      █████████████▄     ",
+  "      ███████████████▄   ",
+  "       ▀███████████████▄ ",
+  "          ▀▀█████████████",
+  "            ███  ▀▀██████",
+  "            █ █      ▀▀██",
+  "            ▀ ▀          ",
 ].join("\n")
 
 export type Shell = {

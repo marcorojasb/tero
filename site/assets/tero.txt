@@ -6,13 +6,19 @@ En Chile el queltehue se planta en el potrero y grita cuando alguien
 se acerca al nido. No resuelve. Avisa. El agente hace lo mismo:
 prepara la hoja, deja los avisos a la vista, y espera s / n / b / c.
 
-Marca (queltehue de perfil: cresta, ojo, carúncula, pico):
+Marca (silueta de perfil, trazada de un queltehue de verdad):
 
-              ▲
-             ╱
-       ▄▄▄▄▄╱(•)>
-      █▀  ▄▄▀▀▀
-      █  ▓▓▓  █
-       ▀▄▄▄▄▄▀
-         ║  ║
-        ─┘  └─
+      ▄▄▄▄▄      ▄▄▄▄▄
+    ▄████████  ▀▀▀▀▀▀▀▀▀▀
+  ▀▀▀▀███████
+       ██████
+       ██████▄
+       ███████▄
+      ██████████▄
+      █████████████▄
+      ███████████████▄
+       ▀███████████████▄
+          ▀▀█████████████
+            ███  ▀▀██████
+            █ █      ▀▀██
+            ▀ ▀

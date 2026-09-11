@@ -6,14 +6,14 @@
 ╭─ tero ─────────────────────────────────╮
 │ offline · inicio                       │
 ╰────────────────────────────────────────╯
-              ▲
-             ╱│
-      ▄▄▄▄▄ ╱(o)*     tero
-     █     █▄▀        tus fuentes, tu criterio
-     █ ▓▓▓▓  █
-      ▀▄▓▓▄▄▄▀
-        ║   ║
-       ─┘   └─
+      ▄▄▄▄▄      ▄▄▄▄▄
+    ▄████████  ▀▀▀▀▀▀▀▀▀▀
+  ▀▀▀▀███████              tero
+       ██████              tus fuentes, tu criterio
+       ██████▄
+      ██████████▄
+            █ █
+            ▀ ▀
   [1] Planificar  [2] Crear  [3] Evaluar  [4] Adaptar
 ╭─ pregunta ─────────────────────────────╮
 │ Pregunta, explora o crea…              │

@@ -29,14 +29,20 @@
   };
 
   const BIRD = [
-    "              ▲  ",
-    "             ╱   ",
-    "       ▄▄▄▄▄╱(•)>",
-    "      █▀  ▄▄▀▀▀  ",
-    "      █  ▓▓▓  █  ",
-    "       ▀▄▄▄▄▄▀   ",
-    "         ║  ║    ",
-    "        ─┘  └─   ",
+    "      ▄▄▄▄▄      ▄▄▄▄▄   ",
+    "    ▄████████  ▀▀▀▀▀▀▀▀▀▀",
+    "  ▀▀▀▀███████            ",
+    "       ██████            ",
+    "       ██████▄           ",
+    "       ███████▄          ",
+    "      ██████████▄        ",
+    "      █████████████▄     ",
+    "      ███████████████▄   ",
+    "       ▀███████████████▄ ",
+    "          ▀▀█████████████",
+    "            ███  ▀▀██████",
+    "            █ █      ▀▀██",
+    "            ▀ ▀          ",
   ];
 
   const RUMBOS = [
@@ -706,7 +712,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=ave`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=chilensis`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;
