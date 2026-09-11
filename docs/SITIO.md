@@ -36,7 +36,7 @@ de la demo es `tero-offline`. AgentCore no es el producto.
 | `site/tui-grid.js` | Pinta cajas `╭╮` y tokens de la TUI real. |
 | `site/ficha.js` | Consulta (rumbos, reloj, puerta) sobre esa grilla. |
 | `tui/scripts/capture-frames.ts` | Vuelca frames OpenTUI (`createTestRenderer` + `captureSpans`). |
-| `site/assets/tui/frames/` | Home / encargo / plan / puerta auténticos. |
+| `site/assets/tui/frames/` | Home, leyendo, plan y puerta por rumbo 1–4, capturados del renderer OpenTUI. |
 | `site/stamp.py` | En cada Pages deploy escribe el SHA en `build-info.json`. |
 | `.github/workflows/pages.yml` | Publica `site/` desde `main`. |
 

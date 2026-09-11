@@ -89,8 +89,14 @@ def test_ficha_landing_is_the_github_page():
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
     assert "paintFrame" in grid
+    assert "promptBoxFromFrame" in grid
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
+    assert "plan-2" in js
+    assert "puerta-2" in js
+    assert "leyendo-2" in js
+    assert "~/carpeta-tui" not in html
+    assert 'id="window-path"' in html
 
 
 def test_ficha_assets_and_pages_workflow():
@@ -115,6 +121,11 @@ def test_ficha_assets_and_pages_workflow():
     assert "secuencia de clase" in home_frame
     puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
     assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
+    guia_puerta = _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt")
+    assert "guía" in guia_puerta.lower() or "sistemas" in guia_puerta.lower()
+    assert "cóndor" not in guia_puerta.lower()
+    leyendo = _read(SITE / "assets" / "tui" / "frames" / "leyendo-2.txt")
+    assert "leyendo" in leyendo.lower()
     theme = _read(SITE / "assets" / "tui" / "frames" / "theme.json")
     assert "#82aaff" in theme
     assert "#0b0d10" in theme

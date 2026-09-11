@@ -11,11 +11,29 @@
   const Tui = window.teroTui;
   const GRID_COLS = 140;
   const GRID_ROWS = 40;
-  const frames = { home: null, encargo: null, plan: null, puerta: null };
+  const FRAME_NAMES = [
+    "home",
+    "encargo",
+    "plan",
+    "puerta",
+    "leyendo-1",
+    "leyendo-2",
+    "leyendo-3",
+    "leyendo-4",
+    "plan-1",
+    "plan-2",
+    "plan-3",
+    "plan-4",
+    "puerta-1",
+    "puerta-2",
+    "puerta-3",
+    "puerta-4",
+  ];
+  const frames = Object.fromEntries(FRAME_NAMES.map((name) => [name, null]));
 
   function loadFrames() {
     return Promise.all(
-      Object.keys(frames).map((name) =>
+      FRAME_NAMES.map((name) =>
         fetch(`./assets/tui/frames/${name}.json`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
@@ -284,7 +302,14 @@ python -m tero demo --offline --yes
   function frameForPhase() {
     if (state.help) return null;
     if (state.phase === "home") return frames.home;
-    return null;
+    const rumbo = state.rumbo || "1";
+    if (state.phase === "esperando_plan" || state.phase === "plan") {
+      return frames[`plan-${rumbo}`] || frames.plan;
+    }
+    if (state.phase === "esperando_criterio" || state.phase === "listo") {
+      return frames[`puerta-${rumbo}`] || frames.puerta;
+    }
+    return frames[`leyendo-${rumbo}`] || frames.encargo;
   }
 
   function paint() {
@@ -301,8 +326,11 @@ python -m tero demo --offline --yes
     state.promptBox = painted.prompt;
     placePrompt(painted.prompt);
     document.body.dataset.view = model.view === "home" ? "home" : "session";
-    $("window-path").textContent = model.path || "~/carpeta-tui";
-    $("prompt").placeholder = model.placeholder;
+    const sha = $("window-path").dataset.sha;
+    $("window-path").textContent = sha || "";
+    const typing = Boolean($("prompt").value);
+    $("prompt").placeholder = captured && !typing ? "" : model.placeholder;
+    $("prompt").style.background = typing ? Tui.theme.inputBg : "transparent";
     $("prompt").readOnly = model.view === "puerta" || model.view === "plan";
   }
 
@@ -387,7 +415,7 @@ python -m tero demo --offline --yes
       rows: state.rows,
       header,
       chips: rumbo ? rumbo.chips : [],
-      path: state.phase === "home" ? "" : "~/carpeta-tui",
+      path: state.phase === "home" ? "" : "~/tero",
       promptTitle,
       placeholder,
       promptValue: "",
@@ -468,14 +496,14 @@ python -m tero demo --offline --yes
       const s = (performance.now() - state.startedAt) / 1000;
       $("reloj").textContent = `${s.toFixed(1)} s`;
       if (state.phase !== "home" && state.phase !== "esperando_criterio" && state.phase !== "listo") {
-        paint();
+        if (!frameForPhase()) paint();
       }
     }, 120);
     stopSpinner();
     state.spinnerTimer = window.setInterval(() => {
       state.spinner += 1;
       if (state.phase !== "esperando_criterio" && state.phase !== "listo" && state.phase !== "home") {
-        paint();
+        if (!frameForPhase()) paint();
       }
     }, 80);
   }
@@ -694,6 +722,9 @@ python -m tero demo --offline --yes
     if (hit.action === "rumbo") prepare(hit.key);
     if (hit.action === "gate") decide(hit.key);
   });
+  $("prompt").addEventListener("input", () => {
+    $("prompt").style.background = $("prompt").value ? Tui.theme.inputBg : "transparent";
+  });
   $("prompt").addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter") return;
     ev.preventDefault();
@@ -756,14 +787,20 @@ python -m tero demo --offline --yes
     .then((info) => {
       if (info && info.short) {
         $("window-path").dataset.sha = info.short;
-        $("window-path").textContent = `~/carpeta-tui · ${info.short}`;
+        $("window-path").textContent = info.short;
       }
     })
     .catch(() => {});
 
   setGateEnabled(false);
-  loadFrames().finally(() => {
+  const start = () => {
     paint();
     $("prompt").focus();
+  };
+  loadFrames().finally(() => {
+    start();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => start()).catch(() => {});
+    }
   });
 })();

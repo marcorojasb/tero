@@ -251,8 +251,10 @@ body {
 .hoja-frame img {
   display: block;
   width: 100%;
+  min-height: 42vh;
   height: auto;
-  mix-blend-mode: multiply;
+  background: var(--paper);
+  mix-blend-mode: normal;
 }
 
 .hoja-frame figcaption {

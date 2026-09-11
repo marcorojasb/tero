@@ -440,20 +440,80 @@
     drawHeader(screen, model, L);
     if (model.help) {
       drawHelp(screen, model, L);
-    } else if (model.view === "home") {
+      drawGate(screen, model, L, hits);
+      const prompt = drawPrompt(screen, model, L);
+      drawFooter(screen, model);
+      paintTo(el, screen);
+      return { cols, rows, hits, prompt, layout: L };
+    }
+    if (model.view === "home") {
       drawHome(screen, model, L, hits);
-    } else if (model.view === "plan") {
+      const prompt = drawPrompt(screen, model, L);
+      drawFooter(screen, model);
+      paintTo(el, screen);
+      return { cols, rows, hits, prompt, layout: L };
+    }
+    if (model.view === "plan") {
+      /* OpenTUI packs plan + gate + prompt from the top; leftover rows sit below the footer. */
       drawPlan(screen, model, L);
       drawClarify(screen, model, L);
-    } else {
-      drawWorkspace(screen, model, L);
-      if (model.plan && model.view === "puerta") drawPlan(screen, model, L);
+      const yGate = L.headerH + L.planH + (model.clarify ? L.clarifyH : 0);
+      const gateH = model.gate ? 3 : 0;
+      const yPrompt = yGate + gateH;
+      const yFooter = yPrompt + 3;
+      if (model.gate) {
+        screen.box(0, yGate, screen.cols, 3, {
+          title: model.gateTitle || " plan ",
+          bg: T.overlay,
+          border: T.accent,
+          titleFg: T.accent,
+        });
+        screen.text(2, yGate + 1, clip(model.gate, screen.cols - 4), T.text, T.overlay);
+        ["s", "n", "b", "c", "a"].forEach((key) => {
+          const token = `[${key}]`;
+          const at = model.gate.indexOf(token);
+          if (at >= 0) {
+            hits.push({
+              action: key === "a" ? "approve" : "gate",
+              key,
+              x: 2 + at,
+              y: yGate + 1,
+              w: token.length + 12,
+              h: 1,
+            });
+          }
+        });
+      }
+      const prompt = drawPromptAt(screen, model, yPrompt);
+      screen.fill(0, yFooter, screen.cols, 1, " ", T.muted, T.bg);
+      screen.text(0, yFooter, clip(` ${model.footer || ""}`, screen.cols), T.muted, T.bg);
+      paintTo(el, screen);
+      return { cols, rows, hits, prompt, layout: L };
     }
+    drawWorkspace(screen, model, L);
+    if (model.plan && model.view === "puerta") drawPlan(screen, model, L);
     drawGate(screen, model, L, hits);
     const prompt = drawPrompt(screen, model, L);
     drawFooter(screen, model);
     paintTo(el, screen);
     return { cols, rows, hits, prompt, layout: L };
+  }
+
+  function drawPromptAt(screen, model, y) {
+    const w = screen.cols;
+    const title = ` ${model.promptTitle || "encargo"} `;
+    const border =
+      model.view === "puerta" ? T.ok : model.view === "plan" ? T.accent : T.borderFocus;
+    screen.box(0, y, w, 3, {
+      title,
+      bg: T.inputBg,
+      border,
+      titleFg: T.muted,
+    });
+    const ph = model.promptValue || model.placeholder || "Pregunta, explora o crea…";
+    const color = model.promptValue ? T.text : T.faint;
+    screen.text(2, y + 1, clip(ph, w - 4), color, T.inputBg);
+    return { x: 2, y: y + 1, w: w - 4 };
   }
 
   function cssRgba(c) {
@@ -464,6 +524,18 @@
     const a = c[3] == null ? 1 : c[3];
     if (a < 0.999) return `rgba(${r},${g},${b},${a})`;
     return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function promptBoxFromFrame(frame) {
+    const lines = String(frame.text || "").split("\n");
+    const markers = ["╭─ pregunta", "╭─ encargo", "╭─ crítica", "╭─ supuesto", "╭─ responde"];
+    for (let y = 0; y < lines.length; y++) {
+      if (markers.some((m) => lines[y].includes(m))) {
+        return { x: 2, y: y + 1, w: Math.max(8, (frame.cols || 140) - 4) };
+      }
+    }
+    const cursor = frame.cursor || [2, Math.max(0, (frame.rows || 40) - 3)];
+    return { x: 2, y: cursor[1], w: Math.max(8, (frame.cols || 140) - 4) };
   }
 
   function paintFrame(el, frame) {
@@ -484,12 +556,11 @@
     }
     el.innerHTML = parts.join("");
     const hits = hitsFromText(frame.text || "", frame.cols);
-    const cursor = frame.cursor || [2, Math.max(0, frame.rows - 3)];
     return {
       cols: frame.cols,
       rows: frame.rows,
       hits,
-      prompt: { x: 2, y: cursor[1], w: Math.max(8, frame.cols - 4) },
+      prompt: promptBoxFromFrame(frame),
       capture: true,
     };
   }
@@ -539,6 +610,7 @@
     spinner: (n) => SPINNER[n % SPINNER.length],
     paint,
     paintFrame,
+    promptBoxFromFrame,
     hitsFromText,
     fitHost,
     clip,
