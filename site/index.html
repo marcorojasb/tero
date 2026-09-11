@@ -6,7 +6,7 @@
     <title>tero — tus fuentes, tu criterio</title>
     <meta
       name="description"
-      content="tero es el queltehue del aula: avisa, no decide. Prepara material en tu carpeta. Tú eliges s / n / b / c. Offline honesto (tero-offline)."
+      content="tero es el queltehue del aula: avisa, no decide. Conversa, propone y solo escribe en derivados/ si tú apruebas con y —o diciendo «dale». Offline honesto (tero-offline)."
     />
     <meta name="theme-color" content="#0b0d10" />
     <link rel="icon" href="./assets/tero-mark.svg" type="image/svg+xml" />
@@ -26,14 +26,10 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=chilensis" />
+    <link rel="stylesheet" href="./styles.css?v=conversacional" />
   </head>
-  <body
-    data-warnings-block-s="false"
-    data-offline-model="tero-offline"
-    data-view="home"
-  >
-    <a class="skip" href="#prompt">Saltar al prompt</a>
+  <body data-offline-model="tero-offline" data-view="home" data-phase="idle">
+    <a class="skip" href="#prompt">Saltar al mensaje</a>
 
     <div class="window" id="app">
       <header class="window-chrome sr-only">
@@ -59,7 +55,7 @@
             aria-label="TUI de tero"
           ></div>
         </div>
-        <label class="sr-only" for="prompt">Prompt tero</label>
+        <label class="sr-only" for="prompt">Mensaje para tero</label>
         <input
           id="prompt"
           class="tui-prompt"
@@ -70,11 +66,12 @@
           aria-label="Pregunta, explora o crea"
         />
 
-        <section class="archivo" id="archivo" hidden>
-          <p class="archivo-lead" id="archivo-lead">Archivo creado</p>
+        <section class="archivo" id="archivo" hidden aria-label="Ficha que el host escribió en derivados/">
+          <p class="archivo-lead" id="archivo-lead">Archivo escrito</p>
           <figure class="hoja-frame">
-            <img id="hoja-img" alt="Página de la ficha generada" />
+            <img id="hoja-img" alt="Página de la ficha escrita en derivados/" />
             <figcaption id="hoja-cap"></figcaption>
+            <p class="stamp-label" id="stamp-label">REVISAR</p>
           </figure>
           <p class="hoja-nav">
             <button type="button" id="hoja-prev">página anterior</button>
@@ -85,47 +82,65 @@
       </div>
     </div>
 
-    <nav class="sr-only" aria-label="Rumbos y puerta">
-      <p>Elige un rumbo (teclas 1–4). tero prepara; tú decides.</p>
-      <button type="button" data-rumbo="1" aria-keyshortcuts="1">1 Planificar</button>
-      <button type="button" data-rumbo="2" aria-keyshortcuts="2">2 Crear</button>
-      <button type="button" data-rumbo="3" aria-keyshortcuts="3">3 Evaluar</button>
-      <button type="button" data-rumbo="4" aria-keyshortcuts="4">4 Adaptar</button>
-      <button type="button" data-gate="s" title="aceptar → derivados/"><kbd>s</kbd> sí → derivados/</button>
-      <button type="button" data-gate="n" title="descartar"><kbd>n</kbd> no</button>
-      <button type="button" data-gate="b" title="guardar borrador"><kbd>b</kbd> borrador</button>
-      <button type="button" data-gate="c" title="corregir"><kbd>c</kbd> corregir</button>
+    <nav class="sr-only" aria-label="Escenas de la sesión conversacional">
+      <p>
+        tero conversa: entiende la intención de tu mensaje y actúa. Responde,
+        crea material o adapta uno existente. Antes de escribir te muestra qué
+        va a hacer y la vista previa, y espera tu aprobación.
+      </p>
+      <button type="button" data-escena="responder" data-prompt="¿Qué tengo en la carpeta?">
+        a) responder — «¿Qué tengo en la carpeta?»
+      </button>
+      <button
+        type="button"
+        data-escena="crear"
+        data-prompt="Prepara una evaluación de comprensión lectora para 4° básico."
+      >
+        b) crear — evaluación de comprensión lectora
+      </button>
+      <button
+        type="button"
+        data-escena="descartar"
+        data-prompt="Necesito una guía para introducir sistemas 2×2 en 1° medio."
+      >
+        b) crear — guía de sistemas 2×2
+      </button>
+      <button
+        type="button"
+        data-escena="adaptar"
+        data-prompt="Adapta la evaluación del cóndor para un estudiante con dislexia."
+      >
+        c) adaptar a NEE — dislexia
+      </button>
+      <button type="button" data-decision="aprobar"><kbd>y</kbd> aprobar — el host escribe en derivados/</button>
+      <button type="button" data-decision="descartar"><kbd>n</kbd> descartar — no se escribe nada</button>
     </nav>
 
-    <section id="consulta" hidden>
+    <section id="consulta" hidden aria-label="Registro de la sesión">
       <p>
-        <span id="reloj">0.0 s</span>
         <span id="corrida-real"></span>
       </p>
       <ol id="bitacora"></ol>
     </section>
 
-    <p id="chips" hidden>elige un rumbo · tero prepara · tú decides</p>
-    <p id="stamp-label" hidden>REVISAR</p>
-    <p id="gate-note" hidden>Espera un rumbo. Después la puerta se enciende.</p>
+    <p id="gate-note" hidden>La TUI no escribe: escribe el host, y solo tras tu aprobación.</p>
     <ul id="fuentes" hidden>
       <li data-kind="dir">fuentes/</li>
     </ul>
     <ul id="derivados" hidden>
       <li data-kind="dir">derivados/</li>
-      <li data-empty="true" class="empty">(vacío hasta que pulses s)</li>
-    </ul>
-    <ul id="borradores" hidden>
-      <li data-kind="dir">borradores/</li>
-      <li data-empty="true" class="empty">(vacío hasta que pulses b)</li>
+      <li data-empty="true" class="empty">(vacío hasta que apruebes)</li>
     </ul>
 
     <section id="help-copy" hidden>
       <p>El tero avisa. Tú decides. Vanellus chilensis · queltehue. asistente pedagógico.</p>
       <p>
-        Lee fuentes/, propone un plan y deja un borrador en la puerta. No escribe
-        originales. El modelo de esta sesión es tero-offline: un Strands Model
-        scripted, no un Bedrock disfrazado. AgentCore no es el producto.
+        Conversa: lee fuentes/, responde lo que le preguntas, propone material
+        nuevo y adapta el existente. Antes de escribir muestra qué va a hacer y
+        la vista previa, y espera tu aprobación (y, o «dale» en el hilo). El
+        modelo nunca escribe archivos: escribe el host, en derivados/. No toca
+        los originales. El modelo de esta sesión es tero-offline: un Strands
+        Model scripted, no un Bedrock disfrazado. AgentCore no es el producto.
         Default README: amazon.nova-lite-v1:0.
       </p>
       <p>python -m tero demo --offline --yes</p>
@@ -134,23 +149,7 @@
       </p>
     </section>
 
-    <dialog id="critica" aria-labelledby="critica-title">
-      <form method="dialog">
-        <p id="critica-title">Crítica (c)</p>
-        <p>Queda en <code>.tero/criticas/</code> y tero reescribe el borrador.</p>
-        <textarea
-          id="critica-text"
-          rows="4"
-          placeholder="Más evidencia, menos adorno. Cerrar con ticket de salida."
-        ></textarea>
-        <menu>
-          <button value="cancel">cancelar</button>
-          <button value="ok" id="critica-ok">reescribir</button>
-        </menu>
-      </form>
-    </dialog>
-
-    <script src="./tui-grid.js?v=chilensis"></script>
-    <script src="./ficha.js?v=chilensis"></script>
+    <script src="./tui-grid.js?v=conversacional"></script>
+    <script src="./ficha.js?v=conversacional"></script>
   </body>
 </html>

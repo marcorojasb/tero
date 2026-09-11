@@ -1,5 +1,5 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ offline · inicio · 5 fuentes                                                                                                             │
+│ offline · listo · 5 fuentes                                                                                                              │
 │                                                              ▄▄▄▄▄      ▄▄▄▄▄                                                            │
 │                                                            ▄████████  ▀▀▀▀▀▀▀▀▀▀                                                         │
 │                                                          ▀▀▀▀███████                                                                     │
@@ -8,33 +8,33 @@
 │                                                               ███████▄                                                                   │
 │                                                              ██████████▄                                                                 │
 │                                                              █████████████▄                                                              │
-│                                                              ███████████████▄                                                            │
-│                                                               ▀███████████████▄                                                          │
-│                                                                  ▀tero██████████                                                         │
+│                                                              █████tero██████▄                                                            │
 │                                                         tus fuentes, tu criterio                                                         │
-│                                                                                                                                          │
-│                                secuencia de]clasei·iguía o[actividad ·[pruebaloapauta4· ajustar material                                 │
-│                                                       1–4 rumbo · o escribe abajo                                                        │
-│                                                                                                                                          │
+│                                                        Pregunta, explora o crea…                                                         │
+│                                             El agente responde, crea o adapta · tú apruebas                                              │
 │                                           recientes                                                                                      │
-│                                             · derivado · 20260910-210457-planificacion-leer-…                                            │
-│                                             · derivado · 20260910-205527-planificacion-leer-…                                            │
+│                                             · derivado · 20260910-210457-evaluacion-condor-4…                                            │
+│                                             · derivado · 20260910-205527-planificacion-cuent…                                            │
 │╭─ ayuda ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
-││ tero — inicio                                                                                                                          ││
-││                                                                                                                                        ││
-││ Rumbos                                                                                                                                 ││
-││   1 Planificar   2 Crear   3 Evaluar   4 Adaptar                                                                                       ││
+││ tero — conversación                                                                                                                    ││
 ││                                                                                                                                        ││
 ││ Escribe abajo: «Pregunta, explora o crea…»                                                                                             ││
-││ Chips tras rumbo o encargo. Catálogo OA Chile (host).                                                                                  ││
+││ El agente entiende la intención y actúa:                                                                                               ││
+││   responde · crea material · edita o adapta                                                                                            ││
 ││                                                                                                                                        ││
-││ ? cierra · q sale                                                                                                                      ││
+││ Cuando propone un archivo verás la vista previa.                                                                                       ││
+││   y  aprobar y escribir en derivados/                                                                                                  ││
+││   n  descartar (no escribe nada)                                                                                                       ││
+││ O responde con tus palabras: el host clasifica.                                                                                        ││
 ││                                                                                                                                        ││
+││ Contexto del encargo                                                                                                                   ││
+││   /curso  /asignatura  /oa  /tipo  /tema  /duracion                                                                                    ││
+││   /export [md|latex|docx]   /retry   /salir                                                                                            ││
 ││                                                                                                                                        ││
-││                                                                                                                                        ││
+││ ? cierra                                                                                                                               ││
 │╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
-│╭─ pregunta ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+│╭─ ayuda ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
 ││ Pregunta, explora o crea…                                                                                                              ││
 │╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
-│ 5 fuentes     PgUp/PgDn  esc cierra                                                                                                      │
+│ 5 fuentes en la carpeta     PgUp/PgDn  esc cierra                                                                                        │
 ╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -98,12 +98,9 @@ body {
 
 /* Session ledgers stay out of the window. Never a second column. */
 #consulta,
-#chips,
-#stamp-label,
 #gate-note,
 #fuentes,
 #derivados,
-#borradores,
 #help-copy {
   display: none !important;
 }
@@ -332,6 +329,7 @@ body {
 }
 
 .hoja-frame {
+  position: relative;
   margin: 0;
   background: var(--paper);
   border: 1px solid #2a1a10;
@@ -371,8 +369,7 @@ body {
   font-size: 0.82rem;
 }
 
-.hoja-nav button,
-dialog menu button {
+.hoja-nav button {
   font: inherit;
   cursor: pointer;
   border: 1px solid var(--border);
@@ -381,8 +378,7 @@ dialog menu button {
   padding: 0.32rem 0.5rem;
 }
 
-.hoja-nav button:hover,
-dialog menu button:hover {
+.hoja-nav button:hover {
   border-color: var(--border-soft);
   color: var(--text);
 }
@@ -398,40 +394,6 @@ a {
   color: var(--accent);
 }
 
-dialog {
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-family: var(--font);
-  padding: 1rem;
-  max-width: 28rem;
-}
-
-dialog::backdrop {
-  background: #0b0d10cc;
-}
-
-dialog p {
-  margin: 0 0 0.5rem;
-}
-
-dialog textarea {
-  width: 100%;
-  background: var(--input-bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  font: 0.85rem var(--font);
-  padding: 0.4rem;
-}
-
-dialog menu {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.4rem;
-  padding: 0.6rem 0 0;
-  margin: 0;
-}
-
 .err-code {
   color: var(--err);
   margin: 0 0 0.6rem;
@@ -443,13 +405,22 @@ dialog menu {
   font-size: 0.72rem;
 }
 
+/* El sello REVISAR vive sobre la fotocopia: la hoja que el host escribió
+   sigue pasando por el criterio del docente. */
 .stamp-label {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 2.2rem;
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.16em;
-  color: var(--err);
-  border: 1px solid var(--err);
-  padding: 0.05rem 0.4rem;
+  color: #a3312a;
+  border: 2px solid #a3312a;
+  border-radius: 2px;
+  padding: 0.1rem 0.45rem;
+  transform: rotate(-7deg);
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 @media (max-width: 960px) {
@@ -474,8 +445,7 @@ dialog menu {
   .tui-grid,
   .tui-prompt,
   .sr-only,
-  .hoja-nav,
-  dialog {
+  .hoja-nav {
     display: none !important;
   }
 

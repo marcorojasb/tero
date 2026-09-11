@@ -289,6 +289,24 @@ function homeState(): AppState {
   }
 }
 
+/** Intención a): el agente contesta sobre la carpeta. Sin tarjeta ni gate. */
+function respuestaState(): AppState {
+  return {
+    ...homeState(),
+    screen: "conversacion",
+    started: true,
+    messages: [
+      { id: "m1", role: "persona", text: "¿Qué tengo en la carpeta?" },
+      {
+        id: "m2",
+        role: "agente",
+        text: "Cinco fuentes: el cuento «El cóndor y el huemul», las bases del OA 4 de Lenguaje, una pauta de lectura, vocabulario de álgebra y ejemplos de sistemas resueltos.\n\nPuedo responder sobre ellas, crear material nuevo o adaptar algo que ya esté en derivados/.",
+      },
+    ],
+    statusLine: "respuesta · sin propuesta pendiente",
+  }
+}
+
 /** Conversación sin tarjeta: el agente pregunta en lenguaje natural. */
 function conversacionState(): AppState {
   return {
@@ -319,6 +337,12 @@ const shots: { name: string; width: number; height: number; state: () => AppStat
     width: 140,
     height: 40,
     state: () => ({ ...homeState(), help: true }),
+  },
+  {
+    name: "respuesta",
+    width: 140,
+    height: 40,
+    state: respuestaState,
   },
   {
     name: "conversacion",
@@ -378,6 +402,40 @@ const shots: { name: string; width: number; height: number; state: () => AppStat
         ],
       })
     },
+  },
+  {
+    name: "escrito-adaptar",
+    width: 140,
+    height: 46,
+    state: () => {
+      const path = "derivados/20260911-101800-evaluacion-condor-adaptada-4d7b31.md"
+      return baseState(fixtures.adaptar, {
+        cardStatus: "escrito",
+        phase: "listo",
+        writtenPath: path,
+        writtenAccion: "adaptar",
+        statusLine: `escrito · adaptar · ${path}`,
+        messages: [
+          ...fixtures.adaptar.messages,
+          { id: "m4", role: "host", text: "escrito · adaptar", path },
+        ],
+      })
+    },
+  },
+  {
+    name: "descartado",
+    width: 140,
+    height: 46,
+    state: () =>
+      baseState(fixtures.evaluacion, {
+        cardStatus: "descartado",
+        phase: "idle",
+        statusLine: "descartado · derivados/ intacto",
+        messages: [
+          ...fixtures.evaluacion.messages,
+          { id: "m4", role: "host", text: "descartado · no se escribió nada" },
+        ],
+      }),
   },
   {
     name: "error",

@@ -1,0 +1,46 @@
+╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ offline · tu decisión · 3 fuentes                                                                                                        │
+│ [ 1° medio ]  [ Matemática ]  [ sistemas 2×2 ]  [ 90 min ]  [ guia ]                                                                     │
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+││ tú  › Necesito una guía para introducir sistemas ││ crear · guía — Guía de sistemas 2×2 — dos        ││ ▸ 1/2  ? parafraseo            ││
+││ 2×2.                                             ││ rectas, un punto                                 ││   fuentes/vocabulario-algebra. ││
+││                                                  ││ Guía de 90 min: vocabulario, selección múltiple, ││ md                             ││
+││ tero › ¿La pienso para 90 minutos con trabajo en ││ verdadero/falso y desarrollo con verificación.   ││   Vocabulario                  ││
+││ parejas?                                         ││                                                  ││   “sistema 2×2: dos ecuaciones ││
+││                                                  ││                                                  ││   lineales…”                   ││
+││ tú  › Sí, 90 minutos y con ejemplos resueltos.   ││                                                  ││                                ││
+││                                                  ││                                                  ││   2/2  ✓  fuentes/ejemplos-    ││
+││                                                  ││                                                  ││ sistemas-resueltos.md          ││
+││                                                  ││                                                  ││     Ejemplo A                  ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ ---                                              ││                                ││
+││                                                  ││ tipo: guia                                       ││                                ││
+││                                                  ││ curso: 1° medio                                  ││                                ││
+││                                                  ││ ---                                              ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ ## Propósito                                     ││                                ││
+││ actividad                                        ││ Reconocer un sistema 2×2 como dos condiciones a  ││                                ││
+││ en espera                                        ││ la vez.                                          ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ ## I. Vocabulario                                ││                                ││
+││                                                  ││ sistema 2×2 · solución · verificación            ││                                ││
+││                                                  ││                                                  ││ avisos (no bloquean)           ││
+││                                                  ││ ## II. Desarrollo                                ││ ! Menos de dos fuentes       █ ││
+││                                                  ││ Resuelve por sustitución: 2x + y = 12, x − y =   ││ citadas. El panel de evidenci█ ││
+││                                                  ││ 3.                                               ││ queda pobre.                 ▀ ││
+││                                                  ││                                                  ││ ! Faltan apartados esperados   ││
+│╰──────────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯╰────────────────────────────────╯│
+│╭─ aprobación ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ ¿escribo el archivo?   [y] aprobar   [n] descartar   ·  o escribe tu decisión abajo   evid 1/2                                         ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ tu decisión ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ y aprueba · n descarta · o escribe tu decisión…                                                                                        ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ tu decisión: y aprueba · n descarta · o escribe                                                                                          │
+╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
