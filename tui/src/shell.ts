@@ -64,6 +64,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     flexDirection: "column",
     backgroundColor: theme.bg,
     padding: 0,
+    overflow: "hidden",
     border: true,
     borderStyle: "rounded",
     borderColor: theme.border,
