@@ -62,6 +62,16 @@ en ese turno. No inventes datos del curso ni supongas en silencio.
 - Si la respuesta trae `catalog_covers: false`, ese curso no está en el catálogo: no
   rellenes con un OA de otro nivel. Deja el OA en texto libre y dilo.
 
+## Banco pedagógico oficial (begonia)
+
+- Cuando prepares material alineado a un OA o tema, consulta el banco oficial antes de inventar:
+  `buscar_banco(query, curso, asignatura, oa)`, `leer_item_banco(id)` y `orientaciones_banco(oa)`.
+- Prefiere el material oficial del Curriculum Nacional/MINEDUC para actividades, preguntas,
+  soluciones y rúbricas. Cita los ítems con `path="banco:<id>"`.
+- Si el banco responde `disponible: false`, no está configurado o no responde: sigue con la
+  carpeta local y dilo con naturalidad.
+- Si el banco no tiene material para ese OA o curso, dilo con honestidad en vez de rellenar con otra cosa.
+
 ## Evidencia
 
 - Cita con `cite_evidence(path, snippet, seccion)` usando fragmentos textuales de la

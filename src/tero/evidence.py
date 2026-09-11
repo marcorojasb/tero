@@ -4,11 +4,21 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable
 from typing import Any
 
 from tero.artifacts import missing_headings
 from tero.coerce import as_text
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Propuesta, WarningItem
+from tero.types import (
+    ArtifactDraft,
+    ArtifactType,
+    Encargo,
+    Evidence,
+    Propuesta,
+    WarningItem,
+    banco_item_id,
+    is_banco_path,
+)
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
@@ -25,7 +35,28 @@ def snippet_in_text(text: str, snippet: Any) -> bool:
     return " ".join(needle.lower().split()) in compact
 
 
-def verify_evidence(workspace: Workspace, item: Evidence) -> Evidence:
+def verify_evidence(
+    workspace: Workspace,
+    item: Evidence,
+    *,
+    banco_ids: Iterable[str] | None = None,
+) -> Evidence:
+    """Comprueba la cita contra su fuente: el archivo local o el banco oficial.
+
+    Una cita `banco:<id>` no se busca en la carpeta (no es una ruta): se da por
+    verificada solo si el host sirvió ese id en el turno (`banco_ids`). Sin esa
+    lista se respeta el `verified` que ya calculó el host al citar.
+    """
+    if is_banco_path(item.path):
+        ident = banco_item_id(item.path)
+        verified = item.verified if banco_ids is None else ident in set(banco_ids)
+        return Evidence(
+            path=item.path,
+            snippet=item.snippet,
+            seccion=item.seccion,
+            start_line=item.start_line,
+            verified=verified,
+        )
     try:
         payload = workspace.read_source(item.path)
     except Exception:
@@ -198,16 +229,20 @@ def collect_warnings(
             )
         )
 
-    if len(draft.evidencias) < 2:
-        warnings.append(
-            WarningItem(
-                code="thin_evidence",
-                message="Menos de dos fuentes citadas. El panel de evidencia quedará pobre.",
-            )
-        )
-
     unverified_paths: list[str] = []
+    fuentes_locales: set[str] = set()
+    banco_sin_comprobar: list[str] = []
+    citas_banco = 0
     for item in draft.evidencias:
+        if is_banco_path(item.path):
+            # Cita al banco: no es una ruta de la carpeta, así que no aplica
+            # unknown_source ni el hash local. Su verificación es contra el banco.
+            citas_banco += 1
+            if not item.verified:
+                banco_sin_comprobar.append(item.path)
+            continue
+        if item.path:
+            fuentes_locales.add(item.path)
         if item.path and item.path not in sources:
             warnings.append(
                 WarningItem(
@@ -229,6 +264,30 @@ def collect_warnings(
                     message=f"La fuente {item.path} cambió respecto del índice. tero no toca el original.",
                 )
             )
+    # El banco oficial cuenta como evidencia real: si el material se apoya en
+    # ítems del banco, no se avisa por tener menos de dos fuentes locales.
+    if len(fuentes_locales) < 2 and not citas_banco:
+        warnings.append(
+            WarningItem(
+                code="thin_evidence",
+                message=(
+                    "Menos de dos fuentes citadas. Cita la carpeta y, si el banco "
+                    'oficial cubre el OA, sus ítems con path="banco:<id>".'
+                ),
+            )
+        )
+    if banco_sin_comprobar:
+        listed = ", ".join(dict.fromkeys(banco_sin_comprobar))
+        warnings.append(
+            WarningItem(
+                code="banco_cita_no_verificada",
+                message=(
+                    f"{len(banco_sin_comprobar)} cita(s) al banco que no salieron de una "
+                    f"consulta de este turno ({listed}). Compruébalas con buscar_banco o "
+                    "leer_item_banco antes de darlas por oficiales."
+                ),
+            )
+        )
     if unverified_paths:
         unique_paths = list(dict.fromkeys(unverified_paths))
         listed = ", ".join(unique_paths)

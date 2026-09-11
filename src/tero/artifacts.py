@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from tero.errors import WorkspaceError
-from tero.types import ArtifactType, Encargo, Evidence, Propuesta
+from tero.types import ArtifactType, Encargo, Evidence, Propuesta, is_banco_path
 from tero.workspace import Workspace
 
 REQUIRED_HEADINGS: dict[ArtifactType, tuple[str, ...]] = {
@@ -151,6 +151,10 @@ def render_front_matter(encargo: Encargo, propuesta: Propuesta) -> str:
     )
     if duracion:
         lines.append(f"duracion: {duracion}")
+    snapshot = (draft.banco_snapshot or "").strip()
+    if snapshot:
+        # Trazabilidad: con qué versión del banco oficial se armó este material.
+        lines.append(f"banco_snapshot: {snapshot}")
     lines.append("---")
     lines.append("")
     return "\n".join(lines)
@@ -162,8 +166,16 @@ def render_evidence_appendix(evidencias: list[Evidence]) -> str:
     lines = ["", "## Evidencia (fuentes usadas)", ""]
     for item in evidencias:
         where = f" — sección *{item.seccion}*" if item.seccion else ""
-        mark = "verificada" if item.verified else "no verificada en el archivo"
-        lines.append(f"- `{item.path}`{where} · {mark}")
+        if is_banco_path(item.path):
+            mark = (
+                "verificada contra el banco oficial"
+                if item.verified
+                else "cita al banco no comprobada en este turno"
+            )
+            lines.append(f"- `{item.path}` · banco pedagógico oficial (MINEDUC){where} · {mark}")
+        else:
+            mark = "verificada" if item.verified else "no verificada en el archivo"
+            lines.append(f"- `{item.path}`{where} · {mark}")
         snippet = item.snippet.strip().replace("\n", " ")
         if snippet:
             lines.append(f"  > {snippet[:280]}")

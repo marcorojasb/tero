@@ -38,6 +38,11 @@ class Settings:
     carpeta: Path = EXAMPLE_CARPETA
     skip_plan: bool = False
     temperature: float = 0.3
+    # Banco pedagógico (begonia), solo lectura. Vacío = banco deshabilitado.
+    begonia_url: str = ""
+    begonia_api_key: str = ""
+    begonia_key_file: str = ""
+    begonia_timeout: float = 6.0
 
     @classmethod
     def from_env(cls, *, offline: bool | None = None, carpeta: Path | None = None) -> Settings:
@@ -58,4 +63,8 @@ class Settings:
             ).expanduser(),
             skip_plan=os.environ.get("TERO_SKIP_PLAN", "").strip() in {"1", "true", "yes"},
             temperature=_env_float("TERO_TEMPERATURE", 0.3),
+            begonia_url=os.environ.get("TERO_BEGONIA_URL", "").strip(),
+            begonia_api_key=os.environ.get("TERO_BEGONIA_API_KEY", "").strip(),
+            begonia_key_file=os.environ.get("TERO_BEGONIA_KEY_FILE", "").strip(),
+            begonia_timeout=_env_float("TERO_BEGONIA_TIMEOUT", 6.0),
         )

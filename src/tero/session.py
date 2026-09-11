@@ -14,6 +14,7 @@ from typing import Any
 
 from strands import Agent
 
+from tero.begonia import BegoniaClient
 from tero.config import Settings
 from tero.encargo_sync import source_domain_warning, sync_encargo_from_prompt
 from tero.errors import TeroError, humanize_exception
@@ -79,7 +80,12 @@ class TeacherSession:
         self.emit: EmitFn = self._emit
         self.turns: list[Turn] = []
         self.phase: ProtocolPhase = "idle"
-        self.ctx = TurnContext(workspace=workspace, encargo=self.encargo, emit=self.emit)
+        self.ctx = TurnContext(
+            workspace=workspace,
+            encargo=self.encargo,
+            emit=self.emit,
+            banco=BegoniaClient.from_settings(settings),
+        )
         self.last_prompt: str = ""
         self.last_artifact: Path | None = None
         self.pending_propuesta: Propuesta | None = None
@@ -181,6 +187,7 @@ class TeacherSession:
         # la descarte o el agente entregue una nueva.
         self.ctx.pending_propuesta = None
         self.ctx.evidence = []
+        self.ctx.reset_banco()
         self.workspace.ensure_index()
         try:
             self._run_turn(turn, self._user_payload(cleaned))
