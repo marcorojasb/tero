@@ -1,31 +1,31 @@
-# AWS lo más barato — tero no vive en el playground
+# Cheapest AWS path — tero does not live in the playground
 
-La forma más barata de **seguir probando tero** no es subirlo a un
-runtime. Es el loop que ya existe: carpeta local + Strands + Nova Lite.
-AgentCore Harness es un chat administrado. No es la TUI, no es la
-puerta `s` / `n` / `b` / `c`, no es la carpeta hasheada.
+The cheapest way to **keep testing tero** is not to deploy it to a runtime. It is
+the loop that already exists: local folder + Strands + Amazon Bedrock. AgentCore
+Harness is a managed chat: **AgentCore Harness es un chat administrado** — it is not
+the TUI, not the conversational approval, not the hashed folder.
 
-Esto no es un pitch. Es cómo no quemar créditos y cómo postular a
+This is not a pitch. It is how not to burn credits and how to submit to
 [Agents for Humans](https://agentsforhumans.devpost.com/).
 
-## Respuesta corta
+## Short answer
 
-| Pregunta | Respuesta |
+| Question | Answer |
 | --- | --- |
-| ¿Cargo tero al playground `tero-Xe4RaZkLO2`? | **No como producto.** Puedes pegar el prompt (ver [hackathon/harness-playground.md](hackathon/harness-playground.md)) para un sketch de AWS. El agente real corre en tu máquina. |
-| ¿Cómo aprovecho ~USD 120 de Free Tier? | Nova Lite/Micro desde `python -m tero`. Offline para casi todo. No dejes Claude Sonnet ni Browser encendidos en el harness. |
-| ¿Qué es gratis de verdad? | `--offline` (USD 0). GitHub Pages. Builder ID. Devpost. Actividades Extra Credit del widget Explore AWS (hasta USD 20 c/u). |
-| ¿Los USD 50 del hackathon? | Formulario [forms.gle/6sjzKiX6bKUMA5NEA](https://forms.gle/6sjzKiX6bKUMA5NEA) **hoy 11 sep 2026, 12:00 PT**. En **Free plan no aplican** créditos promocionales: hay que estar en Paid plan. |
+| Do I upload tero to the harness playground? | **Not as the product.** You can paste the system prompt (see [hackathon/harness-playground.md](hackathon/harness-playground.md)) for an AWS sketch. The real agent runs on your machine. |
+| How do I use the Free Tier credits? | Nova Lite/Micro from `python -m tero`. Offline for almost everything. Do not leave Claude Sonnet or Browser running in the harness. |
+| What is genuinely free? | `--offline` (USD 0). GitHub Pages. Builder ID. Devpost. |
+| The USD 50 hackathon credits? | The form (<https://forms.gle/6sjzKiX6bKUMA5NEA>) **closed on 2026-09-11** and Resources states all credits were disbursed. Not needed for the submission. |
 
-## Lo que ya está hecho (cuenta tero)
+## What is already done
 
-- Cuenta AWS **Free plan** (9 sep 2026). Incluye USD 100 al alta y hasta USD 100 más por actividades. Vence el **9 mar 2027** o cuando se acaben los créditos — lo que ocurra primero. Si se acaban en Free plan, **AWS cierra la cuenta**.
-- Inscrito en Agents for Humans. El submission de Devpost **ya está empezado**.
-- Hay un harness en us-east-1: [playground tero-Xe4RaZkLO2](https://us-east-1.console.aws.amazon.com/bedrock-agentcore/harnesses/playground?id=tero-Xe4RaZkLO2).
+- AWS account in `us-east-1`.
+- Registered on Agents for Humans; the Devpost submission is started.
+- A harness playground exists (optional sketch only).
 
-## Path barato (en este orden)
+## Cheap path, in order
 
-### 0. USD 0 — pruebas de verdad
+### 0. USD 0 — real tests
 
 ```bash
 python -m tero demo --offline --yes
@@ -33,147 +33,117 @@ python -m tero tui --offline
 pytest && (cd tui && bun test src)
 ```
 
-El modelo se llama `tero-offline`. No finge Bedrock. Úsalo para el
-video de 2 minutos y para no gastar nada mientras arreglas la TUI.
+The model is labeled `tero-offline`. It does not fake Bedrock. Use it for the video
+and to fix the TUI without spending anything.
 
-### 1. Casi gratis — Nova Lite en tu laptop
+### 1. Almost free — Bedrock on your laptop
 
-Un Strands agent → Bedrock Converse. **Sin** Runtime, Gateway, Browser
-ni Code Interpreter.
+One Strands agent → Bedrock ConverseStream. **No** Runtime, Gateway, Browser or
+Code Interpreter.
 
 Checklist:
 
-1. Región **us-east-1**.
-2. **No hay página Model access.** AWS la retiró: los modelos serverless (Nova Lite incluido) se habilitan solos al **primer invoke** en la cuenta. Catálogo: [Model catalog](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/model-catalog). Humo barato: [text playground](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/text-playground) → Amazon Nova Lite → un prompt. Si Strands pide inference profile, `TERO_MODEL=us.amazon.nova-lite-v1:0`. Docs: [model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
-3. IAM mínimo: [hackathon/iam-bedrock-minimo.json](hackathon/iam-bedrock-minimo.json) (`InvokeModel` + `InvokeModelWithResponseStream`). Nova es de Amazon: **no** pasa por Marketplace. El formulario de Anthropic / `aws-marketplace:Subscribe` solo aplica si invocas Claude u otro tercero — no lo hagas para ahorrar.
-4. `cp .env.example .env` → `TERO_OFFLINE=0`. Credenciales en el entorno, **nunca en git**.
-5. Presupuesto de alerta: [hackathon/budget-tero.json](hackathon/budget-tero.json) o créalo a mano en [Budgets](https://us-east-1.console.aws.amazon.com/billing/home#/budgets).
+1. Region **`us-east-1`**.
+2. **There is no Model access page** — AWS retired it: serverless models (Nova
+   Lite included) **se habilitan solos** on the first `InvokeModel` in the
+   account. Catalog:
+   [Model catalog](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/model-catalog).
+   Cheap smoke: the text playground with `amazon.nova-lite-v1:0`. If Strands asks
+   for an inference profile, `TERO_MODEL=us.amazon.nova-lite-v1:0`.
+3. Minimum IAM: [hackathon/iam-bedrock-minimo.json](hackathon/iam-bedrock-minimo.json)
+   (`InvokeModel` + `InvokeModelWithResponseStream`). Nova is first-party: it does
+   **not** go through Marketplace, so no `aws-marketplace:Subscribe` is needed.
+4. `cp .env.example .env` → `TERO_OFFLINE=0`. Credentials live in the environment,
+   **never in git**.
+5. Spend alert: [hackathon/budget-tero.json](hackathon/budget-tero.json), or create
+   one by hand in [Budgets](https://us-east-1.console.aws.amazon.com/billing/home#/budgets).
 
 ```bash
-python -m tero tui          # Nova Lite
-# smoke más barato:
+python -m tero tui          # default: Nova Lite
+# cheaper smoke:
 TERO_MODEL=amazon.nova-micro-v1:0 python -m tero demo --yes
 ```
 
-Precios on-demand us-east-1 (Bedrock, sep 2026, verificar en
-[la lista oficial](https://aws.amazon.com/bedrock/pricing/)):
+On-demand prices in `us-east-1` (Bedrock, Sep 2026 — check the
+[official list](https://aws.amazon.com/bedrock/pricing/)):
 
-| Modelo | Input / 1M tok | Output / 1M tok | Para qué |
+| Model | Input / 1M tok | Output / 1M tok | For |
 | --- | --- | --- | --- |
 | Nova Micro | ~USD 0.035 | ~USD 0.14 | smokes |
-| **Nova Lite** (default tero) | ~USD 0.06 | ~USD 0.24 | loop de aula |
-| Claude Sonnet 4.6 (default del harness) | ~USD 3 | ~USD 15 | **no** para iterar |
+| **Nova Lite** (tero default) | ~USD 0.06 | ~USD 0.24 | the classroom loop |
+| Claude Sonnet 4.6 (harness default) | ~USD 3 | ~USD 15 | **not** for iterating |
 
-Una sesión tero con Nova Lite (plan + draft + un par de tools) suele
-costar **centavos**. Con USD 120 alcanzan cientos de corridas si no
-enciendes AgentCore con Sonnet, Browser o una instancia EC2 olvidada.
+A tero session with Nova Lite (proposal + approval + a couple of tools) costs
+**cents**.
 
-### 2. Sketch AWS — el playground (opcional, acotado)
+### 2. Recommended model trio (measured)
 
-El harness **no cobra fee extra**; cobras modelo + Runtime (CPU/RAM) +
-cualquier tool que dejes prendida.
+An empirical benchmark across 5 Bedrock models and 4 pedagogical journeys is in
+[EVALUATION-PAPER.md](EVALUATION-PAPER.md). The selected trio:
 
-En
-[tu playground](https://us-east-1.console.aws.amazon.com/bedrock-agentcore/harnesses/playground?id=tero-Xe4RaZkLO2):
+| Model | Success | Mean latency | Use |
+| --- | :---: | :---: | :--- |
+| `amazon.nova-lite-v1:0` | 100% | 10.0 s | Serverless default; cheapest; densest official citations |
+| `zai.glm-4.7-flash` | 100% | 10.6 s | Fastest tool calling; strict Decreto 83 NEE schema |
+| `minimax.minimax-m2.5` | 100% | 39.5 s | Richest classroom prose and assessment rubrics |
 
-1. Cambia el modelo a **Nova Lite** (no dejes Claude Sonnet).
-2. Apaga **Browser** y **Code Interpreter**.
-3. Baja `maxIterations` (p. ej. 8) y `timeoutSeconds` (p. ej. 120).
-4. Pega el system prompt de [hackathon/harness-playground.md](hackathon/harness-playground.md).
-5. **No subas `fuentes/`.** El contrato de tero es carpeta local + hash.
+### 3. AWS sketch — the playground (optional, bounded)
 
-Sirve para una captura de “está en AgentCore” que **refuerza** Technical
-Implementation. No reemplaza el demo de la TUI. Las reglas del hackathon
-dicen que AgentCore **no es obligatorio**.
+The harness charges no extra fee; you pay for model + Runtime (CPU/RAM) + any tool
+you leave turned on.
 
-### 3. Lo que no hagas (quema plata)
+In the playground:
 
-- Default del harness (Claude Sonnet + Browser + 75 iteraciones + 1 h).
-- Dejar EC2/RDS de las actividades Extra Credit encendidos.
-- Meter Runtime/Gateway/Memory como si fueran la carpeta.
-- Subir originales de curso a S3 “para que el agente los lea”.
-- Unirse a una AWS Organization: **se caen** los créditos Free Tier al tiro.
+1. Switch the model to **Nova Lite** (never leave Claude Sonnet on).
+2. Turn **Browser** and **Code Interpreter** off.
+3. Lower `maxIterations` (e.g. 8) and `timeoutSeconds` (e.g. 120).
+4. Paste the system prompt from [hackathon/harness-playground.md](hackathon/harness-playground.md).
+5. **Do not upload `fuentes/`.** tero's contract is a local folder + hash.
 
-## Cómo estirar los ~USD 120 (Free Tier)
+It is useful for a screenshot that reinforces Technical Implementation. It does not
+replace the TUI demo. The hackathon rules say AgentCore is **not required**.
 
-Documentación:
+### 4. What not to do (it burns money)
 
-- [Free Tier](https://aws.amazon.com/free/)
-- [Cómo ganar USD 100 extra](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier.html)
-- [FAQ Free plan](https://aws.amazon.com/free/free-tier-faqs/)
-- [Créditos en Billing](https://us-east-1.console.aws.amazon.com/billing/home#/credits)
-- [Free Tier usage](https://us-east-1.console.aws.amazon.com/billing/home#/freetier)
-- Widget **Explore AWS** en [Console Home](https://console.aws.amazon.com/console/home?region=us-east-1) → filtro **Earn AWS credits**
+- The harness default (Claude Sonnet + Browser + 75 iterations + 1 h).
+- Leaving EC2/RDS from the Extra Credit activities running.
+- Treating Runtime/Gateway/Memory as if they were the folder.
+- Uploading classroom originals to S3 "so the agent can read them".
+- Joining an AWS Organization: Free Tier credits drop immediately.
 
-Al alta: **USD 100**. Actividades guiadas: **USD 20 cada una**, hasta
-USD 100 más, dentro de 6 meses:
+## Applying to Agents for Humans
 
-| Actividad | Cómo (corto) | Riesgo |
-| --- | --- | --- |
-| Amazon Bedrock | [Text playground](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/text-playground) → Nova Lite → un prompt. Ese invoke **es** el alta del modelo. | Bajo. Si ves ~USD 120, esta ya está. |
-| AWS Budgets | [Crear presupuesto](https://us-east-1.console.aws.amazon.com/billing/home#/budgets) de USD 5 con alerta al 80%. | Nulo. Hazla. |
-| AWS Lambda | Function URL hello-world y bórrala. | Bajo. |
-| Amazon EC2 | Lanza t3.micro, **termina en el mismo rato**. | Alto si se te olvida. |
-| Amazon RDS | Igual: crea y **borra**. | Alto. |
+Pack ready to paste: [hackathon/README.md](hackathon/README.md).
 
-Los créditos extra tardan hasta ~30 min en
-[Credits](https://us-east-1.console.aws.amazon.com/billing/home#/credits).
-
-Free plan: **no te cobran la tarjeta** mientras no pases a Paid. Si se
-acaban los créditos o llegan los 6 meses, la cuenta se cierra (90 días
-para rescatar datos subiendo a Paid).
-
-## USD 50 del hackathon (distintos a Free Tier)
-
-- Formulario: <https://forms.gle/6sjzKiX6bKUMA5NEA>
-- Tope: **11 septiembre 2026, 12:00 PT** (mientras queden; Resources
-  ya dijo que varios se desembolsaron).
-- Términos: <https://aws.amazon.com/awscredits/>
-- Caducan **31 octubre 2026**.
-- Hay que estar **registrado en Devpost** (ya lo estás).
-- **Free plan no es elegible para créditos promocionales.** Para que
-  entren estos USD 50 hay que [pasar a Paid](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html).
-  Hazlo solo si el form los pide y **después** de tener Budget + alerta.
-  En Paid, lo que no cubran créditos **sí se cobra**.
-
-Si el form ya cerró o se acabaron: no importa. Nova Lite + Free Tier
-alcanzan para el video y las corridas de jueces.
-
-## Postular a Agents for Humans
-
-Pack listo para pegar: [hackathon/README.md](hackathon/README.md).
-
-| Qué | Link |
+| What | Link |
 | --- | --- |
 | Hackathon | <https://agentsforhumans.devpost.com/> |
-| Reglas | <https://agentsforhumans.devpost.com/rules> |
+| Rules | <https://agentsforhumans.devpost.com/rules> |
 | FAQ | <https://agentsforhumans.devpost.com/details/faqs> |
-| Resources / créditos | <https://agentsforhumans.devpost.com/resources> |
-| Entrar submission | <https://agentsforhumans.devpost.com/submissions/new> |
-| Cierre | **14 sep 2026, 17:00 PDT** |
-| Track | **Professional Agents** (docente; el brief nombra explícitamente a teachers) |
-| Repo | <https://github.com/marcorojasb/tero> (público, MIT) |
-| Demo viva (Pages) | <https://marcorojasb.github.io/tero/> |
+| Submit | <https://agentsforhumans.devpost.com/submissions/new> |
+| Close | **Sep 14, 2026, 17:00 PDT** (= 21:00 Chile) |
+| Track | **Professional Agents** (the brief explicitly names teachers) |
+| Repo | <https://github.com/marcorojasb/tero> (public, MIT) |
+| Live demo (Pages) | <https://marcorojasb.github.io/tero/> |
 | Builder ID | <https://profile.aws.amazon.com> |
-| Post bonus | <https://builder.aws.com/> → `+` → Create article, hashtag `#AgentsforHumans` |
-| Discord / dudas | tab Discussion en Devpost; mail <shawni@devpost.com> |
+| Bonus post | <https://builder.aws.com/> → `+` → Create article |
+| Judge guide | [hackathon/JUDGES-EN.md](hackathon/JUDGES-EN.md) |
 
-AgentCore **no es obligatorio**. Un demo local + Bedrock Nova Lite +
-video honesto puntúa Design e Impact. Una captura del harness (Nova
-Lite, sin Browser) suma Implementation sin mentir sobre la carpeta.
+AgentCore **is not required**. A local demo + Bedrock Nova Lite + an honest video
+scores Design and Impact. A harness screenshot (Nova Lite, no Browser) adds
+Implementation without lying about the folder.
 
-## MFA y usuario IAM
+## MFA and IAM user
 
-No uses el root para iterar. Activa MFA del root:
+Do not iterate with root. Enable root MFA:
 <https://us-east-1.console.aws.amazon.com/iam/home#/security_credentials>
 
-Crea un usuario IAM con la policy mínima de Bedrock. Access keys solo
-en `.env` local.
+Create an IAM user with the minimum Bedrock policy. Access keys only in the local
+`.env`.
 
-## Relación con el resto de docs
+## Relation to the other docs
 
-- [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) — por qué
-  Runtime no es el producto.
-- [ANALISIS-ADVERSARIAL.md](ANALISIS-ADVERSARIAL.md) — qué hay que decir
-  en el video (offline ≠ Bedrock).
-- [NORMAS.md](NORMAS.md) — disclosure Pteron / MIT.
+- [EVALUATION-PAPER.md](EVALUATION-PAPER.md) — which models, how they were measured.
+- [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) — why a runtime is not
+  the product.
+- [NORMAS.md](NORMAS.md) — Pteron / MIT disclosure.

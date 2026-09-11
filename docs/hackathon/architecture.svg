@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="820" viewBox="0 0 1680 820" role="img" aria-label="tero architecture">
-  <title>tero - el agente prepara, el profesor decide</title>
-  <rect width="1680" height="820" fill="#070B0C"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="880" viewBox="0 0 1680 880" role="img" aria-label="tero architecture">
+  <title>tero - your sources, your judgment</title>
+  <rect width="1680" height="880" fill="#070B0C"/>
   <text x="48" y="54" fill="#22D3EE" font-family="Inter, sans-serif" font-size="34" font-weight="700">tero</text>
-  <text x="128" y="52" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="20">el agente prepara, el profesor decide</text>
-  <text x="48" y="88" fill="#94A8AA" font-family="Inter, sans-serif" font-size="15">Una vuelta: el profesor pide, tero lee la carpeta, Nova Lite redacta, el profesor dice s / n / b / c.</text>
+  <text x="128" y="52" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="20">your sources, your judgment - the agent proposes, the educator decides</text>
+  <text x="48" y="88" fill="#94A8AA" font-family="Inter, sans-serif" font-size="15">One turn: the teacher writes in Spanish, tero reads the folder and the official curriculum bank, Bedrock drafts, the teacher approves - and only then does the host write.</text>
 
   <defs>
     <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#22D3EE"/></marker>
@@ -13,66 +13,95 @@
     <marker id="d" markerWidth="10" markerHeight="10" refX="5" refY="8" orient="auto"><path d="M0,0 L5,10 L10,0 Z" fill="#FBBF24"/></marker>
   </defs>
 
-  <line x1="448" y1="208" x2="552" y2="208" stroke="#22D3EE" stroke-width="3" marker-end="url(#a)"/>
-  <text x="466" y="198" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">encargo</text>
-  <line x1="560" y1="268" x2="456" y2="268" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
-  <text x="466" y="292" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">borrador</text>
-  <line x1="1080" y1="208" x2="1184" y2="208" stroke="#FB923C" stroke-width="3" marker-end="url(#c)"/>
-  <text x="1098" y="198" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">pide texto</text>
-  <line x1="1192" y1="268" x2="1088" y2="268" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
-  <text x="1090" y="292" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">redacci&#243;n</text>
+  <line x1="448" y1="216" x2="552" y2="216" stroke="#22D3EE" stroke-width="3" marker-end="url(#a)"/>
+  <text x="464" y="206" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">message</text>
+  <line x1="560" y1="272" x2="456" y2="272" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
+  <text x="464" y="296" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">proposal</text>
+  <line x1="1080" y1="216" x2="1184" y2="216" stroke="#FB923C" stroke-width="3" marker-end="url(#c)"/>
+  <text x="1094" y="206" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">prompt</text>
+  <line x1="1192" y1="272" x2="1088" y2="272" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
+  <text x="1090" y="294" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">draft</text>
 
-  <rect x="48" y="120" width="400" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
-  <rect x="48" y="120" width="6" height="300" fill="#22D3EE"/>
-  <text x="72" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Profesor</text>
-  <text x="72" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">En la terminal</text>
-  <text x="72" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">pide un encargo</text>
-  <text x="72" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">ve plan, borrador y avisos</text>
-  <rect x="72" y="288" width="88" height="32" rx="8" fill="#14532D"/><text x="84" y="310" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">s  s&#237;</text>
-  <rect x="170" y="288" width="88" height="32" rx="8" fill="#581C1C"/><text x="182" y="310" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">n  no</text>
-  <rect x="72" y="332" width="140" height="32" rx="8" fill="#423008"/><text x="84" y="354" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">b  borrador</text>
-  <rect x="222" y="332" width="140" height="32" rx="8" fill="#1E3A5A"/><text x="234" y="354" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">c  corregir</text>
-  <text x="72" y="394" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">n tira el papel. c pide otra pasada.</text>
+  <rect x="48" y="120" width="400" height="290" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="48" y="120" width="6" height="290" fill="#22D3EE"/>
+  <text x="72" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Teacher</text>
+  <text x="72" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Types in natural Spanish</text>
+  <text x="72" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;dale&#8221; / y &#8594; approve</text>
+  <text x="72" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;no, gracias&#8221; &#8594; discard</text>
+  <text x="72" y="282" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;mejor para 2&#176; b&#225;sico&#8221; &#8594; revise</text>
+  <rect x="72" y="310" width="126" height="32" rx="8" fill="#14532D"/><text x="84" y="332" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">y  approve</text>
+  <rect x="208" y="310" width="126" height="32" rx="8" fill="#581C1C"/><text x="220" y="332" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">n  discard</text>
+  <text x="72" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Sees the warnings and the full preview first.</text>
 
-  <rect x="560" y="120" width="520" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
-  <rect x="560" y="120" width="6" height="300" fill="#86EFAC"/>
-  <text x="584" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">tero  (Strands)</text>
-  <text x="584" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Lee la carpeta. Nunca la pisa.</text>
-  <text x="584" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Arma un plan y un borrador.</text>
-  <text x="584" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">El borrador queda en memoria</text>
-  <text x="584" y="282" fill="#86EFAC" font-family="Inter, sans-serif" font-size="17">hasta s o b. No decide.</text>
+  <rect x="560" y="120" width="520" height="290" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="560" y="120" width="6" height="290" fill="#86EFAC"/>
+  <text x="584" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">tero  &#183;  Strands Agents</text>
+  <text x="584" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Reads the folder. Never touches the originals.</text>
+  <text x="584" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Queries the official curriculum bank.</text>
+  <text x="584" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Proposes in memory: plan / guide / test / rubric.</text>
+  <text x="584" y="282" fill="#86EFAC" font-family="Inter, sans-serif" font-size="17">No write tool exists in the registry.</text>
 
-  <rect x="1192" y="120" width="440" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
-  <rect x="1192" y="120" width="6" height="300" fill="#FB923C"/>
+  <rect x="1192" y="120" width="440" height="290" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="1192" y="120" width="6" height="290" fill="#FB923C"/>
   <text x="1216" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock</text>
-  <text x="1216" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Nova Lite · us-east-1</text>
-  <text x="1216" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">solo infiere texto</text>
-  <text x="1216" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">la carpeta no sube a AWS</text>
-  <text x="1216" y="282" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">sin clave: tero-offline</text>
+  <text x="1216" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">amazon.nova-lite-v1:0</text>
+  <text x="1216" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">us-east-1 &#183; serverless</text>
+  <text x="1216" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">infers text only</text>
+  <text x="1216" y="282" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">the folder never leaves the machine</text>
+  <text x="1216" y="310" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">no keys &#8594; tero-offline (scripted)</text>
 
-  <line x1="820" y1="420" x2="820" y2="492" stroke="#FBBF24" stroke-width="3" marker-end="url(#d)"/>
-  <text x="832" y="452" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">lee fuentes/</text>
+  <line x1="820" y1="410" x2="820" y2="492" stroke="#FBBF24" stroke-width="3" marker-end="url(#d)"/>
+  <text x="834" y="440" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">reads fuentes/ (hash)</text>
 
-  <line x1="248" y1="420" x2="248" y2="684" stroke="#86EFAC" stroke-width="3"/>
-  <line x1="248" y1="684" x2="552" y2="684" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
-  <text x="362" y="670" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">s / b escribe</text>
+  <path d="M620 410 L620 455 L248 455 L248 490" fill="none" stroke="#FBBF24" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#d)"/>
+  <text x="262" y="466" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">consults official items</text>
 
-  <rect x="560" y="500" width="520" height="272" rx="16" fill="#0C1214" stroke="#2A3E42"/>
-  <rect x="560" y="500" width="6" height="272" fill="#C4B5FD"/>
-  <text x="584" y="542" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Carpeta de trabajo</text>
+  <path d="M1020 410 L1020 455 L1412 455 L1412 490" fill="none" stroke="#FB923C" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#c)"/>
+  <text x="1316" y="466" fill="#FB923C" font-family="Inter, sans-serif" font-size="13">filters sensitive data</text>
 
-  <rect x="580" y="558" width="480" height="58" rx="10" fill="#121A1C" stroke="#2A3E42"/>
-  <rect x="580" y="558" width="5" height="58" fill="#FBBF24"/>
+  <line x1="248" y1="410" x2="248" y2="652" stroke="#86EFAC" stroke-width="3"/>
+  <line x1="248" y1="652" x2="552" y2="652" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
+  <text x="308" y="612" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">approval &#8594; host writes</text>
+
+  <rect x="48" y="500" width="400" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="48" y="500" width="6" height="300" fill="#FBBF24"/>
+  <text x="72" y="542" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Begonia bank</text>
+  <text x="72" y="578" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Official MINEDUC curriculum</text>
+  <text x="72" y="606" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">13,722 approved items</text>
+  <text x="72" y="634" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">1,159 teacher guidances</text>
+  <rect x="68" y="650" width="360" height="52" rx="10" fill="#121A1C" stroke="#2A3E42"/>
+  <rect x="68" y="650" width="5" height="52" fill="#FBBF24"/>
+  <text x="84" y="674" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">banco:&lt;id&gt;</text>
+  <text x="84" y="694" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">verified citations + pauta oficial</text>
+  <text x="68" y="726" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Read-only HTTP. Material is not invented:</text>
+  <text x="68" y="748" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">it is grounded and traceable (banco_snapshot).</text>
+
+  <rect x="560" y="500" width="520" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="560" y="500" width="6" height="300" fill="#C4B5FD"/>
+  <text x="584" y="542" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Working folder (system of record)</text>
+
+  <rect x="580" y="558" width="480" height="56" rx="10" fill="#121A1C" stroke="#2A3E42"/>
+  <rect x="580" y="558" width="5" height="56" fill="#FBBF24"/>
   <text x="596" y="582" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">fuentes/</text>
-  <text x="596" y="604" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">originales. tero lee, nadie las pisa</text>
+  <text x="596" y="604" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">originals &#183; SHA-256 hashed &#183; never overwritten</text>
 
-  <rect x="580" y="626" width="480" height="58" rx="10" fill="#121A1C" stroke="#2A3E42"/>
-  <rect x="580" y="626" width="5" height="58" fill="#FB923C"/>
-  <text x="596" y="650" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">borradores/</text>
-  <text x="596" y="672" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">si el profesor aprieta b</text>
+  <rect x="580" y="624" width="480" height="56" rx="10" fill="#121A1C" stroke="#2A3E42"/>
+  <rect x="580" y="624" width="5" height="56" fill="#86EFAC"/>
+  <text x="596" y="648" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">derivados/</text>
+  <text x="596" y="670" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">written by the host only, after approval</text>
 
-  <rect x="580" y="694" width="480" height="58" rx="10" fill="#121A1C" stroke="#2A3E42"/>
-  <rect x="580" y="694" width="5" height="58" fill="#86EFAC"/>
-  <text x="596" y="718" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">derivados/</text>
-  <text x="596" y="740" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">si el profesor aprieta s  (para la clase)</text>
+  <rect x="580" y="690" width="480" height="56" rx="10" fill="#121A1C" stroke="#2A3E42"/>
+  <rect x="580" y="690" width="5" height="56" fill="#FB923C"/>
+  <text x="596" y="714" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="15">borradores/</text>
+  <text x="596" y="736" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">legacy: readable, no new writes</text>
+
+  <rect x="1192" y="500" width="440" height="300" rx="16" fill="#0C1214" stroke="#2A3E42"/>
+  <rect x="1192" y="500" width="6" height="300" fill="#FB923C"/>
+  <text x="1216" y="542" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Privacy guard</text>
+  <text x="1216" y="578" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Chile &#183; Ley 21.719</text>
+  <text x="1216" y="606" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Gradebooks, rosters and</text>
+  <text x="1216" y="634" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">health reports never reach</text>
+  <text x="1216" y="662" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">the model. RUT-aware.</text>
+  <rect x="1216" y="696" width="196" height="32" rx="8" fill="#423008"/><text x="1228" y="718" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">non-blocking advisory</text>
+  <text x="1216" y="756" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Files are never deleted, only left unread.</text>
 </svg>

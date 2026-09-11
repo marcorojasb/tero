@@ -404,12 +404,15 @@ def test_ficha_assets_and_pages_workflow():
     assert "tui-grid.js" in sitio
     assert "capture-frames" in sitio
     assert "compose-og" in sitio
-    assert "una sola ventana" in sitio.lower() or "una ventana" in sitio.lower()
+    assert "in one window" in sitio.lower()
     assert "rumbo" not in sitio.lower()
     assert "planificar" not in sitio.lower()
     assert "`s` / `n` / `b` / `c`" not in sitio
-    assert "respuesta" in sitio.lower()
-    assert "aprobación" in sitio.lower()
+    # Documentación de jueces en inglés; el flujo retirado no reaparece.
+    assert "conversational" in sitio.lower()
+    assert "approval" in sitio.lower() or "aprobación" in sitio.lower()
+    assert "never block" in sitio.lower()
+    assert "judge-legend" in sitio
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
     agents = _read(ROOT / "AGENTS.md")
