@@ -1,16 +1,19 @@
 import { describe, expect, test } from "bun:test"
 import {
+  allWarnings,
   applyHostEvent,
   chips,
+  decisionStrip,
   footerFor,
-  gateStrip,
   hasKeyLegend,
   handleCommand,
   handleHotkey,
   helpFor,
   initialState,
   showChips,
+  type AppState,
 } from "./state.ts"
+import type { Propuesta } from "./protocol.ts"
 
 const encargo = {
   curso: "4° básico",
@@ -20,260 +23,293 @@ const encargo = {
   tipo: "planificacion",
 }
 
-describe("chips y pie", () => {
-  test("chips in Spanish encargo", () => {
-    expect(chips(encargo)).toEqual(["4° básico", "Lenguaje", "OA 4", "45 min", "planificacion"])
-  })
-  test("home hides chips until started", () => {
-    const home = initialState({
-      curso: "",
-      asignatura: "",
-      oa: "",
-      duracion: "",
-      tipo: null,
-    })
+const propuesta: Propuesta = {
+  accion: "crear",
+  tipo: "evaluacion",
+  tipo_label: "evaluación",
+  titulo: "Evaluación de comprensión lectora — El cóndor y el huemul",
+  resumen: "Prueba de 45 min con ítems de selección múltiple y V/F.",
+  vista_previa: "---\ntipo: evaluacion\n---\n\n## Ítems\n1. ¿Quién ve el mar?",
+  origen: null,
+  cambios: [],
+  notas_nee: [],
+  evidencias: [
+    { path: "fuentes/cuento.md", snippet: "Yo veo el mar desde aquí", seccion: "desarrollo", verified: true },
+    { path: "fuentes/bases-oa.md", snippet: "Extraer información", seccion: "OA 4", verified: false },
+  ],
+  warnings: [{ code: "thin_evidence", message: "Menos de dos fuentes citadas.", blocking: false }],
+}
+
+function withCard(state: AppState, card: Propuesta = propuesta): AppState {
+  return {
+    ...state,
+    screen: "conversacion",
+    started: true,
+    card,
+    cardId: "t1",
+    cardStatus: "pendiente",
+    phase: "esperando_aprobacion",
+  }
+}
+
+describe("home conversacional", () => {
+  test("arranca en home, sin rumbos y con línea de entrada", () => {
+    const home = initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null })
     expect(home.screen).toBe("home")
+    expect(home.phase).toBe("idle")
+    expect(home.messages).toHaveLength(0)
+    expect(home.card).toBeNull()
+    expect(hasKeyLegend(home.statusLine)).toBe(false)
     expect(showChips(home)).toBe(false)
   })
-  test("footer stays quiet at the gate (actions live in gate strip)", () => {
-    const state = { ...initialState(encargo), phase: "esperando_criterio" as const, screen: "workspace" as const }
-    expect(footerFor(state)).toBe("")
-    expect(footerFor(state)).not.toMatch(/s sí|c corregir|a aprobar/)
-  })
-})
 
-describe("HITL chrome quiet", () => {
-  test("no key legends in footer/status during HITL", () => {
-    for (const phase of ["esperando_plan", "esperando_clarificacion", "esperando_criterio"] as const) {
-      const state = {
-        ...initialState(encargo),
-        phase,
-        screen: "workspace" as const,
-        plan: {
-          objetivo: "x",
-          tipo: "guia",
-          oa: "OA 4",
-          duracion: "45 min",
-          notas: "",
-        },
-      }
-      expect(gateStrip(state).length).toBeGreaterThan(0)
-      expect(footerFor(state)).toBe("")
-      expect(hasKeyLegend(footerFor(state))).toBe(false)
-    }
-  })
-})
-
-describe("host events", () => {
-  test("proposal fills evidence and waits for teacher", () => {
-    let state = initialState(encargo)
-    state = applyHostEvent(state, { type: "ready", mode: "offline", model: "tero-offline" })
-    state = applyHostEvent(state, {
-      type: "proposal",
-      artifact: {
-        titulo: "Plan",
-        tipo_label: "planificación",
-        cuerpo_markdown: "## Objetivo\n...",
-        evidencias: [{ path: "fuentes/a.md", snippet: "OA 4", seccion: "OA", verified: true }],
-        warnings: [{ code: "thin_skeleton", message: "corto", blocking: false }],
-      },
+  test("un mensaje en lenguaje natural se manda como prompt y abre el hilo", () => {
+    const home = initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null })
+    const action = handleCommand(home, "Prepara una guía de fracciones para 6° básico")
+    expect(action.kind).toBe("send")
+    if (action.kind !== "send") return
+    expect(action.message).toEqual({
+      type: "prompt",
+      text: "Prepara una guía de fracciones para 6° básico",
     })
-    expect(state.phase).toBe("esperando_criterio")
-    expect(state.evidence).toHaveLength(1)
-    expect(state.warnings[0]?.code).toBe("thin_skeleton")
-    expect(state.statusLine).toMatch(/tu turno|sí/)
+    expect(action.state.screen).toBe("conversacion")
+    expect(action.state.started).toBe(true)
+    expect(action.state.phase).toBe("pensando")
+    expect(action.state.thinking).toBe(true)
+    expect(action.state.messages).toHaveLength(1)
+    expect(action.state.messages[0]?.role).toBe("persona")
+    expect(action.state.messages[0]?.text).toContain("guía de fracciones")
   })
 
-  test("plan with questions enters clarification", () => {
-    let state = initialState(encargo)
-    state = applyHostEvent(state, {
-      type: "plan",
-      plan: {
-        objetivo: "Guía de fracciones",
-        tipo: "guia",
-        oa: "OA 4",
-        duracion: "45 min",
-        notas: "",
-        titulo: "Plan de guía",
-        meta: "1 entregable",
-        resultado_previsto: ["Guía de práctica"],
-        decisiones: { curso: "6° básico", asignatura: "Matemática", tema: "fracciones" },
-        questions: [
-          {
-            id: "q1",
-            prompt: "¿Qué énfasis?",
-            options: [
-              { id: "1", label: "Representación", suggested: true },
-              { id: "2", label: "Cálculo" },
-            ],
-          },
-        ],
-        supuestos: [{ id: "s1", text: "Sesión breve" }],
-        como_abordare: [{ titulo: "Ítems", detalle: "SM + desarrollo" }],
-      },
-    })
-    expect(state.phase).toBe("esperando_clarificacion")
-    expect(state.question?.prompt).toContain("énfasis")
-    expect(state.planPinned).toBe(true)
-  })
-
-  test("plan_cancelled clears and returns home", () => {
-    let state = {
-      ...initialState(encargo),
-      screen: "workspace" as const,
-      proposal: "viejo",
-      plan: {
-        objetivo: "x",
-        tipo: "guia",
-        oa: "",
-        duracion: "",
-        notas: "",
-      },
-    }
-    state = applyHostEvent(state, { type: "plan_cancelled" })
-    expect(state.screen).toBe("home")
-    expect(state.proposal).toBe("")
-    expect(state.plan).toBeNull()
-  })
-
-  test("proposal_cleared archives stale draft", () => {
-    let state = {
-      ...initialState(encargo),
-      proposal: "stale",
-      evidence: [{ path: "a.md", snippet: "x", seccion: "" }],
-    }
-    state = applyHostEvent(state, { type: "proposal_cleared", reason: "nuevo_encargo" })
-    expect(state.proposal).toBe("")
-    expect(state.evidence).toHaveLength(0)
-    expect(state.warnings.some((w) => w.code === "stale_proposal")).toBe(true)
-  })
-})
-
-describe("hotkeys HITL", () => {
-  test("s sends accept", () => {
-    const state = { ...initialState(encargo), phase: "esperando_criterio" as const }
-    const action = handleHotkey(state, "s")
+  test("un saludo también es conversación (el host responde)", () => {
+    const action = handleCommand(initialState(encargo), "hola")
     expect(action.kind).toBe("send")
-    if (action.kind === "send") expect(action.message).toEqual({ type: "gate", decision: "s" })
+    if (action.kind === "send") expect(action.message).toEqual({ type: "prompt", text: "hola" })
   })
-  test("c waits for critique instead of sending immediately", () => {
-    const state = { ...initialState(encargo), phase: "esperando_criterio" as const }
-    const action = handleHotkey(state, "c")
-    expect(action.kind).toBe("state")
-    if (action.kind === "state") expect(action.state.uiMode).toBe("critique")
-  })
-  test("a approves plan and sends local edits", () => {
-    const plan = {
-      objetivo: "Leer con evidencia",
-      tipo: "planificacion",
-      oa: "OA 6",
-      duracion: "45 min",
-      notas: "",
-    }
-    const state = { ...initialState(encargo), phase: "esperando_plan" as const, plan }
-    const action = handleHotkey(state, "a")
-    expect(action.kind).toBe("send")
-    if (action.kind === "send") {
-      expect(action.message).toEqual({ type: "plan.decide", decision: "approve", plan })
-    }
-  })
-  test("[ ] with one evidence is a no-op message", () => {
-    const state = {
-      ...initialState(encargo),
-      evidence: [{ path: "a.md", snippet: "uno", seccion: "OA", verified: true }],
-      evidenceIndex: 0,
-    }
-    const next = handleHotkey(state, "]")
-    expect(next.kind).toBe("state")
-    if (next.kind === "state") {
-      expect(next.state.evidenceIndex).toBe(0)
-      expect(next.state.statusLine).toContain("1/1")
-    }
-  })
-  test("[ ] cycles evidence when multiple", () => {
-    const evidence = [
-      { path: "a.md", snippet: "uno", seccion: "OA", verified: true },
-      { path: "b.md", snippet: "dos", seccion: "cierre", verified: false },
-    ]
-    const state = { ...initialState(encargo), evidence, evidenceIndex: 0 }
-    const next = handleHotkey(state, "]")
-    expect(next.kind).toBe("state")
-    if (next.kind === "state") {
-      expect(next.state.evidenceIndex).toBe(1)
-      expect(next.state.focusPanel).toBe("evidence")
-    }
-  })
-  test("tab cycles focus panels", () => {
-    const state = initialState(encargo)
-    expect(state.focusPanel).toBe("proposal")
-    const next = handleHotkey(state, "tab")
-    expect(next.kind).toBe("state")
-    if (next.kind === "state") expect(next.state.focusPanel).toBe("evidence")
-  })
-  test("home rumbo 2 sends rumbo crear", () => {
-    const state = initialState({
-      curso: "",
-      asignatura: "",
-      oa: "",
-      duracion: "",
-      tipo: null,
-    })
-    const action = handleHotkey(state, "2")
-    expect(action.kind).toBe("send")
-    if (action.kind === "send") expect(action.message).toEqual({ type: "rumbo", rumbo: "crear" })
-  })
-  test("clarify option 1 answers plan", () => {
-    const state = {
-      ...initialState(encargo),
-      phase: "esperando_clarificacion" as const,
-      uiMode: "clarify" as const,
-      question: {
-        id: "q1",
-        prompt: "¿Énfasis?",
-        options: [{ id: "1", label: "A", suggested: true }],
-      },
-    }
-    const action = handleHotkey(state, "1")
-    expect(action.kind).toBe("send")
-    if (action.kind === "send" && action.message.type === "plan.answer") {
-      expect(action.message.option_id).toBe("1")
-    }
-  })
-})
 
-describe("commands", () => {
-  test("empty enter does not send", () => {
+  test("enter vacío no envía", () => {
     const action = handleCommand(initialState(encargo), "   ")
     expect(action.kind).toBe("state")
     if (action.kind === "state") expect(action.state.statusLine).toContain("vacío")
   })
-  test("hola is not an encargo and does not hit the bridge", () => {
-    const action = handleCommand(initialState(encargo), "hola")
-    expect(action.kind).toBe("state")
-    if (action.kind === "state") {
-      expect(action.state.statusLine.toLowerCase()).toContain("encargo")
-      expect(action.state.thinking).toBe(false)
-    }
+})
+
+describe("hilo conversacional", () => {
+  test("delta acumula streaming y respuesta cierra el turno en el hilo", () => {
+    let state = initialState(encargo)
+    state = applyHostEvent(state, { type: "status", phase: "pensando", detail: "leyendo fuentes" })
+    state = applyHostEvent(state, { type: "delta", text: "Necesito el curso " })
+    state = applyHostEvent(state, { type: "delta", text: "y el OA." })
+    expect(state.streaming).toBe("Necesito el curso y el OA.")
+    expect(state.thinking).toBe(true)
+
+    state = applyHostEvent(state, {
+      type: "respuesta",
+      id: "t1",
+      texto: "¿Para qué curso y qué OA?",
+    })
+    expect(state.streaming).toBe("")
+    expect(state.thinking).toBe(false)
+    expect(state.phase).toBe("idle")
+    expect(state.messages).toHaveLength(1)
+    expect(state.messages[0]).toEqual({ id: "t1", role: "agente", text: "¿Para qué curso y qué OA?" })
   })
-  test("prompt becomes JSONL prompt and clears stale proposal", () => {
-    const state = { ...initialState(encargo), proposal: "viejo", screen: "workspace" as const }
-    const action = handleCommand(state, "Prepara una guía")
+
+  test("una pregunta del agente es una respuesta normal y se contesta escribiendo", () => {
+    let state = initialState(encargo)
+    state = applyHostEvent(state, { type: "respuesta", id: "a1", texto: "¿Qué curso?" })
+    const action = handleCommand(state, "4° básico, Lenguaje")
     expect(action.kind).toBe("send")
     if (action.kind === "send") {
-      expect(action.message).toEqual({ type: "prompt", text: "Prepara una guía" })
-      expect(action.state.proposal).toBe("")
-      expect(action.state.thinking).toBe(true)
+      expect(action.message).toEqual({ type: "prompt", text: "4° básico, Lenguaje" })
+      expect(action.state.messages.map((m) => m.role)).toEqual(["agente", "persona"])
     }
   })
-  test("/oa updates encargo and clears proposal", () => {
-    const state = { ...initialState(encargo), proposal: "x" }
+})
+
+describe("tarjeta de propuesta", () => {
+  test("propuesta crea la tarjeta y espera aprobación", () => {
+    let state = initialState(encargo)
+    state = applyHostEvent(state, { type: "propuesta", id: "t7", propuesta })
+    expect(state.phase).toBe("esperando_aprobacion")
+    expect(state.cardStatus).toBe("pendiente")
+    expect(state.card?.accion).toBe("crear")
+    expect(state.card?.tipo_label).toBe("evaluación")
+    expect(state.card?.titulo).toContain("El cóndor y el huemul")
+    expect(state.card?.resumen).toContain("selección múltiple")
+    expect(state.card?.vista_previa).toContain("tipo: evaluacion")
+    expect(state.card?.evidencias).toHaveLength(2)
+    expect(state.card?.evidencias[0]?.verified).toBe(true)
+    expect(state.card?.evidencias[1]?.verified).toBe(false)
+    expect(state.card?.warnings[0]?.code).toBe("thin_evidence")
+    expect(state.card?.warnings[0]?.blocking).toBe(false)
+    expect(state.statusLine).toContain("y aprueba")
+  })
+
+  test("propuesta de adaptar trae origen, cambios y notas NEE", () => {
+    const adaptar: Propuesta = {
+      ...propuesta,
+      accion: "adaptar",
+      origen: "derivados/20260101-120000-evaluacion.md",
+      cambios: ["Agrega pauta de corrección", "Sube la exigencia del ítem 3"],
+      notas_nee: ["Tiempo extendido", "Enunciados en dos pasos"],
+    }
+    const state = applyHostEvent(initialState(encargo), { type: "propuesta", id: "t8", propuesta: adaptar })
+    expect(state.card?.accion).toBe("adaptar")
+    expect(state.card?.origen).toContain("derivados/")
+    expect(state.card?.cambios).toHaveLength(2)
+    expect(state.card?.notas_nee).toEqual(["Tiempo extendido", "Enunciados en dos pasos"])
+  })
+
+  test("los avisos de la propuesta nunca bloquean y se suman a los del host", () => {
+    let state = applyHostEvent(initialState(encargo), { type: "propuesta", id: "t9", propuesta })
+    state = applyHostEvent(state, {
+      type: "warning",
+      warning: { code: "fuente_cambiada", message: "Cambió un original.", blocking: true },
+    })
+    const rows = allWarnings(state)
+    expect(rows.map((w) => w.code)).toEqual(["fuente_cambiada", "thin_evidence"])
+    expect(rows.every((w) => w.blocking === false)).toBe(true)
+  })
+
+  test("la propuesta sigue pendiente si el host la trató como conversación", () => {
+    let state = applyHostEvent(initialState(encargo), { type: "propuesta", id: "t10", propuesta })
+    state = applyHostEvent(state, { type: "respuesta", id: "t11", texto: "¿Te refieres a la prueba?" })
+    expect(state.cardStatus).toBe("pendiente")
+    const action = handleHotkey(state, "y")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "aprobar", decision: "aprobar" })
+    }
+  })
+})
+
+describe("decisión", () => {
+  test("y aprueba la propuesta pendiente", () => {
+    const state = withCard(initialState(encargo))
+    const action = handleHotkey(state, "y")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "aprobar", decision: "aprobar" })
+    }
+  })
+
+  test("n descarta la propuesta pendiente", () => {
+    const state = withCard(initialState(encargo))
+    const action = handleHotkey(state, "n")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "aprobar", decision: "descartar" })
+    }
+  })
+
+  test("sin propuesta pendiente y/n no deciden nada", () => {
+    const state = initialState(encargo)
+    expect(handleHotkey(state, "y").kind).toBe("none")
+    expect(handleHotkey(state, "n").kind).toBe("none")
+  })
+
+  test("aprobacion hace eco y descartar no escribe", () => {
+    let state = withCard(initialState(encargo))
+    state = applyHostEvent(state, { type: "aprobacion", id: "t1", decision: "aprobar", note: "" })
+    expect(state.cardStatus).toBe("aprobado")
+    expect(state.messages.at(-1)?.text).toContain("aprobado")
+
+    let discarded = withCard(initialState(encargo))
+    discarded = applyHostEvent(discarded, { type: "aprobacion", id: "t1", decision: "descartar", note: "" })
+    expect(discarded.cardStatus).toBe("descartado")
+    expect(discarded.phase).toBe("idle")
+    expect(discarded.messages.at(-1)?.text).toContain("descartado")
+    expect(decisionStrip(discarded)).toContain("no se escribió nada")
+  })
+
+  test("escribir la decisión en el hilo va como prompt (el host clasifica)", () => {
+    const state = withCard(initialState(encargo))
+    const action = handleCommand(state, "dale, adelante")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "prompt", text: "dale, adelante" })
+      expect(action.state.cardStatus).toBe("pendiente")
+    }
+  })
+
+  test("escribir un cambio en el hilo tampoco bota la propuesta", () => {
+    const state = withCard(initialState(encargo))
+    const action = handleCommand(state, "mejor cambia el título")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") {
+      expect(action.message).toEqual({ type: "prompt", text: "mejor cambia el título" })
+      expect(action.state.card).not.toBeNull()
+      expect(action.state.cardStatus).toBe("pendiente")
+    }
+  })
+})
+
+describe("resultado y error", () => {
+  test("escrito muestra la ruta en derivados con la acción", () => {
+    let state = withCard(initialState(encargo))
+    state = applyHostEvent(state, {
+      type: "escrito",
+      id: "t1",
+      path: "derivados/20260101-120000-evaluacion-condor.md",
+      accion: "crear",
+    })
+    expect(state.phase).toBe("listo")
+    expect(state.cardStatus).toBe("escrito")
+    expect(state.writtenPath).toContain("derivados/")
+    expect(state.statusLine).toContain("derivados/")
+    expect(state.statusLine).toContain("crear")
+    const note = state.messages.at(-1)
+    expect(note?.role).toBe("host")
+    expect(note?.path).toContain("derivados/")
+    expect(decisionStrip(state)).toContain("derivados/")
+  })
+
+  test("un error deja fase error y r reintenta", () => {
+    let state = initialState(encargo)
+    state = applyHostEvent(state, {
+      type: "error",
+      message: "No pude leer fuentes/cuento.md",
+      code: "read_failed",
+      retryable: true,
+    })
+    expect(state.phase).toBe("error")
+    expect(state.retryable).toBe(true)
+    expect(state.lastError).toContain("cuento.md")
+
+    const action = handleHotkey(state, "r")
+    expect(action.kind).toBe("send")
+    if (action.kind === "send") expect(action.message).toEqual({ type: "retry" })
+  })
+
+  test("un error no retirable no responde a r", () => {
+    let state = applyHostEvent(initialState(encargo), {
+      type: "error",
+      message: "Carpeta inexistente",
+      code: "carpeta",
+      retryable: false,
+    })
+    expect(handleHotkey(state, "r").kind).toBe("none")
+  })
+})
+
+describe("contexto y comandos", () => {
+  test("chips en español sin rumbo", () => {
+    expect(chips(encargo)).toEqual(["4° básico", "Lenguaje", "OA 4", "45 min", "planificacion"])
+  })
+
+  test("los comandos de contexto solo actualizan y no reinician el hilo", () => {
+    let state = withCard(initialState(encargo))
+    state = { ...state, messages: [{ id: "m1", role: "persona", text: "prepara una prueba" }] }
     const action = handleCommand(state, "/oa OA 6")
     expect(action.kind).toBe("send")
     if (action.kind === "send" && action.message.type === "encargo.update") {
       expect(action.message.encargo.oa).toBe("OA 6")
-      expect(action.state.proposal).toBe("")
+      expect(action.state.messages).toHaveLength(1)
+      expect(action.state.cardStatus).toBe("pendiente")
     }
   })
+
   test("/oa matches catalog option id", () => {
     const state = {
       ...initialState(encargo),
@@ -293,6 +329,7 @@ describe("commands", () => {
       expect(action.message.encargo.oa).toContain("LEN-4B-OA04")
     }
   })
+
   test("/export latex sends format latex", () => {
     const action = handleCommand(initialState(encargo), "/export latex")
     expect(action.kind).toBe("send")
@@ -300,6 +337,20 @@ describe("commands", () => {
       expect(action.message.format).toBe("latex")
     }
   })
+
+  test("exported deja la ruta del último artefacto", () => {
+    let state = withCard(initialState(encargo))
+    state = applyHostEvent(state, {
+      type: "exported",
+      path: "derivados/20260101-120000-evaluacion.tex",
+      format: "latex",
+      source_kind: "derivado",
+      source_path: "derivados/20260101-120000-evaluacion.md",
+    })
+    expect(state.lastExport).toContain(".tex")
+    expect(state.statusLine).toContain("latex")
+  })
+
   test("oa_options event fills hint", () => {
     let state = initialState(encargo)
     state = applyHostEvent(state, {
@@ -319,33 +370,118 @@ describe("commands", () => {
     expect(state.oaOptions).toHaveLength(1)
     expect(state.oaHint).toContain("OA")
   })
-  test("/objetivo edits the pending plan locally", () => {
-    const state = {
-      ...initialState(encargo),
-      phase: "esperando_plan" as const,
-      plan: {
-        objetivo: "viejo",
-        tipo: "planificacion",
-        oa: "OA 4",
-        duracion: "45 min",
-        notas: "",
-      },
-    }
-    const action = handleCommand(state, "/objetivo Distinguir explícito e implícito")
-    expect(action.kind).toBe("state")
-    if (action.kind === "state") {
-      expect(action.state.plan?.objetivo).toBe("Distinguir explícito e implícito")
+
+  test("un evento del flujo viejo no rompe el estado", () => {
+    const state = initialState(encargo)
+    const next = applyHostEvent(state, {
+      type: "plan",
+      plan: { objetivo: "viejo", tipo: "guia", oa: "", duracion: "", notas: "" },
+    })
+    expect(next.phase).toBe("idle")
+    expect(next.card).toBeNull()
+  })
+})
+
+describe("evidencia y foco", () => {
+  test("[ ] recorre la evidencia de la propuesta", () => {
+    const state = withCard(initialState(encargo))
+    const next = handleHotkey(state, "]")
+    expect(next.kind).toBe("state")
+    if (next.kind === "state") {
+      expect(next.state.evidenceIndex).toBe(1)
+      expect(next.state.focusPanel).toBe("evidencia")
     }
   })
-  test("help is contextual by phase", () => {
-    const home = helpFor(initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null }))
-    expect(home).toContain("Rumbos")
-    const gate = helpFor({
-      ...initialState(encargo),
-      phase: "esperando_criterio",
-      screen: "workspace",
+
+  test("[ ] con una sola evidencia no cambia de índice", () => {
+    const state = withCard(initialState(encargo), {
+      ...propuesta,
+      evidencias: [propuesta.evidencias[0]!],
     })
-    expect(gate).toContain("derivados")
-    expect(gate).toContain("corregir")
+    const next = handleHotkey(state, "]")
+    expect(next.kind).toBe("state")
+    if (next.kind === "state") {
+      expect(next.state.evidenceIndex).toBe(0)
+      expect(next.state.statusLine).toContain("1/1")
+    }
+  })
+
+  test("[ ] sin propuesta avisa y no inventa evidencia", () => {
+    const next = handleHotkey(initialState(encargo), "]")
+    expect(next.kind).toBe("state")
+    if (next.kind === "state") expect(next.state.statusLine).toContain("Sin evidencia")
+  })
+
+  test("tab cicla los paneles del flujo conversacional", () => {
+    const state = initialState(encargo)
+    expect(state.focusPanel).toBe("propuesta")
+    const a = handleHotkey(state, "tab")
+    expect(a.kind).toBe("state")
+    if (a.kind !== "state") return
+    expect(a.state.focusPanel).toBe("evidencia")
+    const b = handleHotkey(a.state, "tab")
+    expect(b.kind).toBe("state")
+    if (b.kind === "state") expect(b.state.focusPanel).toBe("hilo")
+  })
+
+  test("? abre la ayuda y esc la cierra", () => {
+    const opened = handleHotkey(initialState(encargo), "?")
+    expect(opened.kind).toBe("state")
+    if (opened.kind !== "state") return
+    expect(opened.state.help).toBe(true)
+    const closed = handleHotkey(opened.state, "escape")
+    if (closed.kind === "state") expect(closed.state.help).toBe(false)
+  })
+})
+
+describe("chrome sin el flujo viejo", () => {
+  test("ninguna superficie menciona rumbos, plan a/e/x ni la puerta s/n/b/c", () => {
+    const surfaces: string[] = []
+    const base = withCard(initialState(encargo))
+    surfaces.push(decisionStrip(base), footerFor(base))
+    surfaces.push(decisionStrip(initialState(encargo)), footerFor(initialState(encargo)))
+    const err = applyHostEvent(base, {
+      type: "error",
+      message: "falló",
+      code: "x",
+      retryable: true,
+    })
+    surfaces.push(decisionStrip(err), footerFor(err))
+    for (const state of [initialState(encargo), base, err]) {
+      surfaces.push(helpFor(state))
+    }
+    for (const text of surfaces) {
+      expect(hasKeyLegend(text)).toBe(false)
+      expect(text).not.toContain("rumbo")
+      expect(text).not.toContain("Puerta")
+      expect(text).not.toContain("puerta")
+      expect(text).not.toContain("Clarificación")
+      expect(text).not.toContain("borrador")
+    }
+  })
+
+  test("el pie no repite los atajos cuando hay franja de decisión", () => {
+    const state = withCard(initialState(encargo))
+    expect(decisionStrip(state).length).toBeGreaterThan(0)
+    expect(footerFor(state)).toBe("")
+  })
+
+  test("la ayuda es contextual", () => {
+    const home = helpFor(initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null }))
+    expect(home).toContain("Pregunta, explora o crea")
+    expect(home).toContain("y  aprobar")
+    const awaiting = helpFor(withCard(initialState(encargo)))
+    expect(awaiting).toContain("derivados")
+    expect(awaiting).toContain("descartar")
+    const error = helpFor(
+      applyHostEvent(initialState(encargo), {
+        type: "error",
+        message: "no pude leer",
+        code: "read",
+        retryable: true,
+      }),
+    )
+    expect(error).toContain("no pude leer")
+    expect(error).toContain("/retry")
   })
 })

@@ -2,20 +2,18 @@ import {
   BoxRenderable,
   InputRenderable,
   InputRenderableEvents,
-  MarkdownRenderable,
   ScrollBoxRenderable,
-  SyntaxStyle,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core"
 import {
+  accionLabel,
+  allWarnings,
   chips,
+  decisionStrip,
   footerFor,
-  gateStrip,
   helpFor,
   PHASE_LABEL,
-  planShowsDetail,
-  RUMBOS,
   shortModel,
   shortPath,
   showChips,
@@ -24,17 +22,6 @@ import {
   type AppState,
 } from "./state.ts"
 import { theme } from "./theme.ts"
-
-const syntax = SyntaxStyle.fromStyles({
-  default: { fg: theme.text },
-  "markup.heading.1": { fg: theme.accent, bold: true },
-  "markup.heading.2": { fg: theme.accent, bold: true },
-  "markup.heading.3": { fg: theme.accent },
-  "markup.list": { fg: theme.text },
-  "markup.raw": { fg: theme.ok },
-  "markup.italic": { fg: theme.muted, italic: true },
-  "markup.bold": { fg: theme.text, bold: true },
-})
 
 /** Vanellus chilensis de perfil — silueta de foto: cresta, pico, patas. */
 export const HOME_BIRD = [
@@ -59,6 +46,7 @@ export type Shell = {
   sync: (state: AppState) => void
   setPlaceholder: (text: string) => void
   scrollHelp: (delta: number) => void
+  scrollThread: (delta: number) => void
 }
 
 export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => void): Shell {
@@ -104,7 +92,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   header.add(headerLine)
   header.add(chipLine)
 
-  // ── Home (Pteron landing, denser) ───────────────────────
+  // ── Home (bird + one input line; no rumbos) ────────────
   const home = new BoxRenderable(renderer, {
     id: "home",
     flexGrow: 1,
@@ -133,21 +121,15 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     fg: theme.homeMuted,
     wrapMode: "word",
   })
-  const rumboRow = new TextRenderable(renderer, {
-    id: "rumbos",
-    content: "",
+  const homeHint = new TextRenderable(renderer, {
+    id: "home-hint",
+    content: "Pregunta, explora o crea…",
     fg: theme.text,
     wrapMode: "word",
   })
-  const rumboHints = new TextRenderable(renderer, {
-    id: "rumbo-hints",
-    content: "",
-    fg: theme.faint,
-    wrapMode: "word",
-  })
-  const homeHint = new TextRenderable(renderer, {
-    id: "home-hint",
-    content: "1–4 rumbo · o escribe abajo",
+  const homeSubHint = new TextRenderable(renderer, {
+    id: "home-subhint",
+    content: "El agente responde, crea o adapta · tú apruebas",
     fg: theme.faint,
     wrapMode: "word",
   })
@@ -167,12 +149,11 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       fg: theme.bg,
     }),
   )
-  home.add(rumboRow)
-  home.add(rumboHints)
   home.add(homeHint)
+  home.add(homeSubHint)
   home.add(recentText)
 
-  // ── Workspace body ─────────────────────────────────────
+  // ── Body: hilo + propuesta + evidencia ─────────────────
   const body = new BoxRenderable(renderer, {
     id: "body",
     flexGrow: 1,
@@ -180,54 +161,63 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     gap: 0,
   })
 
-  const left = panel(renderer, "sesión", 26)
-  const sessionScroll = scroll(renderer, "session-scroll", undefined, "top")
-  const sessionText = new TextRenderable(renderer, {
-    id: "session-text",
+  const left = panel(renderer, "conversación")
+  left.flexGrow = 1
+  left.flexShrink = 1
+  const threadScroll = scroll(renderer, "thread-scroll", undefined, "bottom")
+  const threadText = new TextRenderable(renderer, {
+    id: "thread-text",
     content: "",
     fg: theme.text,
     wrapMode: "word",
   })
-  sessionScroll.add(sessionText)
+  threadScroll.add(threadText)
+  const activityScroll = scroll(renderer, "activity-scroll", 9)
   const activityText = new TextRenderable(renderer, {
     id: "activity-text",
     content: "",
     fg: theme.muted,
     wrapMode: "word",
   })
-  left.add(sessionScroll)
+  activityScroll.add(activityText)
+  left.add(threadScroll)
   left.add(
     new TextRenderable(renderer, {
       content: "actividad",
       fg: theme.faint,
     }),
   )
-  const activityScroll = scroll(renderer, "activity-scroll", 9)
-  activityScroll.add(activityText)
   left.add(activityScroll)
 
   const center = panel(renderer, "propuesta", undefined, true)
-  const proposalScroll = scroll(renderer, "proposal-scroll", undefined, "top")
-  const proposalMd = new MarkdownRenderable(renderer, {
-    id: "proposal-md",
-    content: "",
-    syntaxStyle: syntax,
-    conceal: true,
-    fg: theme.text,
-    bg: theme.panel,
-    width: "100%",
-    flexGrow: 1,
-  })
-  const proposalText = new TextRenderable(renderer, {
-    id: "proposal-text",
+  const cardHeadScroll = scroll(renderer, "card-head-scroll", 11, "top")
+  cardHeadScroll.flexShrink = 0
+  const cardHeadText = new TextRenderable(renderer, {
+    id: "card-head-text",
     content: "",
     fg: theme.text,
     wrapMode: "word",
-    width: "100%",
   })
-  proposalScroll.add(proposalMd)
-  proposalScroll.add(proposalText)
-  center.add(proposalScroll)
+  cardHeadScroll.add(cardHeadText)
+  const previewLabel = new TextRenderable(renderer, {
+    id: "preview-label",
+    content: "vista previa · markdown",
+    fg: theme.faint,
+    wrapMode: "none",
+    height: 1,
+    flexShrink: 0,
+  })
+  const previewScroll = scroll(renderer, "preview-scroll", undefined, "top")
+  const previewText = new TextRenderable(renderer, {
+    id: "preview-text",
+    content: "",
+    fg: theme.text,
+    wrapMode: "word",
+  })
+  previewScroll.add(previewText)
+  center.add(cardHeadScroll)
+  center.add(previewLabel)
+  center.add(previewScroll)
 
   const right = panel(renderer, "evidencia", 34)
   const evidenceScroll = scroll(renderer, "evidence-scroll", undefined, "top")
@@ -251,84 +241,17 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       fg: theme.faint,
     }),
   )
-  const warnScroll = scroll(renderer, "warn-scroll", 4)
+  const warnScroll = scroll(renderer, "warn-scroll", 4, "top")
   warnScroll.add(warnText)
   right.add(warnScroll)
 
-  // Prefer evidence viewport over avisos when the column is short.
+  // Prefer the evidence viewport over avisos when the column is short.
   evidenceScroll.flexGrow = 1
   evidenceScroll.minHeight = 6
 
   body.add(left)
   body.add(center)
   body.add(right)
-
-  // ── Plan card (deep, scrollable) ───────────────────────
-  const planBar = new BoxRenderable(renderer, {
-    id: "plan-bar",
-    height: 14,
-    border: true,
-    borderStyle: "rounded",
-    borderColor: theme.accent,
-    backgroundColor: theme.overlay,
-    paddingLeft: 1,
-    paddingRight: 1,
-    title: " plan ",
-    titleColor: theme.accent,
-  })
-  const planScroll = scroll(renderer, "plan-scroll", 12, "top")
-  const planText = new TextRenderable(renderer, {
-    id: "plan-text",
-    content: "",
-    fg: theme.text,
-    wrapMode: "word",
-  })
-  planScroll.add(planText)
-  planBar.add(planScroll)
-  planBar.visible = false
-
-  // ── Clarification card ─────────────────────────────────
-  const clarifyBar = new BoxRenderable(renderer, {
-    id: "clarify-bar",
-    height: 8,
-    border: true,
-    borderStyle: "rounded",
-    borderColor: theme.suggested,
-    backgroundColor: theme.overlay,
-    paddingLeft: 1,
-    paddingRight: 1,
-    title: " clarificación ",
-    titleColor: theme.suggested,
-  })
-  const clarifyText = new TextRenderable(renderer, {
-    id: "clarify-text",
-    content: "",
-    fg: theme.text,
-    wrapMode: "word",
-  })
-  clarifyBar.add(clarifyText)
-  clarifyBar.visible = false
-
-  // ── Gate strip (dense) ─────────────────────────────────
-  const gateBar = new BoxRenderable(renderer, {
-    id: "gate-bar",
-    height: 3,
-    border: true,
-    borderStyle: "rounded",
-    borderColor: theme.ok,
-    backgroundColor: theme.overlay,
-    paddingLeft: 1,
-    title: " puerta ",
-    titleColor: theme.ok,
-  })
-  const gateText = new TextRenderable(renderer, {
-    id: "gate-text",
-    content: "",
-    fg: theme.text,
-    wrapMode: "none",
-  })
-  gateBar.add(gateText)
-  gateBar.visible = false
 
   // ── Error panel ────────────────────────────────────────
   const errorBar = new BoxRenderable(renderer, {
@@ -351,10 +274,31 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   errorBar.add(errorText)
   errorBar.visible = false
 
-  // ── Help (scrollable / phase-aware) ────────────────────
+  // ── Decision strip (y aprueba / n descarta) ────────────
+  const decisionBar = new BoxRenderable(renderer, {
+    id: "decision-bar",
+    height: 3,
+    border: true,
+    borderStyle: "rounded",
+    borderColor: theme.ok,
+    backgroundColor: theme.overlay,
+    paddingLeft: 1,
+    title: " aprobación ",
+    titleColor: theme.ok,
+  })
+  const decisionText = new TextRenderable(renderer, {
+    id: "decision-text",
+    content: "",
+    fg: theme.text,
+    wrapMode: "none",
+  })
+  decisionBar.add(decisionText)
+  decisionBar.visible = false
+
+  // ── Help (scrollable / contextual) ─────────────────────
   const helpBox = new BoxRenderable(renderer, {
     id: "help",
-    height: 14,
+    height: 18,
     border: true,
     borderStyle: "rounded",
     borderColor: theme.accent,
@@ -363,7 +307,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     title: " ayuda ",
     titleColor: theme.accent,
   })
-  const helpScroll = scroll(renderer, "help-scroll", 12, "top")
+  const helpScroll = scroll(renderer, "help-scroll", 16, "top")
   const helpText = new TextRenderable(renderer, {
     id: "help-text",
     content: "",
@@ -383,13 +327,13 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     borderColor: theme.borderFocus,
     backgroundColor: theme.inputBg,
     paddingLeft: 1,
-    title: " encargo ",
+    title: " pregunta ",
     titleColor: theme.muted,
   })
   const input = new InputRenderable(renderer, {
     id: "prompt",
     width: "100%",
-    placeholder: "Pregunta, explora o crea con tero…",
+    placeholder: "Pregunta, explora o crea…",
     backgroundColor: theme.inputBg,
     focusedBackgroundColor: theme.inputBg,
     textColor: theme.text,
@@ -414,10 +358,8 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
   root.add(header)
   root.add(home)
   root.add(body)
-  root.add(planBar)
-  root.add(clarifyBar)
   root.add(errorBar)
-  root.add(gateBar)
+  root.add(decisionBar)
   root.add(helpBox)
   root.add(promptRow)
   root.add(footer)
@@ -431,7 +373,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     const think = state.thinking
       ? ` · ${spinnerGlyph(state.spinnerFrame)} ${state.thinkingLabel || phase}`
       : ""
-    if (state.screen === "home" && !state.started) {
+    if (!state.started || state.screen === "home") {
       headerLine.content =
         state.mode === "offline" ? `offline · ${phase}${sources}` : `${phase}${sources}`
     } else if (state.mode === "offline") {
@@ -444,36 +386,23 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
         .map((c) => `[ ${clipChip(c)} ]`)
         .join("  ")
     } else {
-      chipLine.content = state.screen === "home" ? "" : "[ sin encargo — 1–4 o escribe ]"
+      chipLine.content = state.screen === "home" ? "" : "[ sin contexto — /curso /asignatura /oa ]"
     }
     root.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
     const chipsVisible = showChips(state) || state.screen !== "home"
     chipLine.visible = chipsVisible
     header.height = chipsVisible ? 2 : 1
 
-    const isHome = state.screen === "home" && !state.thinking && !state.plan && !state.proposal
-    const awaitingPlan =
-      state.phase === "esperando_plan" ||
-      state.phase === "esperando_clarificacion" ||
-      state.phase === "proponiendo_plan"
-    // Hide empty propuesta/evidencia chrome during plan/clarify — plan card + strip dominate.
-    const planFocus = awaitingPlan && !state.proposal
-    const gateFocus =
-      state.phase === "esperando_criterio" ||
-      state.phase === "listo" ||
-      (state.phase === "escribiendo" && Boolean(state.proposal))
+    const hasCard = Boolean(state.card)
+    const isHome = state.screen === "home" && !state.messages.length && !hasCard
     home.visible = isHome
-    body.visible = !isHome && !planFocus
-    // Belt-and-suspenders: collapse child panels too (visible=false alone can leave flex gap).
-    left.visible = !isHome && !planFocus && !state.compact && !gateFocus
-    center.visible = !isHome && !planFocus
-    right.visible = !isHome && !planFocus
+    body.visible = !isHome
+    left.visible = !isHome && (!state.compact || !hasCard)
+    center.visible = !isHome && hasCard
+    right.visible = !isHome && !state.compact && (hasCard || state.warnings.length > 0)
 
     bird.visible = !state.compact
-    rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ")
-    rumboHints.content = state.compact ? "" : RUMBOS.map((r) => r.hint).join(" · ")
-    rumboHints.visible = !state.compact
-    homeHint.visible = !state.compact
+    homeSubHint.visible = !state.compact
     if (state.recentSessions.length) {
       recentText.content =
         "\nrecientes\n" +
@@ -485,86 +414,60 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       recentText.content = ""
     }
 
-    // Compact / gate: evidence column width.
-    if (!planFocus) {
-      right.width = state.compact ? 28 : gateFocus ? 36 : 34
+    if (hasCard) {
+      center.width = state.compact ? 46 : "auto"
+      center.flexGrow = state.compact ? 0 : 1.15
+      center.minWidth = state.compact ? 0 : 40
+      right.width = 34
     }
 
-    left.borderColor = state.focusPanel === "session" ? theme.borderFocus : theme.border
-    center.borderColor = state.focusPanel === "proposal" ? theme.borderFocus : theme.border
-    right.borderColor = state.focusPanel === "evidence" ? theme.borderFocus : theme.border
-    left.title = state.focusPanel === "session" ? " ▸ sesión " : " sesión "
-    center.title = state.focusPanel === "proposal" ? " ▸ propuesta " : " propuesta "
-    right.title = state.focusPanel === "evidence" ? " ▸ evidencia " : " evidencia "
+    left.borderColor = state.focusPanel === "hilo" ? theme.borderFocus : theme.border
+    center.borderColor = state.focusPanel === "propuesta" ? theme.borderFocus : theme.border
+    right.borderColor = state.focusPanel === "evidencia" ? theme.borderFocus : theme.border
+    left.title = state.focusPanel === "hilo" ? " ▸ conversación " : " conversación "
+    center.title = state.focusPanel === "propuesta" ? " ▸ propuesta " : " propuesta "
+    right.title = state.focusPanel === "evidencia" ? " ▸ evidencia " : " evidencia "
 
-    sessionText.content = renderSession(state)
+    threadText.content = renderThread(state)
     activityText.content = renderActivity(state)
-    const proposalBody = state.proposal
-      ? `# ${state.proposalTitle || "propuesta"}\n\n${state.proposal}`
-      : emptyProposal(state)
-    // Text path is reliable in OpenTUI frames; Markdown was painting blank.
-    proposalMd.visible = false
-    proposalText.visible = true
-    proposalText.content = proposalBody
+
+    cardHeadScroll.height = state.compact ? 10 : 16
+    cardHeadText.content = state.card ? renderCardHead(state) : ""
+    previewText.content = state.card?.vista_previa ?? ""
+    previewLabel.visible = hasCard
+    previewScroll.visible = hasCard
+
     evidenceText.content = renderEvidence(state)
     warnText.content = renderWarnings(state)
 
-    const showPlan =
-      Boolean(state.plan) &&
-      (state.planPinned ||
-        state.phase === "esperando_plan" ||
-        state.phase === "esperando_clarificacion" ||
-        state.phase === "escribiendo" ||
-        state.phase === "esperando_criterio")
-    if (showPlan && state.plan) {
-      planBar.visible = true
-      const detail = planShowsDetail(state)
-      if (planFocus) {
-        planBar.height = state.compact ? 12 : state.phase === "esperando_clarificacion" ? 14 : 16
-        planScroll.height = planBar.height - 2
-        planBar.title = " plan "
-      } else if (gateFocus) {
-        planBar.height = detail ? (state.compact ? 8 : 10) : state.compact ? 4 : 5
-        planScroll.height = planBar.height - 2
-        planBar.title = detail ? " plan " : " plan · p detalle "
-      } else {
-        planBar.height = state.compact ? 8 : 11
-        planScroll.height = planBar.height - 2
-        planBar.title = " plan "
-      }
-      planText.content = renderPlanCard(state, detail)
-    } else {
-      planBar.visible = false
-    }
-
-    if (state.phase === "esperando_clarificacion" && state.question) {
-      clarifyBar.visible = true
-      clarifyBar.height = state.compact ? 7 : 8
-      clarifyText.content = renderQuestion(state)
-    } else {
-      clarifyBar.visible = false
-    }
-
-    const strip = gateStrip(state)
-    gateBar.visible = Boolean(strip)
-    gateText.content = strip
-    if (state.phase === "esperando_criterio") {
-      gateBar.borderColor = theme.ok
-      gateBar.title = " puerta "
-      gateBar.titleColor = theme.ok
-    } else if (state.phase === "esperando_plan" || state.phase === "esperando_clarificacion") {
-      gateBar.borderColor = theme.accent
-      gateBar.title = state.phase === "esperando_clarificacion" ? " clarificación " : " plan "
-      gateBar.titleColor = theme.accent
+    const strip = decisionStrip(state)
+    decisionBar.visible = Boolean(strip)
+    decisionText.content = strip
+    if (state.cardStatus === "pendiente") {
+      decisionBar.borderColor = theme.ok
+      decisionBar.title = " aprobación "
+      decisionBar.titleColor = theme.ok
+    } else if (state.cardStatus === "escrito") {
+      decisionBar.borderColor = theme.ok
+      decisionBar.title = " escrito "
+      decisionBar.titleColor = theme.ok
+    } else if (state.cardStatus === "descartado") {
+      decisionBar.borderColor = theme.warn
+      decisionBar.title = " descartado "
+      decisionBar.titleColor = theme.warn
+    } else if (state.cardStatus === "aprobado") {
+      decisionBar.borderColor = theme.accent
+      decisionBar.title = " aprobado "
+      decisionBar.titleColor = theme.accent
     } else if (state.phase === "error") {
-      gateBar.borderColor = theme.err
-      gateBar.title = " error "
-      gateBar.titleColor = theme.err
+      decisionBar.borderColor = theme.err
+      decisionBar.title = " error "
+      decisionBar.titleColor = theme.err
     }
 
     errorBar.visible = state.phase === "error" && Boolean(state.lastError)
     errorText.content = state.retryable
-      ? `${state.lastError}\n→ r o /retry para reintentar · /home para volver`
+      ? `${state.lastError}\n→ r o /retry para reintentar`
       : state.lastError
 
     helpBox.visible = state.help
@@ -574,34 +477,23 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       const foot = footerFor(state)
       footer.content = foot ? ` ${state.statusLine}     ${foot}` : ` ${state.statusLine}`
     }
-    promptRow.title =
-      state.uiMode === "critique"
-        ? " crítica docente "
-        : state.uiMode === "assumption"
-          ? " supuesto "
-          : state.uiMode === "clarify"
-            ? " responde "
-            : state.screen === "home"
-              ? " pregunta "
-              : " encargo "
-    promptRow.borderColor = gateColor(state)
+    const awaiting = state.cardStatus === "pendiente" && hasCard
+    promptRow.title = state.help
+      ? " ayuda "
+      : awaiting
+        ? " tu decisión "
+        : state.screen === "home"
+          ? " pregunta "
+          : " mensaje "
+    promptRow.borderColor = awaiting
+      ? theme.ok
+      : state.phase === "error"
+        ? theme.err
+        : theme.borderFocus
     input.placeholder = placeholderFor(state)
 
-    if (
-      state.phase === "esperando_criterio" ||
-      state.phase === "esperando_plan" ||
-      state.phase === "esperando_clarificacion"
-    ) {
-      if (state.uiMode === "critique" || state.uiMode === "assumption" || state.uiMode === "clarify") {
-        input.focus()
-      } else if (state.phase === "esperando_clarificacion") {
-        input.focus()
-      } else {
-        input.blur()
-      }
-    } else if (!state.help) {
-      input.focus()
-    }
+    if (state.help) input.blur()
+    else input.focus()
   }
 
   return {
@@ -613,6 +505,13 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     scrollHelp: (delta: number) => {
       try {
         helpScroll.scrollBy(delta)
+      } catch {
+        /* ignore if not scrollable yet */
+      }
+    },
+    scrollThread: (delta: number) => {
+      try {
+        threadScroll.scrollBy(delta)
       } catch {
         /* ignore if not scrollable yet */
       }
@@ -658,17 +557,33 @@ function scroll(
   })
 }
 
-function renderSession(state: AppState): string {
-  if (!state.turns.length) {
-    return "Sin turnos aún.\n\nHistorial:\nrumbo → plan → borrador → criterio."
+/** Hilo: persona, agente y notas del host; el streaming se pinta al final. */
+function renderThread(state: AppState): string {
+  const rows: string[] = []
+  for (const m of state.messages) {
+    if (m.role === "persona") {
+      rows.push(`tú  › ${indentBody(m.text)}`, "")
+      continue
+    }
+    if (m.role === "host") {
+      rows.push(`·  ${m.text}${m.path ? ` · ${m.path}` : ""}`, "")
+      continue
+    }
+    rows.push(`tero › ${indentBody(m.text)}`, "")
   }
-  return state.turns
-    .map((turn, i) => {
-      const mark = turn.path ? "✓" : "·"
-      const title = turn.titulo || turn.prompt.slice(0, 42)
-      return `${mark} ${i + 1}. ${title}\n   ${turn.phase}${turn.path ? `\n   ${shortPath(turn.path)}` : ""}`
-    })
-    .join("\n\n")
+  if (state.streaming) {
+    rows.push(`tero › ${indentBody(state.streaming)}▌`)
+  } else if (state.thinking) {
+    rows.push(`${spinnerGlyph(state.spinnerFrame)} ${state.thinkingLabel || "pensando…"}`)
+  }
+  if (!rows.length) {
+    return "Escribe lo que necesitas.\nEl agente responde, crea o adapta; tú apruebas."
+  }
+  return rows.join("\n").trimEnd()
+}
+
+function indentBody(text: string): string {
+  return text.replace(/\n/g, "\n      ")
 }
 
 function renderActivity(state: AppState): string {
@@ -688,101 +603,43 @@ function renderActivity(state: AppState): string {
   return rows.join("\n")
 }
 
-function emptyProposal(state: AppState): string {
-  if (state.thinking) {
-    return [
-      `# ${spinnerGlyph(state.spinnerFrame)} trabajando`,
-      "",
-      state.thinkingLabel || PHASE_LABEL[state.phase],
-    ].join("\n")
-  }
-  return [
-    "# El agente prepara. Tú decides.",
-    "",
-    state.plan ? "Revisa el plan. `a` aprueba." : "Elige un rumbo o escribe el encargo.",
-    state.lastError ? `\n> ${state.lastError}` : "",
-  ].join("\n")
-}
-
-function renderPlanCard(state: AppState, detail = true): string {
-  const plan = state.plan!
+/**
+ * Tarjeta de propuesta: qué hará (acción, tipo, título, resumen), origen y
+ * cambios si edita/adapta, apoyos NEE, y el resultado si ya se escribió.
+ */
+function renderCardHead(state: AppState): string {
+  const card = state.card
+  if (!card) return ""
   const lines: string[] = []
-  lines.push(shortPlanTitle(plan, state))
-  if (detail && plan.meta) lines.push(clipChip(plan.meta, 72))
-  lines.push("")
-  lines.push(plan.objetivo)
-  if (!detail) {
-    const bits = [
-      plan.decisiones?.curso || state.encargo.curso,
-      plan.oa || state.encargo.oa,
-      plan.duracion || state.encargo.duracion,
-    ].filter(Boolean)
-    if (bits.length) lines.push(bits.join(" · "))
-    lines.push(plan.supuestos?.length ? `supuestos ${plan.supuestos.length} · p detalle` : "p detalle")
-    return lines.join("\n")
+  const tipo = card.tipo_label || card.tipo || "material"
+  lines.push(card.titulo ? `${accionLabel(card.accion)} · ${tipo} — ${card.titulo}` : `${accionLabel(card.accion)} · ${tipo}`)
+  if (card.resumen) lines.push(card.resumen)
+  if (card.accion !== "crear" && card.origen) {
+    lines.push(`origen  ${card.origen}`)
   }
-  lines.push("")
-  if (plan.resultado_previsto?.length) {
-    lines.push("RESULTADO PREVISTO")
-    for (const item of plan.resultado_previsto) lines.push(`  · ${item}`)
-    lines.push("")
+  if (card.cambios.length) {
+    lines.push("cambios")
+    for (const change of card.cambios.slice(0, 6)) lines.push(`  · ${change}`)
   }
-  const chipSet = new Set(chips(state.encargo).map((c) => c.toLowerCase()))
-  const d = plan.decisiones || {}
-  const rows: string[] = []
-  const curso = d.curso || state.encargo.curso || ""
-  const asig = d.asignatura || state.encargo.asignatura || ""
-  const tema = d.tema || state.encargo.tema || ""
-  if (curso && !chipSet.has(curso.toLowerCase())) rows.push(`  Curso        ${curso}`)
-  if (asig && !chipSet.has(asig.toLowerCase())) rows.push(`  Asignatura   ${asig}`)
-  if (tema && !chipSet.has(tema.toLowerCase())) rows.push(`  Tema         ${clipChip(tema, 48)}`)
-  if (plan.oa && !chipSet.has(String(plan.oa).toLowerCase())) rows.push(`  OA           ${plan.oa}`)
-  if (plan.duracion && !chipSet.has(String(plan.duracion).toLowerCase())) {
-    rows.push(`  Duración     ${plan.duracion}`)
+  if (card.notas_nee.length) {
+    lines.push("apoyos y criterios NEE")
+    for (const nota of card.notas_nee.slice(0, 6)) lines.push(`  · ${nota}`)
   }
-  if (rows.length) {
-    lines.push("DECISIONES CONFIRMADAS")
-    lines.push(...rows)
-    lines.push("")
+  if (state.cardStatus === "escrito" && state.writtenPath) {
+    lines.push(`escrito · ${accionLabel(state.writtenAccion)}`, state.writtenPath)
+  } else if (state.cardStatus === "descartado") {
+    lines.push("descartado · no se escribió nada")
   }
-  if (plan.como_abordare?.length) {
-    lines.push("CÓMO LO ABORDARÉ")
-    plan.como_abordare.forEach((step, i) => {
-      lines.push(`  ${i + 1}. ${step.titulo}${step.detalle ? ` — ${step.detalle}` : ""}`)
-    })
-    lines.push("")
-  }
-  if (plan.supuestos?.length) {
-    lines.push("SUPUESTOS  (e)")
-    for (const s of plan.supuestos) lines.push(`  · ${s.text}`)
-  }
-  if (plan.entregables && plan.entregables.length > 1) {
-    lines.push("")
-    lines.push("ENTREGABLES")
-    for (const e of plan.entregables) lines.push(`  · ${e.label}`)
-  }
-  return lines.join("\n")
-}
-
-function renderQuestion(state: AppState): string {
-  const q = state.question!
-  const lines = [q.prompt, ""]
-  q.options.forEach((opt, i) => {
-    const n = opt.id || String(i + 1)
-    const badge = opt.suggested ? "  ★ SUGERIDA" : ""
-    lines.push(`  [${n}]${badge}  ${opt.label}`)
-  })
-  lines.push("")
-  lines.push("Responde con tus palabras · o 1/2/3")
   return lines.join("\n")
 }
 
 function renderEvidence(state: AppState): string {
-  if (!state.evidence.length) {
-    return "Citas al redactar.\n[ ] recorre · ✓ archivo · ? parafraseo"
+  const rows = state.card?.evidencias ?? []
+  if (!rows.length) {
+    return "Las citas aparecen cuando el agente propone un archivo.\n✓ en el archivo · ? parafraseo"
   }
-  const total = state.evidence.length
-  return state.evidence
+  const total = rows.length
+  return rows
     .map((item, i) => {
       const selected = i === state.evidenceIndex
       const trust = item.verified ? "✓" : "?"
@@ -810,28 +667,18 @@ function renderEvidence(state: AppState): string {
 }
 
 function renderWarnings(state: AppState): string {
-  if (!state.warnings.length) return "sin avisos"
-  return state.warnings.map((item) => `! ${item.message}`).join("\n")
+  const rows = allWarnings(state)
+  if (!rows.length) return "sin avisos"
+  return rows.map((item) => `! ${item.message}`).join("\n")
 }
 
 function placeholderFor(state: AppState): string {
-  if (state.uiMode === "critique") return "Qué debe corregir el agente…"
-  if (state.uiMode === "assumption") return "Nuevo texto del supuesto…"
-  if (state.uiMode === "clarify" || state.phase === "esperando_clarificacion") {
-    return "Responde con tus palabras…"
+  if (state.cardStatus === "pendiente" && state.card) {
+    return "y aprueba · n descarta · o escribe tu decisión…"
   }
-  if (state.phase === "esperando_criterio") return "teclas arriba · o crítica con c"
-  if (state.phase === "esperando_plan") return "teclas arriba · /objetivo /oa"
-  if (state.phase === "error" && state.retryable) return "r reintenta · o otro encargo"
   if (state.screen === "home") return "Pregunta, explora o crea…"
-  return "Describe el material…  Enter envía"
-}
-
-function gateColor(state: AppState): string {
-  if (state.phase === "esperando_criterio") return theme.ok
-  if (state.phase === "esperando_plan" || state.phase === "esperando_clarificacion") return theme.accent
-  if (state.phase === "error") return theme.err
-  return theme.borderFocus
+  if (state.phase === "error" && state.retryable) return "r reintenta · o sigue conversando"
+  return "Escribe tu respuesta…  Enter envía"
 }
 
 function clipChip(text: string, max = 22): string {
@@ -864,17 +711,4 @@ function wrapLines(text: string, width: number): string[] {
   }
   if (row) lines.push(row)
   return lines
-}
-
-function wrapLine(text: string, width: number): string {
-  return wrapLines(text, width).join("\n  ")
-}
-
-function shortPlanTitle(plan: NonNullable<AppState["plan"]>, state: AppState): string {
-  const tipo = plan.tipo_label || plan.tipo || "plan"
-  const tema = plan.decisiones?.tema || state.encargo.tema || ""
-  if (tema) return clipChip(`${tipo} · ${tema}`, 64)
-  const raw = (plan.titulo || "").replace(/^Plan de\s+/i, "").trim()
-  if (raw) return clipChip(raw, 64)
-  return String(tipo)
 }
