@@ -10,6 +10,14 @@ from typing import Any
 
 from strands import tool
 
+from tero.begonia import (
+    INSTRUCCION_ERROR,
+    BegoniaClient,
+    banco_oa_code,
+    grade_filter,
+    no_configurado,
+    subject_filter,
+)
 from tero.coerce import as_text
 from tero.curriculum.catalog import catalog_covers_curso, normalize_curso
 from tero.curriculum.catalog import get_oa as catalog_get_oa
@@ -24,6 +32,8 @@ from tero.types import (
     Encargo,
     Evidence,
     Propuesta,
+    banco_item_id,
+    is_banco_path,
     parse_accion,
 )
 from tero.workspace import Workspace
@@ -33,6 +43,13 @@ EmitFn = Callable[[dict[str, Any]], None]
 # Tope de tools por turno: un loop de cite_evidence no es "esmerado".
 DRAFT_TOOL_BUDGET = 16
 DRAFT_AGENT_TURNS = 18
+
+# Tope de ítems por búsqueda en el banco: el contexto no es un volcado del banco.
+BANCO_LIMITE_MAX = 20
+BANCO_STEM_CHARS = 280
+BANCO_PAUTA_CHARS = 2000
+BANCO_ORIENTACION_CHARS = 1200
+BANCO_ORIENTACIONES = 3
 
 # Tools que entregan la propuesta. Cierran el turno.
 PROPOSAL_TOOLS = {"proponer_crear", "proponer_editar"}
@@ -54,10 +71,31 @@ class TurnContext:
     tool_budget: int | None = None
     budget_exhausted: bool = False
     last_chance_used: set[str] = field(default_factory=set)
+    # Banco pedagógico (solo lectura). None = no configurado.
+    banco: BegoniaClient | None = None
+    # Ids del banco servidos en este turno: son los que se pueden citar.
+    banco_ids: set[str] = field(default_factory=set)
 
     def _emit(self, event: dict[str, Any]) -> None:
         if self.emit:
             self.emit(event)
+
+    def banco_activo(self) -> BegoniaClient | None:
+        """El cliente, solo si está configurado; si no, las tools degradan solas."""
+        if self.banco is not None and self.banco.configured:
+            return self.banco
+        return None
+
+    def snapshot_banco(self) -> str:
+        """Versión del banco (una consulta por turno); "" si no hay banco."""
+        cliente = self.banco_activo()
+        return cliente.snapshot_id() if cliente else ""
+
+    def reset_banco(self) -> None:
+        """Nuevo turno: se olvida el snapshot y los ids servidos."""
+        self.banco_ids.clear()
+        if self.banco is not None:
+            self.banco.reset()
 
     def reset_tool_budget(self, n: int | None) -> None:
         self.tool_calls = 0
@@ -133,6 +171,9 @@ def build_tools(ctx: TurnContext) -> list[Any]:
         _list_oa(ctx),
         _get_oa(ctx),
         _search_oa(ctx),
+        _buscar_banco(ctx),
+        _leer_item_banco(ctx),
+        _orientaciones_banco(ctx),
         _cite_evidence(ctx),
         _proponer_crear(ctx),
         _proponer_editar(ctx),
@@ -395,6 +436,229 @@ def _search_oa(ctx: TurnContext):
     return search_oa
 
 
+def _buscar_banco(ctx: TurnContext):
+    @tool
+    def buscar_banco(
+        query: str = "",
+        curso: str = "",
+        asignatura: str = "",
+        oa: str = "",
+        limite: int = 8,
+    ) -> str:
+        """Busca material y preguntas oficiales en el banco pedagógico (begonia).
+
+        Usa material oficial MINEDUC/Curriculum Nacional en vez de inventarlo.
+        Si el banco no está disponible o falla, devuelve disponible=False para
+        seguir con la carpeta local.
+        """
+        blocked = _blocked(ctx, "buscar_banco")
+        if blocked:
+            return blocked
+        cliente = ctx.banco_activo()
+        if cliente is None:
+            return json.dumps(no_configurado().as_dict(), ensure_ascii=False)
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "buscar_banco",
+                "state": "start",
+                "detail": query or oa,
+            }
+        )
+        grade = grade_filter(curso or ctx.encargo.curso)
+        subject = subject_filter(asignatura or ctx.encargo.asignatura)
+        oa_code = banco_oa_code(oa or ctx.encargo.oa)
+        limite_val = min(max(int(limite or 8), 1), BANCO_LIMITE_MAX)
+        reply = cliente.search(
+            query,
+            grade=grade,
+            subject=subject,
+            oa=oa_code,
+            limit=limite_val,
+        )
+        if not reply.ok:
+            ctx._emit(
+                {
+                    "type": "activity",
+                    "tool": "buscar_banco",
+                    "state": "end",
+                    "detail": "error",
+                }
+            )
+            d = reply.as_dict()
+            d["hint"] = INSTRUCCION_ERROR
+            return json.dumps(d, ensure_ascii=False)
+        items_raw = reply.data.get("items") or []
+        items_out = []
+        for item in items_raw:
+            ident = str(item.get("id") or "")
+            if ident:
+                ctx.banco_ids.add(ident)
+            stem = str(item.get("stem") or "")
+            if len(stem) > BANCO_STEM_CHARS:
+                stem = stem[:BANCO_STEM_CHARS] + "…"
+            items_out.append(
+                {
+                    "id": ident,
+                    "banco_path": f"banco:{ident}",
+                    "type": item.get("type"),
+                    "subject": item.get("subject"),
+                    "grade": item.get("grade"),
+                    "oa_code_primary": item.get("oa_code_primary"),
+                    "stem": stem,
+                    "pauta_kind": item.get("pauta_kind"),
+                    "source_kind": item.get("source_kind"),
+                }
+            )
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "buscar_banco",
+                "state": "end",
+                "detail": f"{len(items_out)} ítems",
+            }
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "disponible": True,
+                "total": reply.data.get("total", len(items_out)),
+                "snapshot_id": cliente.snapshot_id(),
+                "items": items_out,
+            },
+            ensure_ascii=False,
+        )
+
+    return buscar_banco
+
+
+def _leer_item_banco(ctx: TurnContext):
+    @tool
+    def leer_item_banco(id: str) -> str:
+        """Lee el detalle completo de un ítem oficial del banco pedagógico por id.
+
+        Devuelve el enunciado íntegro, la solución o pauta oficial con sus
+        criterios de corrección y puntajes, y la procedencia.
+        """
+        id_clean = banco_item_id(id) if is_banco_path(id) else str(id or "").strip()
+        blocked = _blocked(ctx, "leer_item_banco")
+        if blocked:
+            return blocked
+        cliente = ctx.banco_activo()
+        if cliente is None:
+            return json.dumps(no_configurado().as_dict(), ensure_ascii=False)
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "leer_item_banco",
+                "state": "start",
+                "detail": id_clean,
+            }
+        )
+        reply = cliente.item(id_clean, text=True)
+        if not reply.ok:
+            ctx._emit(
+                {
+                    "type": "activity",
+                    "tool": "leer_item_banco",
+                    "state": "end",
+                    "detail": "error",
+                }
+            )
+            d = reply.as_dict()
+            d["hint"] = INSTRUCCION_ERROR
+            return json.dumps(d, ensure_ascii=False)
+        ctx.banco_ids.add(id_clean)
+        item = reply.data.get("item") or reply.data
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "leer_item_banco",
+                "state": "end",
+                "detail": id_clean,
+            }
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "disponible": True,
+                "banco_path": f"banco:{id_clean}",
+                "item": item,
+                "snapshot_id": cliente.snapshot_id(),
+            },
+            ensure_ascii=False,
+        )
+
+    return leer_item_banco
+
+
+def _orientaciones_banco(ctx: TurnContext):
+    @tool
+    def orientaciones_banco(oa: str = "", query: str = "") -> str:
+        """Consulta orientaciones docentes oficiales para un OA en el banco pedagógico."""
+        blocked = _blocked(ctx, "orientaciones_banco")
+        if blocked:
+            return blocked
+        cliente = ctx.banco_activo()
+        if cliente is None:
+            return json.dumps(no_configurado().as_dict(), ensure_ascii=False)
+        oa_code = banco_oa_code(oa or ctx.encargo.oa)
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "orientaciones_banco",
+                "state": "start",
+                "detail": oa_code or query,
+            }
+        )
+        reply = cliente.guidance(oa=oa_code, q=query, limit=BANCO_ORIENTACIONES)
+        if not reply.ok:
+            ctx._emit(
+                {
+                    "type": "activity",
+                    "tool": "orientaciones_banco",
+                    "state": "end",
+                    "detail": "error",
+                }
+            )
+            d = reply.as_dict()
+            d["hint"] = INSTRUCCION_ERROR
+            return json.dumps(d, ensure_ascii=False)
+        guidance_list = reply.data.get("guidance") or []
+        out = []
+        for g in guidance_list:
+            body = str(g.get("body_text") or "")
+            if len(body) > BANCO_ORIENTACION_CHARS:
+                body = body[:BANCO_ORIENTACION_CHARS] + "…"
+            out.append(
+                {
+                    "id": g.get("id"),
+                    "oa_code": g.get("oa_code"),
+                    "guidance_kind": g.get("guidance_kind"),
+                    "body_text": body,
+                }
+            )
+        ctx._emit(
+            {
+                "type": "activity",
+                "tool": "orientaciones_banco",
+                "state": "end",
+                "detail": f"{len(out)} orientaciones",
+            }
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "disponible": True,
+                "guidance": out,
+                "snapshot_id": cliente.snapshot_id(),
+            },
+            ensure_ascii=False,
+        )
+
+    return orientaciones_banco
+
+
 def _split_items(value: str) -> list[str]:
     """Separa una lista escrita en una línea (o varias) en ítems limpios."""
     out: list[str] = []
@@ -423,7 +687,7 @@ def _draft_from_args(
     merged: list[Evidence] = []
     seen: set[tuple[str, str]] = set()
     for item in [*ctx.evidence, *extra]:
-        checked = verify_evidence(ctx.workspace, item)
+        checked = verify_evidence(ctx.workspace, item, banco_ids=ctx.banco_ids)
         key = (checked.path, checked.snippet[:80])
         if key in seen:
             continue
@@ -434,12 +698,14 @@ def _draft_from_args(
     schema = strip_tool_traces_value(schema)
     if schema:
         _fill_payload_from_encargo(schema, ctx.encargo)
+    banco_snap = ctx.snapshot_banco() if any(is_banco_path(e.path) for e in merged) else ""
     return ArtifactDraft(
         tipo=parsed,
         titulo=titulo.strip() or parsed.label,
         cuerpo_markdown=vista_previa_markdown,
         evidencias=merged,
         payload=schema,
+        banco_snapshot=banco_snap,
     )
 
 

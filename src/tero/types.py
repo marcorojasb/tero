@@ -19,6 +19,19 @@ ProtocolPhase = Literal[
 # Intención del agente cuando propone escribir material.
 AccionPropuesta = Literal["crear", "editar", "adaptar"]
 
+# Las citas del banco pedagógico oficial usan este prefijo: no son rutas de la
+# carpeta, así que su verificación es contra el banco y no contra el archivo.
+BANCO_PREFIX = "banco:"
+
+
+def is_banco_path(path: Any) -> bool:
+    return str(path or "").strip().startswith(BANCO_PREFIX)
+
+
+def banco_item_id(path: Any) -> str:
+    text = str(path or "").strip()
+    return text[len(BANCO_PREFIX) :].strip() if is_banco_path(text) else ""
+
 
 class ArtifactType(StrEnum):
     PLANIFICACION = "planificacion"
@@ -186,6 +199,8 @@ class ArtifactDraft:
     evidencias: list[Evidence] = field(default_factory=list)
     warnings: list[WarningItem] = field(default_factory=list)
     payload: dict[str, Any] | None = None
+    # Versión del banco pedagógico usada, si la propuesta se apoyó en él.
+    banco_snapshot: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -198,7 +213,13 @@ class ArtifactDraft:
         }
         if self.payload:
             data["payload"] = self.payload
+        if self.banco_snapshot:
+            data["banco_snapshot"] = self.banco_snapshot
         return data
+
+    @property
+    def usa_banco(self) -> bool:
+        return any(is_banco_path(item.path) for item in self.evidencias)
 
 
 @dataclass
