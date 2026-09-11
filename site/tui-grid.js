@@ -620,11 +620,23 @@
     return { cellW, cellH, fontSize: fs, cols, rows };
   }
 
+  function viewportBudget() {
+    /* Reserve only body padding. There is no second titlebar. */
+    const styles = getComputedStyle(document.body);
+    const padX =
+      (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+    const padY =
+      (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+    return {
+      maxW: Math.max(280, window.innerWidth - padX),
+      maxH: Math.max(240, window.innerHeight - padY),
+    };
+  }
+
   function fitShot(host, img, cols, rows) {
     const nw = img.naturalWidth || cols * 10;
     const nh = img.naturalHeight || rows * 24;
-    const maxW = Math.max(280, window.innerWidth - 48);
-    const maxH = Math.max(240, window.innerHeight - 96);
+    const { maxW, maxH } = viewportBudget();
     let scale = Math.min(maxW / nw, maxH / nh, 1);
     const width = Math.max(1, Math.round(nw * scale));
     const height = Math.max(1, Math.round(nh * scale));

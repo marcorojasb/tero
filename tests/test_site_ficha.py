@@ -91,8 +91,8 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-tui" in html
-    assert "tui-grid.js?v=vte-hotkeys" in html
+    assert "styles.css?v=vte-1x" in html
+    assert "tui-grid.js?v=vte-1x" in html
     assert "ficha.js?v=vte-hotkeys" in html
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
@@ -108,6 +108,12 @@ def test_ficha_landing_is_the_github_page():
     assert "paintFrame" in grid
     assert "paintShot" in grid
     assert "promptBoxFromFrame" in grid
+    assert "viewportBudget" in grid
+    assert "innerHeight - 96" not in grid
+    assert "paddingLeft" in grid
+    assert "html,\nbody {\n  margin: 0;\n  min-height: 100%;\n  overflow: hidden;\n}" in css
+    assert "padding: 12px" in css
+    assert ".window-chrome.sr-only" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
     assert "plan-2" in js
@@ -137,7 +143,8 @@ def test_ficha_assets_and_pages_workflow():
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
     home_html = _read(SITE / "assets" / "tui" / "frames" / "home.html")
-    assert "window-chrome" in home_html
+    assert "window-chrome sr-only" in home_html
+    assert 'class="traffic"' not in home_html
     assert "tui-grid.js" in home_html
     assert "fitHost" in home_html
     home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
@@ -171,8 +178,15 @@ def test_ficha_assets_and_pages_workflow():
             path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
             assert path.is_file(), path
             assert path.stat().st_size > 10_000
+    frames_dir = SITE / "assets" / "tui" / "frames"
+    for html_path in frames_dir.glob("*.html"):
+        if html_path.name == "gallery.html":
+            continue
+        frame_html = _read(html_path)
+        assert "window-chrome sr-only" in frame_html, html_path.name
+        assert 'class="traffic"' not in frame_html, html_path.name
     for shot in ("home", "help", "puerta-2", "plan-2", "leyendo-2"):
-        png = SITE / "assets" / "tui" / "frames" / f"{shot}.png"
+        png = frames_dir / f"{shot}.png"
         assert png.is_file(), png
         assert png.stat().st_size > 8_000
     assert (SITE / "assets" / "tui" / "puerta.webp").is_file()

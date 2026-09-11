@@ -48,6 +48,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -56,7 +57,7 @@ body {
   font-size: 13px;
   line-height: 1.2;
   background: var(--tui-bg);
-  padding: 1.1rem;
+  padding: 12px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -108,7 +109,7 @@ body {
 }
 
 .window {
-  max-width: calc(100vw - 2.2rem);
+  max-width: calc(100vw - 24px);
   margin: 0;
   background: var(--tui-bg);
   border: 0;
@@ -163,6 +164,22 @@ body {
 
 .window-path {
   justify-self: end;
+}
+
+.window-chrome.sr-only {
+  /* Beat .window-chrome padding/border so the PNG is the only window. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  display: block;
+  flex: none;
+  background: transparent;
 }
 
 .tui-host {
