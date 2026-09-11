@@ -65,6 +65,7 @@
     rows: 36,
     cellW: 8,
     cellH: 15.6,
+    fontSize: 13,
     hits: [],
     promptBox: null,
     model: null,
@@ -295,6 +296,7 @@ python -m tero demo --offline --yes
     const fitted = Tui.fitHost($("tui-host"), $("tui-grid"), GRID_COLS, GRID_ROWS);
     state.cellW = fitted.cellW;
     state.cellH = fitted.cellH;
+    state.fontSize = fitted.fontSize;
     state.cols = GRID_COLS;
     state.rows = GRID_ROWS;
   }
@@ -327,7 +329,7 @@ python -m tero demo --offline --yes
     placePrompt(painted.prompt);
     document.body.dataset.view = model.view === "home" ? "home" : "session";
     document.body.dataset.frame = captured && captured.name ? captured.name : "live";
-    $("window-path").textContent = "";
+    $("window-path").textContent = "~/tero";
     const typing = Boolean($("prompt").value);
     $("prompt").placeholder = captured && !typing ? "" : model.placeholder;
     $("prompt").style.background = typing ? Tui.theme.inputBg : "transparent";
@@ -342,6 +344,8 @@ python -m tero demo --offline --yes
     input.style.top = `${grid.top - host.top + box.y * state.cellH}px`;
     input.style.width = `${box.w * state.cellW}px`;
     input.style.height = `${state.cellH}px`;
+    input.style.fontSize = `${state.fontSize || 13}px`;
+    input.style.lineHeight = "1.2";
   }
 
   function currentModel() {

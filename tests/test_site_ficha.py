@@ -88,8 +88,8 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "tui-grid.js?v=rumbo-frames" in html
-    assert "ficha.js?v=rumbo-frames" in html
+    assert "tui-grid.js?v=window-tero" in html
+    assert "ficha.js?v=window-tero" in html
     assert "paintFrame" in grid
     assert "promptBoxFromFrame" in grid
     assert "loadFrames" in js
@@ -99,6 +99,8 @@ def test_ficha_landing_is_the_github_page():
     assert "leyendo-2" in js
     assert "~/carpeta-tui" not in html
     assert 'id="window-path"' in html
+    assert "~/tero" in html
+    assert '$("window-path").textContent = "~/tero"' in js or 'textContent = "~/tero"' in js
 
 
 def test_ficha_assets_and_pages_workflow():
@@ -116,6 +118,10 @@ def test_ficha_assets_and_pages_workflow():
     mark = _read(SITE / "assets" / "tero.txt")
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
+    home_html = _read(SITE / "assets" / "tui" / "frames" / "home.html")
+    assert "window-chrome" in home_html
+    assert "tui-grid.js" in home_html
+    assert "fitHost" in home_html
     home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
     assert "╭─ tero" in home_frame
     assert "[1] Planificar" in home_frame
