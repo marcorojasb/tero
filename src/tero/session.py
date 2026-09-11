@@ -386,7 +386,8 @@ class TeacherSession:
             "Entrega la versión corregida con proponer_crear o proponer_editar. "
             "Mantén la evidencia y no escribas archivos."
         )
-        self.pending_propuesta = None
+        # La propuesta anterior sigue viva hasta que llegue una nueva: si la
+        # revisión falla, la persona no pierde lo que ya tenía a la vista.
         self.ctx.pending_propuesta = None
         nuevo = Turn(id=uuid.uuid4().hex[:10], prompt=pedido, phase="pensando")
         self.turns.append(nuevo)
