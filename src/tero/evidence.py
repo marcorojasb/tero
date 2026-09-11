@@ -8,7 +8,7 @@ from typing import Any
 
 from tero.artifacts import missing_headings
 from tero.coerce import as_text
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan, WarningItem
+from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, WarningItem
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
@@ -86,7 +86,6 @@ def collect_warnings(
     *,
     workspace: Workspace,
     encargo: Encargo,
-    plan: Plan | None,
     draft: ArtifactDraft,
     prompt: str = "",
 ) -> list[WarningItem]:
@@ -104,20 +103,22 @@ def collect_warnings(
     if mismatch:
         warnings.append(WarningItem(code="domain_mismatch", message=mismatch))
 
-    plan_oa = (plan.oa if plan else "") or encargo.oa
-    expected_tipo = (plan.tipo if plan is not None else None) or encargo.tipo
+    # El tipo es contexto, no un plan aprobado: si el agente entregó otro,
+    # la persona lo ve en la tarjeta y decide igual.
+    expected_tipo = encargo.tipo
     if expected_tipo is not None and draft.tipo != expected_tipo:
         warnings.append(
             WarningItem(
                 code="tipo_desviado",
                 message=(
-                    f"El rumbo/plan pedía {expected_tipo.label} y el borrador llegó como "
-                    f"{draft.tipo.label}. El plan no se cambia: decide s, o c si quieres "
-                    "el otro entregable."
+                    f"El contexto decía {expected_tipo.label} y la propuesta llegó como "
+                    f"{draft.tipo.label}. Puedes aprobarla igual o pedir el otro entregable."
                 ),
             )
         )
-    if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
+    payload_oa = str((draft.payload or {}).get("oa") or "").strip()
+    plan_oa = payload_oa or encargo.oa
+    if encargo.oa and payload_oa and _normalize_oa(encargo.oa) != _normalize_oa(payload_oa):
         # Allow "OA 4" vs "OA 4 (LEN-4B-OA04)" when same catalog id / codigo
         from tero.curriculum.catalog import resolve_oa
 
@@ -127,16 +128,19 @@ def collect_warnings(
             warnings.append(
                 WarningItem(
                     code="oa_mismatch",
-                    message=f"OA del encargo ({encargo.oa}) no coincide con el plan ({plan_oa}).",
+                    message=(
+                        f"OA del contexto ({encargo.oa}) no coincide con el de la "
+                        f"propuesta ({plan_oa})."
+                    ),
                 )
             )
 
     # Unknown OA relative to catalog (non-blocking). Skip when the course
     # is not in the catalog: free-text OA is the honest path (1° medio).
-    if encargo.oa or (plan and plan.oa):
+    if encargo.oa or payload_oa:
         from tero.curriculum.catalog import catalog_covers_curso, resolve_oa
 
-        check = (plan.oa if plan and plan.oa else "") or encargo.oa
+        check = payload_oa or encargo.oa
         covers = catalog_covers_curso(encargo.curso)
         if (
             check
@@ -173,7 +177,7 @@ def collect_warnings(
         warnings.append(
             WarningItem(
                 code="thin_skeleton",
-                message="El borrador es corto: revisa si es un esqueleto más que un material usable.",
+                message="La propuesta es corta: revisa si es un esqueleto más que un material usable.",
             )
         )
 
@@ -190,7 +194,7 @@ def collect_warnings(
         warnings.append(
             WarningItem(
                 code="missing_rubric",
-                message="Evaluación sin pauta/rúbrica visible. Puedes aceptarla igual o pedir corrección.",
+                message="Evaluación sin pauta/rúbrica visible. Puedes aprobarla igual o pedir cambios.",
             )
         )
 

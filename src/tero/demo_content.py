@@ -312,3 +312,22 @@ Que {curso} ({asignatura}) extraiga información explícita e implícita de las 
 ## Evaluación
 - Formativa: cita, distingue implícito, no inventa fuera de la carpeta.
 """
+
+
+def demo_titulo(encargo: Encargo, tipo: ArtifactType, *, sources: list[str] | None = None) -> str:
+    """Título de la propuesta: sale del objetivo del guion, no de una plantilla vacía."""
+    objetivo = demo_plan(encargo, tipo, sources=sources)["objetivo"]
+    return f"{tipo.label.capitalize()}: {objetivo[:80]}"
+
+
+def demo_resumen(tipo: ArtifactType, *, editado: bool = False) -> str:
+    """Una o dos frases para que la persona sepa qué va a recibir antes de aprobar."""
+    if editado:
+        return (
+            f"Versión nueva de la {tipo.label}: tiempos por momento, enunciados más cortos "
+            "y apoyos de acceso. El material de origen no se toca."
+        )
+    return (
+        f"{tipo.label.capitalize()} lista para usar en aula, con evidencia de las fuentes "
+        "de la carpeta."
+    )

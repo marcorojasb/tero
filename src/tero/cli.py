@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from tero import DEFAULT_MODEL_ID, __version__
+from tero.approval import classify_approval
 from tero.config import EXAMPLE_CARPETA, PACKAGE_ROOT, Settings
 from tero.session import TeacherSession
 from tero.types import Encargo
@@ -87,9 +88,6 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--model", default=None, help=f"Bedrock model id (default {DEFAULT_MODEL_ID})."
     )
-    parser.add_argument(
-        "--skip-plan", action="store_true", help="Saltar el plan tipado (no recomendado)."
-    )
     parser.add_argument("--curso", default=None, help="Chip curso (vacío = home limpio en TUI).")
     parser.add_argument("--asignatura", default=None)
     parser.add_argument("--oa", default=None)
@@ -136,12 +134,11 @@ def _settings(args: argparse.Namespace) -> Settings:
     )
     if args.model:
         object.__setattr__(settings, "model_id", args.model)
-    if args.skip_plan:
-        object.__setattr__(settings, "skip_plan", True)
     return settings
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
+    """Recorrido para jueces y video: conversa, propone y (con --yes) aprueba."""
     settings = _settings(args)
     workspace = Workspace(settings.carpeta)
     before = workspace.fingerprint_sources()
@@ -163,69 +160,65 @@ def cmd_demo(args: argparse.Namespace) -> int:
     say(f"  modo: {'offline' if settings.offline else 'bedrock'}")
     say(f"  modelo: {settings.model_id if not settings.offline else 'tero-offline'}")
     say(f"  carpeta: {workspace.root}")
-    say(f"  encargo: {', '.join(session.encargo.chips())}")
-    if not settings.offline and not args.yes:
-        say("Bedrock requiere credenciales de entorno (nunca en git). Ctrl+C para salir.")
+    say(f"  contexto: {session.encargo.context_line()}")
+    say(f"  mensaje: {prompt}")
     turn = session.start_turn(prompt)
-    # Autocomplete clarification questions in --yes (suggested option).
-    while session.phase == "esperando_clarificacion" and turn.plan:
-        pending = turn.plan.pending_question()
-        if pending is None:
+
+    result = None
+    for _ in range(3):
+        propuesta = session.pending_propuesta
+        if propuesta is None:
             break
-        suggested = next((opt for opt in pending.options if opt.suggested), None)
-        option_id = suggested or (pending.options[0] if pending.options else None)
-        session.answer_plan_question(option_id=option_id.id if option_id else "1")
-        turn = session.turns[-1]
-    if session.phase == "esperando_plan":
-        if args.yes:
-            session.decide_plan("approve")
-        else:
-            print("\nPLAN (a=aprobar / x=cancelar):", flush=True)
-            assert turn.plan is not None
-            for key, value in turn.plan.as_dict().items():
-                if key in {"questions", "como_abordare", "supuestos", "entregables"}:
-                    continue
-                print(f"  {key}: {value}", flush=True)
-            choice = input("¿Aprobar plan? [a/x]: ").strip().lower()
-            if choice in {"x", "n", "cancel"}:
-                session.decide_plan("cancel")
-                print("Plan cancelado.", flush=True)
-                return 0
-            session.decide_plan("approve")
-    if session.phase == "esperando_criterio":
-        assert session.turns[-1].draft is not None
-        draft = session.turns[-1].draft
-        say(f"\nPROPUESTA · {draft.tipo.label} · {draft.titulo}")
-        say(f"  evidencias: {len(draft.evidencias)}")
-        for warning in draft.warnings:
+        say(f"\nPROPUESTA · {propuesta.accion} · {propuesta.tipo.label} · {propuesta.titulo}")
+        if propuesta.resumen:
+            say(f"  {propuesta.resumen}")
+        if propuesta.origen:
+            say(f"  origen: {propuesta.origen}")
+        for cambio in propuesta.cambios:
+            say(f"  cambio: {cambio}")
+        for nota in propuesta.notas_nee:
+            say(f"  nee: {nota}")
+        say(f"  evidencias: {len(propuesta.draft.evidencias)}")
+        for warning in propuesta.draft.warnings:
             say(f"  aviso ({warning.code}): {warning.message}")
         if args.yes:
-            result = session.decide_gate("s")
-        else:
-            print("\nPuerta docente: s sí · n no · b borrador · c corregir", flush=True)
-            decision = input("criterio [s/n/b/c]: ").strip().lower() or "s"
-            note = ""
-            if decision == "c":
-                note = input("crítica: ").strip()
-            if decision not in {"s", "n", "b", "c"}:
-                print("decisión inválida", flush=True)
-                return 2
-            result = session.decide_gate(decision, note)  # type: ignore[arg-type]
-        if result.path:
-            print(f"\nescrito: {result.path}", flush=True)
+            result = session.aprobar()
+            break
+        print("\n¿Escribo este material? (sí / no / pide un cambio)", flush=True)
+        answer = input("respuesta: ").strip()
+        decision = classify_approval(answer)
+        if decision.kind == "aprobar":
+            result = session.aprobar(decision.note or answer)
+            break
+        if decision.kind == "descartar":
+            session.descartar(decision.note or answer)
+            print("Descartado. No escribí nada.", flush=True)
+            return 0
+        session.pedir_cambio(decision.note or answer)
+
+    if result is not None and result.path is not None:
+        print(f"\nescrito: {result.path}", flush=True)
         after = workspace.fingerprint_sources()
         if after != before:
             print(
-                "ADVERTENCIA: un original cambió. tero no debería haberlo escrito.", file=sys.stderr
+                "ADVERTENCIA: un original cambió. tero no debería haberlo escrito.",
+                file=sys.stderr,
             )
             return 1
         print("Originales intactos.", flush=True)
         print("listo.", flush=True)
         return 0
+    if session.pending_propuesta is not None:
+        print("Quedó una propuesta sin decisión. No escribí nada.", flush=True)
+        return 0
+    if turn.respuesta:
+        say(turn.respuesta)
+        print("listo.", flush=True)
+        return 0
     print(f"fase inesperada: {session.phase}", flush=True)
-    errors = [event for event in events if event.get("type") == "error"]
-    for event in errors:
-        print(event.get("message"), file=sys.stderr)
+    for event in events:
+        if event.get("type") == "error":
+            print(event.get("message"), file=sys.stderr)
     return 1
 
 
@@ -253,7 +246,6 @@ def cmd_tui(args: argparse.Namespace) -> int:
     env["TERO_MODEL"] = settings.model_id
     env["TERO_AWS_REGION"] = settings.region
     env["TERO_PYTHON"] = sys.executable
-    env["TERO_SKIP_PLAN"] = "1" if settings.skip_plan else "0"
     env["TERO_CURSO"] = args.curso or ""
     env["TERO_ASIGNATURA"] = args.asignatura or ""
     env["TERO_OA"] = args.oa or ""

@@ -1,4 +1,4 @@
-"""Recover a draft or plan when the model prints tools as prose, not a tool call."""
+"""Recover a proposal when the model prints a tool as prose instead of calling it."""
 
 from __future__ import annotations
 
@@ -6,10 +6,9 @@ import json
 import re
 from typing import Any
 
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
+from tero.types import ArtifactDraft, ArtifactType, Evidence, Propuesta, parse_accion
 
-_CALL = re.compile(r"draft_artifact\s*\(", re.IGNORECASE)
-_PLAN_CALL = re.compile(r"propose_plan\s*\(", re.IGNORECASE)
+_CALL = re.compile(r"(?:proponer_crear|proponer_editar|draft_artifact)\s*\(", re.IGNORECASE)
 _HEADING = re.compile(r"#{1,6}\s+\S")
 _FICHA_HINTS = (
     "instrucciones",
@@ -56,13 +55,51 @@ def salvage_draft_from_text(
     return _draft_from_markdown_prose(blob, fallback_tipo=fallback_tipo, evidencias=evidencias)
 
 
-def salvage_plan_from_text(text: str, *, encargo: Encargo | None = None) -> Plan | None:
-    """Parse a leaked Python-style propose_plan(...) call or a JSON plan blob."""
+def salvage_propuesta_from_text(
+    text: str,
+    *,
+    fallback_tipo: ArtifactType | None = None,
+    evidencias: list[Evidence] | None = None,
+) -> Propuesta | None:
+    """Arma la propuesta que el modelo dejó como texto en vez de llamar a la tool."""
+    draft = salvage_draft_from_text(text, fallback_tipo=fallback_tipo, evidencias=evidencias)
+    if draft is None:
+        return None
+    accion, origen, resumen, cambios, notas_nee = _proposal_meta_from_text(text)
+    return Propuesta(
+        accion=accion,
+        draft=draft,
+        resumen=resumen,
+        origen=origen,
+        cambios=cambios,
+        notas_nee=notas_nee,
+    )
+
+
+def _proposal_meta_from_text(text: str) -> tuple[Any, str, str, list[str], list[str]]:
+    """Lee accion/origen/resumen/cambios/notas_nee de una llamada filtrada."""
     blob = text or ""
-    from_call = _plan_from_python_call(blob, encargo=encargo)
-    if from_call is not None:
-        return from_call
-    return _plan_from_json_blob(blob, encargo=encargo)
+    match = _CALL.search(blob)
+    if not match:
+        return "crear", "", "", [], []
+    src = blob[match.start() :]
+    accion = parse_accion(_unescape(_kw_string(src, "accion") or ""))
+    origen = _unescape(_kw_string(src, "ruta_origen") or "").strip()
+    resumen = _unescape(_kw_string(src, "resumen") or "").strip()
+    cambios = _split_kw_items(_unescape(_kw_string(src, "cambios") or ""))
+    notas = _split_kw_items(_unescape(_kw_string(src, "notas_nee") or ""))
+    if accion == "crear" and origen:
+        accion = "editar"
+    return accion, origen, resumen, cambios, notas
+
+
+def _split_kw_items(value: str) -> list[str]:
+    items: list[str] = []
+    for chunk in re.split(r"[\n;]+|\s+[•·]\s+", value or ""):
+        item = chunk.strip().strip("-*•·").strip()
+        if item:
+            items.append(item)
+    return items
 
 
 def _draft_from_python_call(
@@ -71,16 +108,14 @@ def _draft_from_python_call(
     fallback_tipo: ArtifactType | None,
     evidencias: list[Evidence] | None,
 ) -> ArtifactDraft | None:
-    """Parse a leaked Python-style draft_artifact(...) call from streamed text."""
-    if "draft_artifact" not in blob:
-        return None
+    """Parse a leaked Python-style proponer_crear/proponer_editar (...) call."""
     match = _CALL.search(blob)
     if not match:
         return None
     src = blob[match.start() :]
     tipo_raw = _kw_string(src, "tipo")
     titulo = _kw_string(src, "titulo")
-    cuerpo = _kw_string(src, "cuerpo_markdown")
+    cuerpo = _kw_string(src, "vista_previa_markdown") or _kw_string(src, "cuerpo_markdown")
     payload_raw = _kw_string(src, "payload_json")
     if not (cuerpo or "").strip() and not (payload_raw or "").strip():
         return None
@@ -251,100 +286,6 @@ def _title_from_markdown(cuerpo: str) -> str:
     if not match:
         return ""
     return re.sub(r"[*_`]+", "", match.group(1)).strip()
-
-
-def _plan_from_python_call(blob: str, *, encargo: Encargo | None) -> Plan | None:
-    if "propose_plan" not in blob:
-        return None
-    match = _PLAN_CALL.search(blob)
-    if not match:
-        return None
-    src = blob[match.start() :]
-    objetivo = _unescape(_kw_string(src, "objetivo") or "")
-    tipo_raw = _unescape(_kw_string(src, "tipo") or "")
-    if not objetivo.strip():
-        return None
-    return _build_salvaged_plan(
-        objetivo=objetivo.strip(),
-        tipo_raw=tipo_raw,
-        oa=_unescape(_kw_string(src, "oa") or ""),
-        duracion=_unescape(_kw_string(src, "duracion") or ""),
-        notas=_unescape(_kw_string(src, "notas") or ""),
-        titulo=_unescape(_kw_string(src, "titulo") or ""),
-        curso=_unescape(_kw_string(src, "curso") or ""),
-        asignatura=_unescape(_kw_string(src, "asignatura") or ""),
-        tema=_unescape(_kw_string(src, "tema") or ""),
-        encargo=encargo,
-    )
-
-
-def _plan_from_json_blob(blob: str, *, encargo: Encargo | None) -> Plan | None:
-    """Qwen prints a plan dict as JSON instead of propose_plan(...)."""
-    text = (blob or "").strip()
-    if not text or "objetivo" not in text:
-        return None
-    from tero.latex.schemas import _parse_json_blob
-
-    data = _parse_json_blob(text)
-    if not data:
-        return None
-    if "cuerpo_markdown" in data or "sm_items" in data:
-        return None
-    items = data.get("items")
-    if isinstance(items, list) and items:
-        return None
-    objetivo = str(data.get("objetivo") or "").strip()
-    tipo_raw = str(data.get("tipo") or "")
-    if not objetivo or not tipo_raw:
-        return None
-    decisiones = data.get("decisiones") if isinstance(data.get("decisiones"), dict) else {}
-    return _build_salvaged_plan(
-        objetivo=objetivo,
-        tipo_raw=tipo_raw,
-        oa=str(data.get("oa") or ""),
-        duracion=str(data.get("duracion") or ""),
-        notas=str(data.get("notas") or ""),
-        titulo=str(data.get("titulo") or ""),
-        curso=str(data.get("curso") or decisiones.get("curso") or ""),
-        asignatura=str(data.get("asignatura") or decisiones.get("asignatura") or ""),
-        tema=str(data.get("tema") or decisiones.get("tema") or ""),
-        encargo=encargo,
-    )
-
-
-def _build_salvaged_plan(
-    *,
-    objetivo: str,
-    tipo_raw: str,
-    oa: str,
-    duracion: str,
-    notas: str,
-    titulo: str,
-    curso: str,
-    asignatura: str,
-    tema: str,
-    encargo: Encargo | None,
-) -> Plan | None:
-    from tero.errors import TeroError
-    from tero.plan import build_plan
-
-    try:
-        return build_plan(
-            objetivo=objetivo.strip(),
-            tipo=tipo_raw or (encargo.tipo.value if encargo and encargo.tipo else "guia"),
-            oa=oa,
-            duracion=duracion,
-            notas=notas,
-            titulo=titulo,
-            encargo=encargo,
-            decisiones={
-                "curso": curso,
-                "asignatura": asignatura,
-                "tema": tema,
-            },
-        )
-    except TeroError:
-        return None
 
 
 def _kw_string(src: str, name: str) -> str | None:

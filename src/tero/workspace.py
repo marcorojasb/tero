@@ -108,6 +108,41 @@ class Workspace:
             payload["warning"] = HashMismatchError(payload["path"]).message
         return payload
 
+    def list_artifacts(self) -> list[str]:
+        """Material ya escrito (derivados/ y borradores/) que se puede editar o adaptar."""
+        items: list[str] = []
+        for folder in ("derivados", "borradores"):
+            root = self.root / folder
+            if not root.is_dir():
+                continue
+            for path in sorted(root.glob("*.md")):
+                items.append(self._relative(path).as_posix())
+        return items
+
+    def read_document(self, relative: str, *, max_chars: int = 20_000) -> str:
+        """Lee cualquier documento de la carpeta (fuentes, derivados, borradores). Solo lectura."""
+        path = self._safe_join(relative)
+        if not path.exists() or not path.is_file():
+            raise WorkspaceError(f"No existe en la carpeta: {relative}")
+        text = _read_file_text(path)
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n…[truncado]"
+        return text
+
+    def unique_artifact_path(self, relative_under_allowed: str) -> str:
+        """Ruta libre: agrega -2, -3… si ya existe. Nunca sobrescribe material escrito."""
+        target = self._safe_join(relative_under_allowed)
+        if not target.exists():
+            return relative_under_allowed
+        stem, suffix = target.stem, target.suffix
+        parent = target.parent.relative_to(self.root).as_posix()
+        prefix = "" if parent in {".", ""} else f"{parent}/"
+        for n in range(2, 100):
+            candidate = f"{prefix}{stem}-{n}{suffix}"
+            if not self._safe_join(candidate).exists():
+                return candidate
+        raise WorkspaceError(f"Demasiadas versiones de {relative_under_allowed}")
+
     def write_artifact(
         self, relative_under_allowed: str, content: str, *, overwrite: bool = False
     ) -> Path:
