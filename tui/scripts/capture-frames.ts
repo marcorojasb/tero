@@ -486,12 +486,11 @@ function frameToHtml(frame: FrameDump): string {
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../../../styles.css?v=vte-shot"/>
+  <link rel="stylesheet" href="../../../styles.css?v=vte-1x"/>
 </head>
 <body data-offline-model="tero-offline">
   <div class="window" id="app">
-    <header class="window-chrome">
-      <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+    <header class="window-chrome sr-only">
       <span class="window-title">tero</span>
       <span class="window-path">~/tero</span>
     </header>
@@ -499,7 +498,7 @@ function frameToHtml(frame: FrameDump): string {
       <div id="tui-grid" class="tui-grid">${rows}</div>
     </div>
   </div>
-  <script src="../../../tui-grid.js?v=vte-shot"></script>
+  <script src="../../../tui-grid.js?v=vte-1x"></script>
   <script>
     (function () {
       const host = document.getElementById("tui-host");
