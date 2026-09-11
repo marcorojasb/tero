@@ -1,10 +1,10 @@
 # tero
 
-**tus fuentes, tu criterio — el agente prepara, el o la docente decide**
+**tus fuentes, tu criterio — el agente propone, el o la docente decide**
 
 ```
 ╭─ tero ─────────────────────────────────╮
-│ offline · inicio                       │
+│ offline · conversación                 │
 ╰────────────────────────────────────────╯
       ▄▄▄▄▄      ▄▄▄▄▄
     ▄████████  ▀▀▀▀▀▀▀▀▀▀
@@ -14,17 +14,17 @@
       ██████████▄
             █ █
             ▀ ▀
-  [1] Planificar  [2] Crear  [3] Evaluar  [4] Adaptar
-╭─ pregunta ─────────────────────────────╮
+╭─ mensaje ──────────────────────────────╮
 │ Pregunta, explora o crea…              │
 ╰────────────────────────────────────────╯
 ```
 
-El chrome es la **TUI**. Las hojas que tero crea —la fotocopia que sale
-mañana a la sala— aparecen al final, después de `s` o `b`. La
+El chrome es la **TUI**. La persona escribe en lenguaje natural; tero
+entiende la intención —responder, crear material o editar/adaptar lo que
+ya existe— y **propone en memoria**. La hoja que tero crea —la fotocopia
+que sale mañana a la sala— aparece solo cuando la persona aprueba. La
 [página de GitHub](https://marcorojasb.github.io/tero/) es esa sesión,
-en **una** ventana: rumbos `1–4`, avisos a la vista, puerta `s` / `n` /
-`b` / `c`.
+en **una** ventana: conversación, avisos a la vista, aprobación.
 Si el link da 404, enciende Pages una vez en
 [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages)
 (Source **GitHub Actions**) y re-ejecuta el workflow `pages` — el token
@@ -32,7 +32,7 @@ de Actions no puede crear el sitio. Detalle: [docs/SITIO.md](docs/SITIO.md).
 El modelo de la demo en el sitio es `tero-offline` (Strands scripted).
 No finge Bedrock. AgentCore no es el producto.
 
-![TUI de tero: home OpenTUI con queltehue y rumbos](site/assets/tero-og.png)
+![TUI de tero: home OpenTUI con el queltehue y la línea de mensaje](site/assets/tero-og.png)
 
 Teacher agent for [Agents for Humans](https://agentsforhumans.devpost.com/): AWS
 **Strands** behind a dense **OpenTUI** shell (same TUI family as
@@ -45,14 +45,17 @@ Runtime — [docs/AWS-GRATIS.md](docs/AWS-GRATIS.md). Submission pack:
 Spanish UI. Keyboard-first. MIT.
 
 ```
-home (rumbos) → encargo (chips) → plan + clarificación → borrador + evidencia → s/n/b/c → derivados/
+mensaje → el agente entiende (responder | crear | editar/adaptar) → propuesta + vista previa → aprobación → derivados/
 ```
 
-The model **never writes originals**. Accepted artifacts land in
-`derivados/`. Drafts in `borradores/`. Sources are hashed; tero refuses
-to overwrite them. Warnings (`thin_evidence`, `unverified_citation`, OA
-raro) **do not block** `s`. The teacher sees the cost. See
-[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md).
+The model **never writes files**. It reads the folder and proposes in
+memory; only the host writes, only after the person approves, only into
+`derivados/`. Editing or adapting writes a **new** file and leaves the
+origin untouched. Sources are hashed; tero refuses to overwrite them.
+Warnings (`thin_evidence`, `unverified_citation`, OA raro) are visible
+and **never block approval** — the teacher sees the cost and decides. See
+[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md) and the frozen protocol in
+[docs/CONVERSACIONAL.md](docs/CONVERSACIONAL.md).
 
 ## 20-minute judge path
 
@@ -60,7 +63,7 @@ Python **3.10+**. Two tracks:
 
 | Track | Time | What it proves |
 | --- | --- | --- |
-| **A. Offline** | ~2 min | Full Strands loop (tools + plan + evidence + gate + `derivados/`) with a scripted model. No AWS. |
+| **A. Offline** | ~2 min | Full Strands loop (tools + propuesta + evidencia + aprobación + `derivados/`) with a scripted model. No AWS. |
 | **B. Bedrock** | ~15 min | Same loop with **Amazon Nova Lite** (`amazon.nova-lite-v1:0`). |
 
 ### A. Offline (no keys) — video path
@@ -76,11 +79,12 @@ python -m tero demo --offline --yes
 
 Uses a real `strands.Agent` plus a scripted `OfflineModel` labeled
 **`tero-offline`** (not a fake Bedrock call). It reads
-`examples/carpeta-demo/`, proposes a typed plan, drafts a planificación
-with citations, auto-accepts (`--yes` = `s`), and writes markdown under
-`derivados/`. Originals stay hashed.
+`examples/carpeta-demo/`, reads the sources, **proposes** a planificación
+with evidence and a preview, approves it (`--yes`) and writes markdown
+under `derivados/`. Originals stay hashed.
 
-Interactive gate (drop `--yes`): type `s` / `n` / `b` / `c`.
+Interactive approval (drop `--yes`): tero muestra la propuesta y tú
+respondes «sí», «no» o pides un cambio en lenguaje natural.
 
 OpenTUI (needs [Bun](https://bun.sh)):
 
@@ -88,16 +92,17 @@ OpenTUI (needs [Bun](https://bun.sh)):
 python -m tero tui --offline
 ```
 
-**Home first:** queltehue ASCII, brand `tero`, four rumbos (`1` Planificar · `2` Crear ·
-`3` Evaluar · `4` Adaptar), prompt *Pregunta, explora o crea…*. Chips
-appear after a rumbo or prompt.
+**Home first:** queltehue ASCII, brand `tero`, one prompt line
+*Pregunta, explora o crea…*. There is no menu of rumbos: escribe lo que
+necesitas. Si a tero le falta un dato (curso, tema, OA, qué material
+editar), **te lo pregunta**.
 
-**Keys:** **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador ·
-**`c`** corregir (crítica persistida). Plan: **`a`** aprobar · **`e`**
-editar supuesto · **`x`** cancelar. Clarificación: **`1`/`2`/`3`** o
-texto libre. Evidence: **`[` `]`** cycle · **Tab** panels · **`?`**
-ayuda por fase · **`r`** reintentar error. Citas **✓** están in the
-file; **?** is paraphrase. `/export` works on accepted **or** draft.
+**Keys:** **`y`** aprueba (el host escribe en `derivados/`) · **`n`**
+descarta · escribe tu respuesta en el hilo —«dale», «no, gracias»,
+«mejor para 2° básico»— y el host la interpreta (`tero.approval`) ·
+**`r`** reintentar error · **`?`** ayuda · **`[` `]`** evidencia ·
+**Tab** paneles. Citas **✓** están en el archivo; **?** es paráfrasis.
+`/export md|docx|latex` exporta el último material escrito.
 
 ### B. Amazon Bedrock (lean — Nova Lite only)
 
@@ -134,7 +139,7 @@ the host.
 **Resilience (already in host):** Bedrock errors are humanized in Spanish
 (auth / throttle / model / network). If the model returns tools/text
 without a draft, tero **retries the draft once**, then **salvages**
-prose/JSON into a typed artifact so the gate still opens. Curriculum OA
+prose/JSON into a typed proposal so you still have something to review. Curriculum OA
 + LaTeX stay **host-side** (catalog + templates). The model fills
 **JSON**, not free-form TeX.
 
@@ -153,7 +158,7 @@ confirmed.
 | Streaming activity (one event per tool call) | Ollama as default |
 | Export `.md`, optional `.docx`, **LaTeX via JSON→plantilla** | Secrets in git |
 | Catálogo OA Chile host-side (`list_oa` / `get_oa`) | Currículum oficial MINEDUC completo |
-| Warnings at the gate, never blocking `s` | Magic `forzar` to override the teacher |
+| Warnings visible before approval, never blocking | Magic `forzar` to override the teacher |
 
 Ollama / local LLMs can come later; they are not the default.
 
@@ -161,37 +166,43 @@ Ollama / local LLMs can come later; they are not the default.
 
 ```
 ┌─ OpenTUI (Bun, @opentui/core) ─────────────┐
-│  home · rumbos · chips · sesión · actividad│
-│  plan card · clarificación · propuesta     │
-│  evidencia ✓/? · avisos · puerta s/n/b/c   │
+│  home · conversación · actividad           │
+│  propuesta: qué hará + vista previa        │
+│  evidencia ✓/? · avisos · aprobación y/n   │
 └─────────────── JSONL stdin/stdout ─────────┘
                     │
 ┌─ python -m tero bridge  (Strands Agent) ───┐
 │  tools: list/search/read (sandbox)         │
+│         list_artifacts/read_artifact       │
 │         list_oa/get_oa/search_oa (catálogo)│
-│         propose_plan, cite_evidence, draft │
+│         cite_evidence, proponer_crear,     │
+│         proponer_editar  (en memoria)      │
 │  host: hash check, salvage, coerce payload │
-│         warnings, gate, write              │
+│         warnings, aprobación, write        │
 │         export md|docx|latex (templates)   │
 └────────────────────────────────────────────┘
                     │
          carpeta originales  (read-only, hashed)
-         carpeta/derivados   (accepted)
-         carpeta/borradores  (b)
+         carpeta/derivados   (aprobado)
+         carpeta/borradores  (legado)
 ```
 
-HITL is structural: `propose_plan` / `draft_artifact` are **in-memory**.
-Only `tero.gate` writes files.
+HITL is structural: `proponer_crear` / `proponer_editar` are
+**in-memory**. Only the host writes files, and only after the person
+approves a proposal they saw.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md). Docs index:
 [docs/README.md](docs/README.md). Adversarial self-critique:
 [docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md). LaTeX +
 currículo: [docs/ADVERSARIAL-LATEX-CURRICULO.md](docs/ADVERSARIAL-LATEX-CURRICULO.md).
-Gate decision vs blocking-`s` draft:
+Por qué los avisos no bloquean la aprobación:
 [docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md). Ficha landing:
 [docs/SITIO.md](docs/SITIO.md).
 
-## Encargo chips + OA de catálogo
+## Contexto del encargo + OA de catálogo
+
+El contexto (curso, asignatura, OA, duración, tipo preferido) es
+**contexto**, no un formulario que haya que llenar antes de conversar:
 
 ```bash
 python -m tero tui --offline --curso "4° básico" --oa "LEN-4B-OA04" --duracion "45 min" --tipo planificacion
@@ -199,6 +210,8 @@ python -m tero tui --offline --curso "4° básico" --oa "LEN-4B-OA04" --duracion
 
 TUI: `/curso 4° básico` · `/asignatura Lenguaje` carga OA reales del
 catálogo · `/oa LEN-4B-OA04` (valida) · `/tipo guia` · `/export latex`.
+Cambiar el contexto no reinicia nada: el agente lo usa en el próximo
+mensaje.
 
 Catálogo mínimo (4°–6° Lenguaje/Matemática/Ciencias): `curriculum/chile/`
 — **no** es texto oficial MINEDUC verbatim. Lineamientos de evaluación
@@ -208,10 +221,10 @@ Catálogo mínimo (4°–6° Lenguaje/Matemática/Ciencias): `curriculum/chile/`
 
 Nova Lite (y el offline) **no** emiten TeX libre. El host rellena
 plantillas en `templates/latex/` desde un JSON schema (o desde el
-markdown del borrador):
+markdown de la propuesta):
 
 ```bash
-# tras demo / gate:
+# tras aprobar la propuesta:
 python -m tero export --format latex path/al/artefacto.md
 # o payload schema directo (smoke Nova Lite-safe):
 python -m tero export --format latex --payload guia.json --out /tmp/guia.tex /tmp/noop.md

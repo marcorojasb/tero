@@ -7,6 +7,7 @@ Accepted artifacts land in derivados/; teacher drafts in borradores/.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -108,6 +109,59 @@ class Workspace:
             payload["warning"] = HashMismatchError(payload["path"]).message
         return payload
 
+    def list_artifacts(self, *, limit: int = 20) -> list[dict[str, str]]:
+        """Material ya escrito (derivados/ y borradores/), el más reciente primero.
+
+        El título del front matter importa: el agente elige con eso qué editar,
+        no con el nombre del archivo.
+        """
+        found: list[tuple[float, dict[str, str]]] = []
+        for folder in ("derivados", "borradores"):
+            root = self.root / folder
+            if not root.is_dir():
+                continue
+            for path in root.glob("*.md"):
+                try:
+                    stamp = path.stat().st_mtime
+                except OSError:
+                    continue
+                found.append(
+                    (
+                        stamp,
+                        {
+                            "path": self._relative(path).as_posix(),
+                            "titulo": _front_matter_title(path) or path.stem,
+                            "carpeta": folder,
+                        },
+                    )
+                )
+        found.sort(key=lambda item: item[0], reverse=True)
+        return [item[1] for item in found[:limit]]
+
+    def read_document(self, relative: str, *, max_chars: int = 20_000) -> str:
+        """Lee cualquier documento de la carpeta (fuentes, derivados, borradores). Solo lectura."""
+        path = self._safe_join(relative)
+        if not path.exists() or not path.is_file():
+            raise WorkspaceError(f"No existe en la carpeta: {relative}")
+        text = _read_file_text(path)
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n…[truncado]"
+        return text
+
+    def unique_artifact_path(self, relative_under_allowed: str) -> str:
+        """Ruta libre: agrega -2, -3… si ya existe. Nunca sobrescribe material escrito."""
+        target = self._safe_join(relative_under_allowed)
+        if not target.exists():
+            return relative_under_allowed
+        stem, suffix = target.stem, target.suffix
+        parent = target.parent.relative_to(self.root).as_posix()
+        prefix = "" if parent in {".", ""} else f"{parent}/"
+        for n in range(2, 100):
+            candidate = f"{prefix}{stem}-{n}{suffix}"
+            if not self._safe_join(candidate).exists():
+                return candidate
+        raise WorkspaceError(f"Demasiadas versiones de {relative_under_allowed}")
+
     def write_artifact(
         self, relative_under_allowed: str, content: str, *, overwrite: bool = False
     ) -> Path:
@@ -203,6 +257,16 @@ class Workspace:
 
     def _relative(self, path: Path) -> Path:
         return path.resolve().relative_to(self.root)
+
+
+def _front_matter_title(path: Path) -> str:
+    """Título declarado en el front matter, si lo hay."""
+    try:
+        head = path.read_text(encoding="utf-8")[:800]
+    except OSError:
+        return ""
+    match = re.search(r"^titulo:\s*(.+)$", head, flags=re.MULTILINE)
+    return match.group(1).strip().strip('"') if match else ""
 
 
 def _read_file_text(path: Path) -> str:

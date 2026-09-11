@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from tero.errors import WorkspaceError
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan
+from tero.types import ArtifactType, Encargo, Evidence, Propuesta
 from tero.workspace import Workspace
 
 REQUIRED_HEADINGS: dict[ArtifactType, tuple[str, ...]] = {
@@ -47,6 +47,25 @@ def missing_headings(tipo: ArtifactType, markdown: str) -> list[str]:
     for heading in REQUIRED_HEADINGS[tipo]:
         variants = _heading_variants(heading)
         if not any(variant in lowered for variant in variants):
+            missing.append(heading)
+    return missing
+
+
+def missing_section_headings(tipo: ArtifactType, markdown: str) -> list[str]:
+    """Como `missing_headings`, pero solo mira titulares markdown.
+
+    `missing_headings` busca substrings en todo el texto, así que una respuesta
+    conversacional que *menciona* "inicio, desarrollo y cierre" parecería una ficha.
+    Aquí solo cuentan los titulares reales.
+    """
+    heads = [
+        match.group(1).strip().lower()
+        for match in re.finditer(r"^#{1,6}\s+(.+)$", markdown, flags=re.MULTILINE)
+    ]
+    blob = " | ".join(heads)
+    missing: list[str] = []
+    for heading in REQUIRED_HEADINGS[tipo]:
+        if not any(variant in blob for variant in _heading_variants(heading)):
             missing.append(heading)
     return missing
 
@@ -108,21 +127,28 @@ def _unique_under(workspace: Workspace, folder: str, relative_name: str) -> str:
     raise WorkspaceError(f"No pude elegir un nombre libre en {folder}/")
 
 
-def render_front_matter(encargo: Encargo, plan: Plan | None, draft: ArtifactDraft) -> str:
+def render_front_matter(encargo: Encargo, propuesta: Propuesta) -> str:
+    draft = propuesta.draft
+    payload = draft.payload or {}
     lines = [
         "---",
         "generado_por: tero",
         f"tipo: {draft.tipo.value}",
         f"titulo: {draft.titulo}",
+        f"accion: {propuesta.accion}",
     ]
+    if propuesta.origen:
+        lines.append(f"origen: {propuesta.origen}")
     if encargo.curso:
         lines.append(f"curso: {encargo.curso}")
     if encargo.asignatura:
         lines.append(f"asignatura: {encargo.asignatura}")
-    oa = plan.oa if plan and plan.oa else encargo.oa
+    oa = str(payload.get("oa") or "").strip() or encargo.oa
     if oa:
         lines.append(f"oa: {oa}")
-    duracion = plan.duracion if plan and plan.duracion else encargo.duracion
+    duracion = (
+        str(payload.get("duracion") or payload.get("tiempo") or "").strip() or encargo.duracion
+    )
     if duracion:
         lines.append(f"duracion: {duracion}")
     lines.append("---")
@@ -153,13 +179,11 @@ def render_payload_fence(payload: dict[str, Any] | None) -> str:
     return f"\n```json\n{blob}\n```\n"
 
 
-def materialize_markdown(
-    encargo: Encargo,
-    plan: Plan | None,
-    draft: ArtifactDraft,
-) -> str:
+def materialize_markdown(encargo: Encargo, propuesta: Propuesta) -> str:
+    """Markdown final de una propuesta aprobada: front matter + cuerpo + JSON + evidencia."""
     from tero.latex.schemas import enrich_payload_from_markdown
 
+    draft = propuesta.draft
     payload = enrich_payload_from_markdown(draft.tipo.value, draft.payload, draft.cuerpo_markdown)
     from tero.sanitize import scrub_ficha_text, strip_tool_traces_value
 
@@ -167,7 +191,7 @@ def materialize_markdown(
     draft.payload = payload
     body = scrub_ficha_text(draft.cuerpo_markdown).strip() + "\n"
     return (
-        render_front_matter(encargo, plan, draft)
+        render_front_matter(encargo, propuesta)
         + body
         + render_payload_fence(payload)
         + render_evidence_appendix(draft.evidencias)
@@ -176,7 +200,3 @@ def materialize_markdown(
 
 def write_accepted(workspace: Workspace, relative_name: str, markdown: str) -> Path:
     return workspace.write_artifact(_unique_under(workspace, "derivados", relative_name), markdown)
-
-
-def write_draft(workspace: Workspace, relative_name: str, markdown: str) -> Path:
-    return workspace.write_artifact(_unique_under(workspace, "borradores", relative_name), markdown)

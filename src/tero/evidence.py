@@ -8,7 +8,7 @@ from typing import Any
 
 from tero.artifacts import missing_headings
 from tero.coerce import as_text
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Plan, WarningItem
+from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Propuesta, WarningItem
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
@@ -86,7 +86,6 @@ def collect_warnings(
     *,
     workspace: Workspace,
     encargo: Encargo,
-    plan: Plan | None,
     draft: ArtifactDraft,
     prompt: str = "",
 ) -> list[WarningItem]:
@@ -104,20 +103,22 @@ def collect_warnings(
     if mismatch:
         warnings.append(WarningItem(code="domain_mismatch", message=mismatch))
 
-    plan_oa = (plan.oa if plan else "") or encargo.oa
-    expected_tipo = (plan.tipo if plan is not None else None) or encargo.tipo
+    # El tipo es contexto, no un plan aprobado: si el agente entregó otro,
+    # la persona lo ve en la tarjeta y decide igual.
+    expected_tipo = encargo.tipo
     if expected_tipo is not None and draft.tipo != expected_tipo:
         warnings.append(
             WarningItem(
                 code="tipo_desviado",
                 message=(
-                    f"El rumbo/plan pedía {expected_tipo.label} y el borrador llegó como "
-                    f"{draft.tipo.label}. El plan no se cambia: decide s, o c si quieres "
-                    "el otro entregable."
+                    f"El contexto decía {expected_tipo.label} y la propuesta llegó como "
+                    f"{draft.tipo.label}. Puedes aprobarla igual o pedir el otro entregable."
                 ),
             )
         )
-    if encargo.oa and plan_oa and _normalize_oa(encargo.oa) != _normalize_oa(plan_oa):
+    payload_oa = str((draft.payload or {}).get("oa") or "").strip()
+    plan_oa = payload_oa or encargo.oa
+    if encargo.oa and payload_oa and _normalize_oa(encargo.oa) != _normalize_oa(payload_oa):
         # Allow "OA 4" vs "OA 4 (LEN-4B-OA04)" when same catalog id / codigo
         from tero.curriculum.catalog import resolve_oa
 
@@ -127,16 +128,19 @@ def collect_warnings(
             warnings.append(
                 WarningItem(
                     code="oa_mismatch",
-                    message=f"OA del encargo ({encargo.oa}) no coincide con el plan ({plan_oa}).",
+                    message=(
+                        f"OA del contexto ({encargo.oa}) no coincide con el de la "
+                        f"propuesta ({plan_oa})."
+                    ),
                 )
             )
 
     # Unknown OA relative to catalog (non-blocking). Skip when the course
     # is not in the catalog: free-text OA is the honest path (1° medio).
-    if encargo.oa or (plan and plan.oa):
+    if encargo.oa or payload_oa:
         from tero.curriculum.catalog import catalog_covers_curso, resolve_oa
 
-        check = (plan.oa if plan and plan.oa else "") or encargo.oa
+        check = payload_oa or encargo.oa
         covers = catalog_covers_curso(encargo.curso)
         if (
             check
@@ -173,7 +177,7 @@ def collect_warnings(
         warnings.append(
             WarningItem(
                 code="thin_skeleton",
-                message="El borrador es corto: revisa si es un esqueleto más que un material usable.",
+                message="La propuesta es corta: revisa si es un esqueleto más que un material usable.",
             )
         )
 
@@ -190,7 +194,7 @@ def collect_warnings(
         warnings.append(
             WarningItem(
                 code="missing_rubric",
-                message="Evaluación sin pauta/rúbrica visible. Puedes aceptarla igual o pedir corrección.",
+                message="Evaluación sin pauta/rúbrica visible. Puedes aprobarla igual o pedir cambios.",
             )
         )
 
@@ -259,3 +263,62 @@ def _has_rubric_hint(markdown: str) -> bool:
     return any(
         token in lowered for token in ("rúbrica", "rubrica", "pauta", "criterios de evaluación")
     )
+
+
+# Decreto 83/2015 (Chile): adecuaciones de acceso y adecuaciones en los objetivos.
+NEE_CRITERIOS_ACCESO = (
+    "presentación de la información",
+    "formas de respuesta",
+    "entorno",
+    "tiempo",
+)
+NEE_CRITERIOS_OBJETIVOS = (
+    "graduación",
+    "priorización",
+    "temporalización",
+    "enriquecimiento",
+    "eliminación",
+)
+# El decreto es taxativo: la eliminación nunca toca estos aprendizajes.
+NEE_ELIMINACION_PROHIBIDA = ("lectoescritura", "operaciones matemáticas", "vida cotidiana")
+
+
+def propuesta_warnings(propuesta: Propuesta) -> list[WarningItem]:
+    """Avisos propios de una propuesta de adaptación. Nunca bloquean: informan."""
+    if propuesta.accion != "adaptar":
+        return []
+    notas = [str(nota).strip().lower() for nota in propuesta.notas_nee]
+    warnings = [
+        WarningItem(
+            code="paci_no_oficial",
+            message=(
+                "Estos son apoyos para la clase, no una adecuación curricular formal ni un "
+                "PACI. El PACI es un documento oficial ante el MINEDUC: si lo necesitas, "
+                "revísalo con tu equipo PIE."
+            ),
+        )
+    ]
+    hay_objetivos = any(nota.startswith("objetivos") for nota in notas)
+    hay_acceso = any(nota.startswith("acceso") for nota in notas)
+    if hay_objetivos and not hay_acceso:
+        warnings.append(
+            WarningItem(
+                code="nee_sin_apoyos_de_acceso",
+                message=(
+                    "Ajustaste objetivos y no dejaste adecuaciones de acceso. El Decreto 83 "
+                    "pide considerar primero las adecuaciones de acceso."
+                ),
+            )
+        )
+    if any("eliminación" in nota or "eliminacion" in nota for nota in notas):
+        warnings.append(
+            WarningItem(
+                code="nee_eliminacion",
+                message=(
+                    "Hay un criterio de eliminación. El Decreto 83 no permite eliminar "
+                    "aprendizajes de lectoescritura, de operaciones matemáticas ni los que "
+                    "permiten desenvolverse en la vida cotidiana."
+                ),
+            )
+        )
+    return warnings

@@ -1,4 +1,4 @@
-"""Host contracts: payload_json, catalog_covers, tipo_desviado, draft tool budget."""
+"""Contratos del host: payload_json, catálogo, avisos, presupuesto y materialización."""
 
 from __future__ import annotations
 
@@ -8,244 +8,24 @@ from tero.artifacts import materialize_markdown
 from tero.evidence import collect_warnings
 from tero.export import export_latex
 from tero.latex.schemas import extract_payload_from_markdown, parse_payload_json
-from tero.plan import build_plan
 from tero.salvage import salvage_draft_from_text
-from tero.tools import DRAFT_TOOL_BUDGET, PLAN_TOOL_BUDGET, TurnContext, build_tools
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence
+from tero.tools import DRAFT_TOOL_BUDGET, TurnContext, build_tools
+from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Propuesta
 from tero.workspace import Workspace
 
+GUIA_CUERPO = (
+    "# Guía\n\n## Propósito\nLeer.\n\n## Instrucciones\nSigue los pasos.\n\n"
+    "## Actividades\nUna.\n\n## Cierre\nTicket.\n"
+)
 
-def _draft_tools(workspace: Workspace, encargo: Encargo | None = None) -> tuple[TurnContext, dict]:
+
+def _tools(workspace: Workspace, encargo: Encargo | None = None) -> tuple[TurnContext, dict]:
     ctx = TurnContext(workspace=workspace, encargo=encargo or Encargo(oa="OA 4"))
-    tools = {t.tool_name: t for t in build_tools(ctx, phase="draft")}
-    return ctx, tools
+    return ctx, {tool.tool_name: tool for tool in build_tools(ctx)}
 
 
-def test_draft_artifact_payload_json_preferred_on_export(workspace: Workspace, tmp_path):
-    ctx, tools = _draft_tools(workspace)
-    payload = {
-        "tipo": "evaluacion",
-        "titulo": "Prueba huemul",
-        "instrucciones": ["Lee el cuento."],
-        "items": [
-            {
-                "tipo_item": "sm",
-                "enunciado": "¿Quién preguntó?",
-                "opciones": ["El huemul", "El río"],
-                "clave": "A",
-            }
-        ],
-        "criterios": ["Cita del cuento"],
-        "puntaje_total": "10",
-    }
-    result = json.loads(
-        tools["draft_artifact"](
-            tipo="evaluacion",
-            titulo="Prueba huemul",
-            cuerpo_markdown="# Corta\n\nSin headings de ítems.\n",
-            payload_json=json.dumps(payload, ensure_ascii=False),
-        )
-    )
-    assert result["ok"] is True
-    assert result["payload"] is True
-    assert ctx.pending_draft is not None
-    assert ctx.pending_draft.payload is not None
-    assert ctx.pending_draft.payload["items"]
-
-    md = materialize_markdown(Encargo(curso="4° básico"), None, ctx.pending_draft)
-    assert "```json" in md
-    extracted = extract_payload_from_markdown(md, tipo="evaluacion")
-    sm = [row for row in extracted["items"] if row.get("tipo_item") == "sm"]
-    assert sm
-    assert "preguntó" in sm[0]["enunciado"].lower()
-    assert any("huemul" in str(opt).lower() for opt in sm[0].get("opciones") or [])
-
-    dest = tmp_path / "from-payload.tex"
-    source = tmp_path / "from-payload.md"
-    source.write_text(md, encoding="utf-8")
-    export_latex(source, dest, tipo="evaluacion")
-    tex = dest.read_text(encoding="utf-8")
-    assert "Quién preguntó" in tex or "Qui\\'en preguntó" in tex or "huemul" in tex.lower()
-
-
-def test_list_oa_media_catalog_covers_false(workspace: Workspace):
-    ctx, tools = _draft_tools(
-        workspace,
-        Encargo(curso="1° medio", asignatura="Matemática", oa="sistemas 2x2"),
-    )
-    listed = json.loads(tools["list_oa"]())
-    assert listed["catalog_covers"] is False
-    assert listed["oas"] == []
-    searched = json.loads(tools["search_oa"]("fracciones"))
-    assert searched["catalog_covers"] is False
-    assert searched["oas"] == []
-
-
-def test_draft_keeps_encargo_chips_over_payload(workspace: Workspace):
-    ctx, tools = _draft_tools(
-        workspace,
-        Encargo(curso="8° básico", asignatura="Ciencias Naturales", oa="conservación de la masa"),
-    )
-    result = json.loads(
-        tools["draft_artifact"](
-            tipo="pauta",
-            titulo="Pauta lab",
-            cuerpo_markdown="# Pauta\n\n## Criterios\n- Evidencia\n## Niveles\n- Logrado\n"
-            + "x" * 200,
-            payload_json=(
-                '{"tipo":"pauta","titulo":"Pauta lab",'
-                '"asignatura":"Lenguaje y Comunicación","curso":"4° básico",'
-                '"criterios":[{"nombre":"Evidencia"}]}'
-            ),
-        )
-    )
-    assert result["ok"] is True
-    assert ctx.pending_draft is not None
-    assert ctx.pending_draft.payload is not None
-    assert ctx.pending_draft.payload["asignatura"] == "Ciencias Naturales"
-    assert ctx.pending_draft.payload["curso"] == "8° básico"
-
-
-def test_tipo_desviado_keeps_plan_tipo(workspace: Workspace):
-    plan = build_plan(
-        objetivo="Evaluar comprensión lectora",
-        tipo="evaluacion",
-        encargo=Encargo(tipo=ArtifactType.EVALUACION, rumbo="evaluar"),
-    )
-    assert plan.tipo is ArtifactType.EVALUACION
-    draft = ArtifactDraft(
-        tipo=ArtifactType.PAUTA,
-        titulo="Rúbrica",
-        cuerpo_markdown="# Pauta\n\n## Criterios\nx\n## Niveles\ny\n## Descriptores\nz\n"
-        + "w" * 800,
-        evidencias=[
-            Evidence(path="fuentes/cuento-el-condor-y-el-huemul.md", snippet="huemul"),
-            Evidence(path="fuentes/notas-curso.md", snippet="OA"),
-        ],
-    )
-    warnings = collect_warnings(
-        workspace=workspace,
-        encargo=Encargo(tipo=ArtifactType.EVALUACION, rumbo="evaluar", oa="LEN-4B-OA04"),
-        plan=plan,
-        draft=draft,
-    )
-    assert "tipo_desviado" in {item.code for item in warnings}
-    assert plan.tipo is ArtifactType.EVALUACION
-
-
-def test_draft_tool_budget_blocks_then_allows_draft(workspace: Workspace):
-    ctx, tools = _draft_tools(workspace)
-    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
-    last_ok = None
-    for i in range(DRAFT_TOOL_BUDGET + 3):
-        last_ok = json.loads(tools["list_sources"]())
-    assert last_ok is not None
-    assert last_ok.get("error") == "presupuesto_herramientas_agotado"
-    assert ctx.budget_exhausted is True
-    drafted = json.loads(
-        tools["draft_artifact"](
-            tipo="guia",
-            titulo="Sigue",
-            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
-        )
-    )
-    assert drafted["ok"] is True
-    assert ctx.pending_draft is not None
-
-
-def test_last_chance_draft_is_once(workspace: Workspace):
-    ctx, tools = _draft_tools(workspace)
-    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
-    for _ in range(DRAFT_TOOL_BUDGET + 2):
-        json.loads(tools["list_sources"]())
-    empty = json.loads(tools["draft_artifact"](tipo="", titulo="x", cuerpo_markdown="# x\n"))
-    assert empty.get("error") == "presupuesto_herramientas_agotado"
-    drafted = json.loads(
-        tools["draft_artifact"](
-            tipo="guia",
-            titulo="Sigue",
-            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
-        )
-    )
-    assert drafted["ok"] is True
-    assert ctx.pending_draft is not None
-    again = json.loads(
-        tools["draft_artifact"](
-            tipo="guia",
-            titulo="Dos",
-            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
-        )
-    )
-    assert again.get("already") is True
-
-
-def test_plan_stubs_consume_budget(workspace: Workspace):
-    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
-    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
-    ctx.reset_tool_budget(PLAN_TOOL_BUDGET)
-    errors: list[str] = []
-    for _ in range(PLAN_TOOL_BUDGET + 8):
-        row = json.loads(
-            tools["draft_artifact"](
-                tipo="evaluacion",
-                titulo="Temprano",
-                cuerpo_markdown="# No aún",
-            )
-        )
-        errors.append(str(row.get("error") or ""))
-    assert "fase_plan" in errors
-    assert errors.count("presupuesto_herramientas_agotado") >= 3
-    assert ctx.budget_exhausted is True
-    cite = json.loads(tools["cite_evidence"](path="fuentes/x.md", snippet="agua"))
-    assert cite.get("error") == "presupuesto_herramientas_agotado"
-    planned = json.loads(
-        tools["propose_plan"](
-            objetivo="Planificar el agua dulce",
-            tipo="planificacion",
-            oa="CIE-5B-OA06",
-        )
-    )
-    assert planned.get("ok") is True
-    assert ctx.pending_plan is not None
-
-
-def test_second_draft_artifact_is_noop(workspace: Workspace):
-    ctx, tools = _draft_tools(workspace)
-    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
-    first = json.loads(
-        tools["draft_artifact"](
-            tipo="guia",
-            titulo="Uno",
-            cuerpo_markdown="# Guía\n\n## Propósito\nx\n## Instrucciones\ny\n## Actividades\nz\n## Cierre\nw\n",
-        )
-    )
-    assert first["ok"] is True
-    second = json.loads(
-        tools["draft_artifact"](
-            tipo="pauta",
-            titulo="Dos",
-            cuerpo_markdown="# Otra",
-        )
-    )
-    assert second.get("already") is True
-    assert ctx.pending_draft is not None
-    assert ctx.pending_draft.titulo == "Uno"
-
-
-def test_plan_phase_exposes_draft_stub(workspace: Workspace):
-    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
-    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
-    assert "draft_artifact" in tools
-    assert "propose_plan" in tools
-    refused = json.loads(
-        tools["draft_artifact"](
-            tipo="evaluacion",
-            titulo="Temprano",
-            cuerpo_markdown="# No aún",
-        )
-    )
-    assert refused["ok"] is False
-    assert refused["error"] == "fase_plan"
+def _propuesta(draft: ArtifactDraft, *, accion: str = "crear", origen: str = "") -> Propuesta:
+    return Propuesta(accion=accion, draft=draft, resumen="Prueba", origen=origen)
 
 
 def test_criterios_objects_render_as_prose():
@@ -457,22 +237,193 @@ def test_catalog_essay_oa_is_dropped():
     assert payload["oa"] == ""
 
 
-def test_propose_plan_does_not_echo_card(workspace: Workspace):
-    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
-    tools = {t.tool_name: t for t in build_tools(ctx, phase="plan")}
+def test_proponer_crear_payload_json_preferred_on_export(workspace: Workspace, tmp_path):
+    ctx, tools = _tools(workspace)
+    payload = {
+        "tipo": "evaluacion",
+        "titulo": "Prueba huemul",
+        "instrucciones": ["Lee el cuento."],
+        "items": [
+            {
+                "tipo_item": "sm",
+                "enunciado": "¿Quién preguntó?",
+                "opciones": ["El huemul", "El río"],
+                "clave": "A",
+            }
+        ],
+        "criterios": ["Cita del cuento"],
+        "puntaje_total": "10",
+    }
     result = json.loads(
-        tools["propose_plan"](
-            objetivo="Evaluar sistemas 2x2",
+        tools["proponer_crear"](
             tipo="evaluacion",
-            oa="sistemas 2x2",
-            duracion="45 min",
+            titulo="Prueba huemul",
+            resumen="Evaluación breve.",
+            vista_previa_markdown="# Corta\n\nSin headings de ítems.\n",
+            payload_json=json.dumps(payload, ensure_ascii=False),
         )
     )
     assert result["ok"] is True
-    assert "como_abordare" not in result
-    assert result.get("plan") is None or "como_abordare" not in (result.get("plan") or {})
-    assert ctx.pending_plan is not None
-    assert ctx.pending_plan.objetivo.startswith("Evaluar")
+    assert result["payload"] is True
+    propuesta = ctx.pending_propuesta
+    assert propuesta is not None
+    assert propuesta.draft.payload is not None
+    assert propuesta.draft.payload["items"]
+
+    md = materialize_markdown(Encargo(curso="4° básico"), propuesta)
+    assert "```json" in md
+    extracted = extract_payload_from_markdown(md, tipo="evaluacion")
+    sm = [row for row in extracted["items"] if row.get("tipo_item") == "sm"]
+    assert sm
+    assert "preguntó" in sm[0]["enunciado"].lower()
+    assert any("huemul" in str(opt).lower() for opt in sm[0].get("opciones") or [])
+
+    dest = tmp_path / "from-payload.tex"
+    source = tmp_path / "from-payload.md"
+    source.write_text(md, encoding="utf-8")
+    export_latex(source, dest, tipo="evaluacion")
+    tex = dest.read_text(encoding="utf-8")
+    assert "Quién preguntó" in tex or "Qui\\'en preguntó" in tex or "huemul" in tex.lower()
+
+
+def test_list_oa_media_catalog_covers_false(workspace: Workspace):
+    _ctx, tools = _tools(
+        workspace,
+        Encargo(curso="1° medio", asignatura="Matemática", oa="sistemas 2x2"),
+    )
+    listed = json.loads(tools["list_oa"]())
+    assert listed["catalog_covers"] is False
+    assert listed["oas"] == []
+    searched = json.loads(tools["search_oa"]("fracciones"))
+    assert searched["catalog_covers"] is False
+    assert searched["oas"] == []
+
+
+def test_proponer_crear_keeps_encargo_chips_over_payload(workspace: Workspace):
+    ctx, tools = _tools(
+        workspace,
+        Encargo(curso="8° básico", asignatura="Ciencias Naturales", oa="conservación de la masa"),
+    )
+    result = json.loads(
+        tools["proponer_crear"](
+            tipo="pauta",
+            titulo="Pauta lab",
+            resumen="Pauta de laboratorio.",
+            vista_previa_markdown="# Pauta\n\n## Criterios\n- Evidencia\n## Niveles\n- Logrado\n"
+            + "x" * 200,
+            payload_json=(
+                '{"tipo":"pauta","titulo":"Pauta lab",'
+                '"asignatura":"Lenguaje y Comunicación","curso":"4° básico",'
+                '"criterios":[{"nombre":"Evidencia"}]}'
+            ),
+        )
+    )
+    assert result["ok"] is True
+    propuesta = ctx.pending_propuesta
+    assert propuesta is not None
+    assert propuesta.draft.payload is not None
+    assert propuesta.draft.payload["asignatura"] == "Ciencias Naturales"
+    assert propuesta.draft.payload["curso"] == "8° básico"
+
+
+def test_tipo_desviado_avisa_sin_bloquear(workspace: Workspace):
+    draft = ArtifactDraft(
+        tipo=ArtifactType.PAUTA,
+        titulo="Rúbrica",
+        cuerpo_markdown="# Pauta\n\n## Criterios\nx\n## Niveles\ny\n## Descriptores\nz\n"
+        + "w" * 800,
+        evidencias=[
+            Evidence(path="fuentes/cuento-el-condor-y-el-huemul.md", snippet="huemul"),
+            Evidence(path="fuentes/notas-curso.md", snippet="OA"),
+        ],
+    )
+    warnings = collect_warnings(
+        workspace=workspace,
+        encargo=Encargo(tipo=ArtifactType.EVALUACION, oa="LEN-4B-OA04"),
+        draft=draft,
+    )
+    assert "tipo_desviado" in {item.code for item in warnings}
+    assert all(item.blocking is False for item in warnings)
+
+
+def test_el_presupuesto_bloquea_y_luego_deja_proponer(workspace: Workspace):
+    ctx, tools = _tools(workspace)
+    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
+    last_ok = None
+    for _ in range(DRAFT_TOOL_BUDGET + 3):
+        last_ok = json.loads(tools["list_sources"]())
+    assert last_ok is not None
+    assert last_ok.get("error") == "presupuesto_herramientas_agotado"
+    assert ctx.budget_exhausted is True
+    creada = json.loads(
+        tools["proponer_crear"](
+            tipo="guia",
+            titulo="Sigue",
+            resumen="r",
+            vista_previa_markdown=GUIA_CUERPO,
+        )
+    )
+    assert creada["ok"] is True
+    assert ctx.pending_propuesta is not None
+
+
+def test_la_ultima_oportunidad_de_proponer_es_una_sola_vez(workspace: Workspace):
+    ctx, tools = _tools(workspace)
+    ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
+    for _ in range(DRAFT_TOOL_BUDGET + 2):
+        json.loads(tools["list_sources"]())
+    vacia = json.loads(
+        tools["proponer_crear"](tipo="", titulo="x", resumen="", vista_previa_markdown="# x\n")
+    )
+    assert vacia.get("error") == "presupuesto_herramientas_agotado"
+    creada = json.loads(
+        tools["proponer_crear"](
+            tipo="guia", titulo="Sigue", resumen="r", vista_previa_markdown=GUIA_CUERPO
+        )
+    )
+    assert creada["ok"] is True
+    otra = json.loads(
+        tools["proponer_crear"](
+            tipo="guia", titulo="Dos", resumen="r", vista_previa_markdown=GUIA_CUERPO
+        )
+    )
+    assert otra.get("already") is True
+
+
+def test_proponer_crear_fills_empty_eval_items_from_markdown(workspace: Workspace):
+    ctx, tools = _tools(workspace)
+    cuerpo = """# Prueba
+
+## Verdadero o falso
+- El huemul preguntó por qué el valle tenía sed.
+
+## Ítems de desarrollo
+¿Qué se infiere del final del cuento?
+"""
+    result = json.loads(
+        tools["proponer_crear"](
+            tipo="evaluacion",
+            titulo="Prueba huemul",
+            resumen="r",
+            vista_previa_markdown=cuerpo,
+            payload_json=json.dumps(
+                {"tipo": "evaluacion", "titulo": "Prueba huemul", "items": []},
+                ensure_ascii=False,
+            ),
+        )
+    )
+    assert result["ok"] is True
+    propuesta = ctx.pending_propuesta
+    assert propuesta is not None
+    items = (propuesta.draft.payload or {}).get("items") or []
+    assert items
+    blob = " ".join(str(row.get("enunciado") or "") for row in items).lower()
+    assert "huemul" in blob or "infiere" in blob
+    md = materialize_markdown(Encargo(curso="4° básico"), propuesta)
+    extracted = extract_payload_from_markdown(md, tipo="evaluacion")
+    assert extracted["items"]
+    fence = md[md.index("```json") : md.index("```", md.index("```json") + 7)]
+    assert '"enunciado"' in fence
 
 
 def test_salvage_payload_json():
@@ -488,44 +439,6 @@ draft_artifact(
     assert draft is not None
     assert draft.payload is not None
     assert "cita" in draft.payload.get("proposito", "").lower()
-
-
-def test_draft_artifact_fills_empty_eval_items_from_markdown(workspace: Workspace):
-    ctx, tools = _draft_tools(workspace)
-    cuerpo = """# Prueba
-
-## Verdadero o falso
-- El huemul preguntó por qué el valle tenía sed.
-
-## Ítems de desarrollo
-¿Qué se infiere del final del cuento?
-"""
-    result = json.loads(
-        tools["draft_artifact"](
-            tipo="evaluacion",
-            titulo="Prueba huemul",
-            cuerpo_markdown=cuerpo,
-            payload_json=json.dumps(
-                {
-                    "tipo": "evaluacion",
-                    "titulo": "Prueba huemul",
-                    "items": [],
-                },
-                ensure_ascii=False,
-            ),
-        )
-    )
-    assert result["ok"] is True
-    assert ctx.pending_draft is not None
-    items = (ctx.pending_draft.payload or {}).get("items") or []
-    assert items
-    blob = " ".join(str(row.get("enunciado") or "") for row in items).lower()
-    assert "huemul" in blob or "infiere" in blob
-    md = materialize_markdown(Encargo(curso="4° básico"), None, ctx.pending_draft)
-    extracted = extract_payload_from_markdown(md, tipo="evaluacion")
-    assert extracted["items"]
-    fence = md[md.index("```json") : md.index("```", md.index("```json") + 7)]
-    assert '"enunciado"' in fence
 
 
 def test_salvage_fills_empty_eval_items_from_markdown():
@@ -564,10 +477,23 @@ def test_materialize_fills_empty_plan_moments():
             "cierre": "",
         },
     )
-    md = materialize_markdown(Encargo(curso="5° básico"), None, draft)
+    propuesta = _propuesta(draft)
+    md = materialize_markdown(Encargo(curso="5° básico"), propuesta)
     assert draft.payload is not None
     assert "patio" in draft.payload["inicio"].lower()
     assert "globo" in draft.payload["desarrollo"].lower()
     assert "ticket" in draft.payload["cierre"].lower()
     fence = md[md.index("```json") :]
     assert "patio" in fence.lower()
+
+
+def test_materialize_deja_el_origen_en_el_front_matter():
+    draft = ArtifactDraft(
+        tipo=ArtifactType.GUIA,
+        titulo="Guía adaptada",
+        cuerpo_markdown=GUIA_CUERPO,
+    )
+    propuesta = _propuesta(draft, accion="adaptar", origen="derivados/base.md")
+    md = materialize_markdown(Encargo(curso="4° básico"), propuesta)
+    assert "accion: adaptar" in md
+    assert "origen: derivados/base.md" in md

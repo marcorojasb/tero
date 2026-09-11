@@ -73,6 +73,8 @@ Un objeto JSON por línea.
 | `encargo` | `encargo` | Contexto actualizado |
 | `oa_options` | `oas`, `curso`, `asignatura` | Catálogo para el contexto |
 | `exported` | `path`, `format`, `source_kind`, `source_path`, `feedback?`, `pdf?` | Tras `export` |
+| `turn` | `turn` | Estado completo del turno (útil para depurar; la TUI se guía por `respuesta`/`propuesta`) |
+| `bye` | — | El host se apaga tras `shutdown` |
 
 ### Objeto `propuesta`
 
@@ -108,6 +110,8 @@ Leen o proponen **en memoria**. Ninguna escribe.
 | Tool | Firma | Para |
 | --- | --- | --- |
 | `list_sources` | `()` | Inventario de la carpeta |
+| `list_artifacts` | `()` | Material ya escrito (`derivados/`, `borradores/`) que se puede editar |
+| `read_artifact` | `(path)` | Leer ese material antes de editarlo o adaptarlo |
 | `search_sources` | `(query)` | Buscar dentro de las fuentes |
 | `read_source` | `(path)` | Leer una fuente (sandbox + hash) |
 | `list_oa` | `(curso, asignatura)` | Catálogo Chile |

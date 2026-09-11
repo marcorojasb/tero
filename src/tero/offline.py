@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from collections.abc import AsyncGenerator, AsyncIterable
 from typing import Any
@@ -13,7 +14,7 @@ from strands.types.streaming import StreamEvent
 from strands.types.tools import ToolSpec
 
 from tero import DEFAULT_MODEL_ID
-from tero.demo_content import demo_draft_markdown, demo_plan, infer_tipo
+from tero.demo_content import demo_draft_markdown, demo_resumen, demo_titulo, infer_tipo
 from tero.types import Encargo
 
 
@@ -63,11 +64,17 @@ class OfflineModel(Model):
         called: list[str],
     ) -> dict[str, Any]:
         prompt = _last_user_text(messages)
-        tipo = infer_tipo(prompt, self.encargo)
         if len(called) >= 12:
-            return {"text": "Listo. Esperando el criterio del docente."}
+            return {"text": "Listo. Dime si lo apruebas o qué quieres cambiar."}
+        intent = _intent(prompt, self.encargo)
         listed = _listed_paths(messages)
         reads = _read_payloads(messages)
+        if intent == "responder":
+            if "list_sources" in available and "list_sources" not in called:
+                return {"tool": "list_sources", "input": {}}
+            return {"text": _scripted_answer(len(listed))}
+        if intent == "editar":
+            return self._next_edit_action(messages, available, called, listed, reads)
         if "list_sources" in available and "list_sources" not in called:
             return {"tool": "list_sources", "input": {}}
         if "read_source" in available and called.count("read_source") < 2:
@@ -84,38 +91,80 @@ class OfflineModel(Model):
         if "get_oa" in available and "get_oa" not in called:
             oa_id = _oa_id_from_messages(messages) or "LEN-4B-OA04"
             return {"tool": "get_oa", "input": {"id": oa_id}}
-        if "propose_plan" in available and "propose_plan" not in called:
-            plan = demo_plan(self.encargo, tipo, sources=listed)
-            oa_id = _oa_id_from_messages(messages)
-            if oa_id:
-                plan["oa"] = oa_id
-            return {"tool": "propose_plan", "input": plan}
         if "cite_evidence" in available and called.count("cite_evidence") < 2:
             citation = _citation_for(listed, reads, called.count("cite_evidence"))
             return {"tool": "cite_evidence", "input": citation}
-        if "draft_artifact" in available and "draft_artifact" not in called:
-            critique = ""
-            if "CORRECCIÓN" in prompt or "CORRECCION" in prompt:
-                critique = prompt
+        if "proponer_crear" in available and "proponer_crear" not in called:
+            tipo = infer_tipo(prompt, self.encargo)
             citations = [
                 _citation_for(listed, reads, 0),
                 _citation_for(listed, reads, 1),
             ]
             return {
-                "tool": "draft_artifact",
+                "tool": "proponer_crear",
                 "input": {
                     "tipo": tipo.value,
-                    "titulo": demo_plan(self.encargo, tipo, sources=listed)["objetivo"][:80],
-                    "cuerpo_markdown": demo_draft_markdown(
+                    "titulo": demo_titulo(self.encargo, tipo, sources=listed),
+                    "resumen": demo_resumen(tipo),
+                    "vista_previa_markdown": demo_draft_markdown(
                         self.encargo,
                         tipo,
-                        critique=critique,
                         sources=listed or list(reads),
                     ),
                     "evidencias_json": json.dumps(citations, ensure_ascii=False),
                 },
             }
-        return {"text": "Listo. Esperando el criterio del docente."}
+        return {"text": "Listo. Dime si lo apruebas o qué quieres cambiar."}
+
+    def _next_edit_action(
+        self,
+        messages: Messages,
+        available: set[str],
+        called: list[str],
+        listed: list[str],
+        reads: dict[str, str],
+    ) -> dict[str, Any]:
+        """Guion de la intención c): leer el material y proponer una versión nueva."""
+        if "list_artifacts" in available and "list_artifacts" not in called:
+            return {"tool": "list_artifacts", "input": {}}
+        origen = _artifact_from_messages(messages) or _artifact_from_user_text(messages)
+        if origen and "read_artifact" in available and "read_artifact" not in called:
+            return {"tool": "read_artifact", "input": {"path": origen}}
+        if ("proponer_editar" in available) and "proponer_editar" not in called:
+            if not origen:
+                return {
+                    "text": (
+                        "No encontré material escrito en la carpeta para editar. "
+                        "Dime cuál quieres cambiar o pídeme crear uno nuevo."
+                    )
+                }
+            tipo = infer_tipo(_last_user_text(messages), self.encargo)
+            return {
+                "tool": "proponer_editar",
+                "input": {
+                    "ruta_origen": origen,
+                    "accion": _accion_from_text(_last_user_text(messages)),
+                    "tipo": tipo.value,
+                    "titulo": demo_titulo(self.encargo, tipo, sources=listed),
+                    "resumen": demo_resumen(tipo, editado=True),
+                    "vista_previa_markdown": demo_draft_markdown(
+                        self.encargo,
+                        tipo,
+                        critique="Versión adaptada del material de origen.",
+                        sources=listed or list(reads),
+                    ),
+                    "cambios": (
+                        "Inicio: tiempos por momento de clase\n"
+                        "Desarrollo: enunciados más cortos y una instrucción por paso"
+                    ),
+                    "notas_nee": (
+                        "acceso · presentación de la información: enunciados leídos en voz "
+                        "alta y apoyos visuales de la secuencia\n"
+                        "acceso · tiempo: tiempo extra para completar la guía"
+                    ),
+                },
+            }
+        return {"text": "Listo. Dime si lo apruebas o qué quieres cambiar."}
 
 
 DEMO_READS = (
@@ -137,6 +186,112 @@ DEMO_CITATIONS = (
         "seccion": "desarrollo",
     },
 )
+
+
+_EDIT_HINTS = (
+    "edita",
+    "editar",
+    "cambia",
+    "cambiar",
+    "modifica",
+    "ajusta",
+    "adapta",
+    "adaptar",
+    "acorta",
+    "simplifica",
+    "corrige",
+    "version",
+    "versión",
+    "nee",
+    "dua",
+)
+
+_ASK_HINTS = (
+    "?",
+    "¿",
+    "qué",
+    "que ",
+    "cómo",
+    "como ",
+    "por qué",
+    "cuánto",
+    "cuanto",
+    "puedes",
+    "podrías",
+    "hola",
+    "buenas",
+    "gracias",
+)
+
+
+def _user_request(prompt: str) -> str:
+    """Quita el encabezado "Contexto: …" para leer solo lo que pidió la persona."""
+    blob = prompt or ""
+    if blob.lstrip().lower().startswith("contexto:"):
+        _, _, rest = blob.partition("\n\n")
+        if rest.strip():
+            return rest
+    return blob
+
+
+def _intent(prompt: str, encargo: Encargo) -> str:
+    """Guion del modelo offline: responder, crear o editar (incluye NEE)."""
+    prompt = _user_request(prompt)
+    folded = (prompt or "").lower()
+    # Una revisión conserva la acción de la propuesta que se está corrigiendo.
+    match = re.search(r"acci[oó]n esperada:\s*(crear|editar|adaptar)", folded)
+    if match:
+        return match.group(1)
+    if any(hint in folded for hint in _EDIT_HINTS):
+        return "editar"
+    if any(hint in folded for hint in _ASK_HINTS) and not any(
+        hint in folded
+        for hint in ("planifica", "prepara", "crea", "hazme", "guía", "guia", "evaluación")
+    ):
+        return "responder"
+    if encargo.tipo is not None and not prompt.strip():
+        return "crear"
+    return "crear"
+
+
+def _accion_from_text(prompt: str) -> str:
+    folded = (prompt or "").lower()
+    if any(hint in folded for hint in ("nee", "dua", "adapta", "adaptar", "inclusi")):
+        return "adaptar"
+    return "editar"
+
+
+def _scripted_answer(n_fuentes: int) -> str:
+    return (
+        "Estoy en modo offline (tero-offline), así que converso con un guion. "
+        f"Veo {n_fuentes} fuente(s) en tu carpeta de trabajo. "
+        "Puedo preparar una planificación, una guía, una evaluación, una pauta o una "
+        "actividad; también puedo editar o adaptar material que ya escribimos, por "
+        "ejemplo para NEE. ¿Qué necesitas?"
+    )
+
+
+def _artifact_from_messages(messages: Messages) -> str:
+    for payload in _tool_result_payloads(messages):
+        materiales = payload.get("materiales")
+        if isinstance(materiales, list) and materiales:
+            first = materiales[0]
+            if isinstance(first, dict) and first.get("path"):
+                return str(first["path"])
+            return str(first)
+        path = str(payload.get("path") or "")
+        if path.startswith(("derivados/", "borradores/")):
+            return path
+    return ""
+
+
+def _artifact_from_user_text(messages: Messages) -> str:
+    blob = " ".join(_last_user_text(messages).split())
+    for token in blob.split():
+        cleaned = token.strip(".,;:()[]")
+        if cleaned.startswith(("derivados/", "borradores/")) and cleaned.endswith(".md"):
+            return cleaned
+    return ""
 
 
 def _listed_paths(messages: Messages) -> list[str]:
