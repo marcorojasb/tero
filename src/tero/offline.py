@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from collections.abc import AsyncGenerator, AsyncIterable
 from typing import Any
@@ -225,6 +226,10 @@ _ASK_HINTS = (
 def _intent(prompt: str, encargo: Encargo) -> str:
     """Guion del modelo offline: responder, crear o editar (incluye NEE)."""
     folded = (prompt or "").lower()
+    # Una revisión conserva la acción de la propuesta que se está corrigiendo.
+    match = re.search(r"acci[oó]n esperada:\s*(crear|editar|adaptar)", folded)
+    if match:
+        return match.group(1)
     if any(hint in folded for hint in _EDIT_HINTS):
         return "editar"
     if any(hint in folded for hint in _ASK_HINTS) and not any(
