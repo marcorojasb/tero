@@ -88,8 +88,16 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "tui-grid.js?v=vte-shot" in html
-    assert "ficha.js?v=vte-shot" in html
+    assert "styles.css?v=vte-hotkeys" in html
+    assert "tui-grid.js?v=vte-hotkeys" in html
+    assert "ficha.js?v=vte-hotkeys" in html
+    assert '$("consulta").hidden = false' not in js
+    assert '$("consulta").hidden = true' in js
+    assert '$("prompt").readOnly' in js
+    assert 'state.phase === "esperando_criterio"' in js
+    assert "const editable = inPrompt && !$(\"prompt\").readOnly" in js or "editable = inPrompt" in js
+    assert "#consulta" in css
+    assert "Never a second column" in css or "display: none !important" in css
     assert "paintFrame" in grid
     assert "paintShot" in grid
     assert "promptBoxFromFrame" in grid

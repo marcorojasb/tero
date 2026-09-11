@@ -35,7 +35,7 @@
   function loadFrames() {
     return Promise.all(
       FRAME_NAMES.map((name) =>
-        fetch(`./assets/tui/frames/${name}.json?v=vte-shot`)
+        fetch(`./assets/tui/frames/${name}.json?v=vte-hotkeys`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             frames[name] = data;
@@ -336,7 +336,10 @@ python -m tero demo --offline --yes
     document.body.dataset.frame = frameName || "live";
     $("window-path").textContent = "~/tero";
     syncPromptOverlay();
-    $("prompt").readOnly = view === "puerta" || view === "plan";
+    $("prompt").readOnly =
+      state.phase === "esperando_criterio" ||
+      state.phase === "esperando_plan" ||
+      state.phase === "listo";
   }
 
   function paintLive(captured) {
@@ -616,7 +619,7 @@ python -m tero demo --offline --yes
     setFuentes(rumbo.fuentes);
     setGateEnabled(false);
     renderAvisos([]);
-    $("consulta").hidden = false;
+    $("consulta").hidden = true;
     $("bitacora").innerHTML = "";
     $("corrida-real").textContent = rumbo.corrida;
     $("gate-note").textContent = "Consulta en curso. La puerta espera el borrador.";
@@ -790,14 +793,21 @@ python -m tero demo --offline --yes
   document.addEventListener("keydown", (ev) => {
     if (ev.target && ev.target.tagName === "TEXTAREA") return;
     const inPrompt = ev.target && ev.target.id === "prompt";
-    if (inPrompt && !$("prompt").readOnly) {
-      if (["1", "2", "3", "4"].includes(ev.key) && !$("prompt").value) {
-        ev.preventDefault();
-        prepare(ev.key);
-      }
-      if ((ev.key === "?" || (ev.shiftKey && ev.key === "/")) && !$("prompt").value) {
-        ev.preventDefault();
-        help();
+    const editable = inPrompt && !$("prompt").readOnly;
+    /* Editable prompt: rumbo/? on empty, otherwise type. Gate keys s/n/b/c
+       only fire here when the prompt is readOnly (puerta / plan / listo). */
+    if (editable) {
+      if (!$("prompt").value) {
+        if (["1", "2", "3", "4"].includes(ev.key)) {
+          ev.preventDefault();
+          prepare(ev.key);
+          return;
+        }
+        if (ev.key === "?" || (ev.shiftKey && ev.key === "/")) {
+          ev.preventDefault();
+          help();
+          return;
+        }
       }
       return;
     }
@@ -810,6 +820,7 @@ python -m tero demo --offline --yes
       return;
     }
     if (["1", "2", "3", "4"].includes(ev.key)) {
+      ev.preventDefault();
       prepare(ev.key);
       return;
     }

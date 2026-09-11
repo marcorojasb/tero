@@ -95,6 +95,18 @@ body {
   border: 0;
 }
 
+/* Session ledgers stay out of the window. Never a second column. */
+#consulta,
+#chips,
+#stamp-label,
+#gate-note,
+#fuentes,
+#derivados,
+#borradores,
+#help-copy {
+  display: none !important;
+}
+
 .window {
   max-width: calc(100vw - 2.2rem);
   margin: 0;
