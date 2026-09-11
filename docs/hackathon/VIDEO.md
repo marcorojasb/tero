@@ -22,10 +22,10 @@ Track: Professional Agents.
 
 Show `docs/hackathon/architecture.png`.
 
-- OpenTUI → JSONL → Strands Agent
-- Tools read the carpeta (hashed). They never write originals.
-- Bedrock Nova Lite or `tero-offline`
-- Host gate writes `derivados/` only after `s` / `b`
+- Teacher types an encargo; tero (Strands) reads the folder and stops
+- Nova Lite infers the draft; the classroom folder never goes to AWS
+- `s` writes `derivados/`, `b` writes `borradores/`. Originals stay put
+- `n` discards, `c` asks for another pass
 
 One sentence: AgentCore is optional sketch, not the folder.
 

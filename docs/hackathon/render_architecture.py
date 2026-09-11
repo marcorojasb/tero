@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the Devpost architecture diagram (PNG). Requires Pillow.
+"""Render architecture.png + architecture.svg. Requires Pillow.
 
 python docs/hackathon/render_architecture.py
 """
@@ -10,381 +10,343 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-OUT = Path(__file__).with_name("architecture.png")
+HERE = Path(__file__).resolve().parent
+PNG = HERE / "architecture.png"
+SVG = HERE / "architecture.svg"
 
-# Terminal UI Brand System v1.0
-FONDO = (7, 11, 12, 255)
-PANEL = (12, 18, 20, 255)
-PANEL2 = (16, 26, 28, 255)
-CREMA = (244, 241, 222, 255)
-CIAN = (34, 211, 238, 255)
-AQUA = (32, 212, 191, 255)
-TEAL = (20, 184, 166, 255)
-MENTA = (134, 239, 172, 255)
-LIMA = (163, 230, 53, 255)
-MUTED = (148, 168, 170, 255)
-LINE = (36, 54, 58, 255)
-AMBER = (251, 191, 36, 255)
-VIOLET = (196, 181, 253, 255)
-ORANGE = (251, 146, 60, 255)
-WHITE = (255, 255, 255, 255)
+FONDO = (7, 11, 12)
+PANEL = (12, 18, 20)
+ROW = (18, 26, 28)
+CREMA = (244, 241, 222)
+CIAN = (34, 211, 238)
+MENTA = (134, 239, 172)
+MUTED = (148, 168, 170)
+LINE = (42, 62, 66)
+AMBER = (251, 191, 36)
+VIOLET = (196, 181, 253)
+ORANGE = (251, 146, 60)
 
-W, H = 2000, 1240
-FONT_DIR_INTER = Path("/usr/share/fonts/truetype/macos")
-FONT_DIR_JB = Path("/usr/share/fonts/truetype/jetbrains-mono")
+W, H = 1680, 820
+INTER = Path("/usr/share/fonts/truetype/macos")
+JB = Path("/usr/share/fonts/truetype/jetbrains-mono")
 
-
-def font(name: str, size: int) -> ImageFont.FreeTypeFont:
-    path = FONT_DIR_INTER / name if name.startswith("Inter") else FONT_DIR_JB / name
-    return ImageFont.truetype(str(path), size)
+# Layout
+PX, PY, PW, PH = 48, 120, 400, 300
+TX, TY, TW, TH = 560, 120, 520, 300
+AX, AY, AW, AH = 1192, 120, 440, 300
+FX, FY, FW, FH = 560, 500, 520, 272
 
 
-def rounded(
+def fnt(name: str, size: int) -> ImageFont.FreeTypeFont:
+    root = INTER if name.startswith("Inter") else JB
+    return ImageFont.truetype(str(root / name), size)
+
+
+def hex_rgb(rgb: tuple[int, int, int]) -> str:
+    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def card(draw: ImageDraw.ImageDraw, x, y, w, h, accent, title: str) -> None:
+    draw.rounded_rectangle((x, y, x + w, y + h), 16, fill=PANEL, outline=LINE, width=2)
+    draw.rectangle((x, y, x + 6, y + h), fill=accent)
+    draw.text((x + 24, y + 18), title, font=fnt("Inter-SemiBold.ttf", 24), fill=CREMA)
+
+
+def body(draw: ImageDraw.ImageDraw, x, y, lines: list[tuple[str, tuple[int, int, int]]]) -> None:
+    yy = y
+    font = fnt("Inter-Regular.ttf", 17)
+    for text, color in lines:
+        draw.text((x, yy), text, font=font, fill=color)
+        yy += 28
+
+
+def arrow_right(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, color) -> None:
+    draw.line((x1, y, x2 - 12, y), fill=color, width=3)
+    draw.polygon([(x2, y), (x2 - 14, y - 7), (x2 - 14, y + 7)], fill=color)
+
+
+def arrow_left(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, color) -> None:
+    draw.line((x1, y, x2 + 12, y), fill=color, width=3)
+    draw.polygon([(x2, y), (x2 + 14, y - 7), (x2 + 14, y + 7)], fill=color)
+
+
+def arrow_down(draw: ImageDraw.ImageDraw, x: int, y1: int, y2: int, color) -> None:
+    draw.line((x, y1, x, y2 - 12), fill=color, width=3)
+    draw.polygon([(x, y2), (x - 7, y2 - 14), (x + 7, y2 - 14)], fill=color)
+
+
+def caption(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str, color) -> None:
+    draw.text(xy, text, font=fnt("Inter-Medium.ttf", 13), fill=color)
+
+
+def chips(
     draw: ImageDraw.ImageDraw,
-    box: tuple[int, int, int, int],
-    r: int,
-    fill,
-    outline=None,
-    width: int = 2,
+    x: int,
+    y: int,
+    items: list[tuple[str, tuple[int, int, int]]],
 ) -> None:
-    draw.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=width)
+    font = fnt("Inter-SemiBold.ttf", 15)
+    cx = x
+    for text, bg in items:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0] + 24
+        draw.rounded_rectangle((cx, y, cx + tw, y + 32), 8, fill=bg)
+        draw.text((cx + 12, y + 6), text, font=font, fill=CREMA)
+        cx += tw + 10
 
 
-def text(draw: ImageDraw.ImageDraw, xy: tuple[int, int], value: str, fnt, fill) -> None:
-    draw.text(xy, value, font=fnt, fill=fill)
-
-
-def measure(draw: ImageDraw.ImageDraw, value: str, fnt) -> tuple[int, int]:
-    bbox = draw.textbbox((0, 0), value, font=fnt)
-    return bbox[2] - bbox[0], bbox[3] - bbox[1]
-
-
-def arrow_right(
-    draw: ImageDraw.ImageDraw, x1: int, y: int, x2: int, color, stroke: int = 3
-) -> None:
-    draw.line((x1, y, x2 - 14, y), fill=color, width=stroke)
-    draw.polygon([(x2, y), (x2 - 16, y - 8), (x2 - 16, y + 8)], fill=color)
-
-
-def arrow_down(draw: ImageDraw.ImageDraw, x: int, y1: int, y2: int, color, stroke: int = 3) -> None:
-    draw.line((x, y1, x, y2 - 14), fill=color, width=stroke)
-    draw.polygon([(x, y2), (x - 8, y2 - 16), (x + 8, y2 - 16)], fill=color)
-
-
-def chip(draw: ImageDraw.ImageDraw, x: int, y: int, label: str, bg, fg, fnt) -> int:
-    tw, th = measure(draw, label, fnt)
-    pad_x, pad_y = 14, 8
-    w, h = tw + pad_x * 2, th + pad_y * 2
-    rounded(draw, (x, y, x + w, y + h), 8, bg)
-    text(draw, (x + pad_x, y + pad_y - 2), label, fnt, fg)
-    return w
-
-
-def card(
+def folder_row(
     draw: ImageDraw.ImageDraw,
     x: int,
     y: int,
     w: int,
     h: int,
     accent,
-    kicker: str,
-    title: str,
+    left: str,
+    right: str,
 ) -> None:
-    rounded(draw, (x, y, x + w, y + h), 16, PANEL, outline=LINE, width=2)
-    draw.rectangle((x, y, x + 6, y + h), fill=accent)
-    kicker_f = font("Inter-Medium.ttf", 15)
-    title_f = font("Inter-SemiBold.ttf", 22)
-    text(draw, (x + 24, y + 16), kicker.upper(), kicker_f, accent)
-    text(draw, (x + 24, y + 38), title, title_f, CREMA)
+    draw.rounded_rectangle((x, y, x + w, y + h), 10, fill=ROW, outline=LINE, width=1)
+    draw.rectangle((x, y, x + 5, y + h), fill=accent)
+    draw.text((x + 16, y + 8), left, font=fnt("JetBrainsMono-Medium.ttf", 15), fill=CREMA)
+    draw.text((x + 16, y + 32), right, font=fnt("Inter-Regular.ttf", 14), fill=MUTED)
 
 
-def render() -> Image.Image:
-    img = Image.new("RGBA", (W, H), FONDO)
+def render_png() -> Image.Image:
+    img = Image.new("RGB", (W, H), FONDO)
     draw = ImageDraw.Draw(img)
 
-    f_title = font("Inter-Bold.ttf", 36)
-    f_sub = font("Inter-Regular.ttf", 20)
-    f_meta = font("Inter-Medium.ttf", 15)
-    f_body = font("Inter-Regular.ttf", 16)
-    f_small = font("Inter-Regular.ttf", 14)
-    f_mono = font("JetBrainsMono-Regular.ttf", 14)
-    f_mono_b = font("JetBrainsMono-Bold.ttf", 15)
-    f_chip = font("JetBrainsMono-Bold.ttf", 14)
-    f_kicker = font("Inter-Medium.ttf", 13)
-
-    # Header
-    text(draw, (48, 28), "tero", f_title, CIAN)
-    tw, _ = measure(draw, "tero", f_title)
-    text(draw, (48 + tw + 16, 40), "the agent prepares, the teacher decides", f_sub, CREMA)
-    text(
-        draw,
-        (48, 78),
-        "Agents for Humans  ·  Professional Agents  ·  Strands Agents SDK  ·  Amazon Bedrock Nova Lite",
-        f_meta,
-        AQUA,
+    draw.text((48, 28), "tero", font=fnt("Inter-Bold.ttf", 34), fill=CIAN)
+    draw.text(
+        (128, 36),
+        "el agente prepara, el profesor decide",
+        font=fnt("Inter-Regular.ttf", 20),
+        fill=CREMA,
     )
-    draw.line((48, 112, W - 48, 112), fill=LINE, width=1)
-
-    # Row 1 — conversation path
-    y1, h1 = 132, 260
-    a = (48, y1, 430, h1)
-    b = (518, y1, 300, h1)
-    c = (858, y1, 520, h1)
-    d = (1418, y1, 534, h1)
-
-    mid_y = y1 + 118
-    arrow_right(draw, a[0] + a[2], mid_y, b[0], CIAN)
-    arrow_right(draw, b[0] + b[2], mid_y, c[0], CIAN)
-    arrow_right(draw, c[0] + c[2], mid_y, d[0], AQUA)
-
-    card(draw, *a, CIAN, "1. User interface", "Teacher at the keyboard")
-    text(draw, (a[0] + 24, a[1] + 78), "OpenTUI  ·  Bun  ·  @opentui/core", f_body, CREMA)
-    text(draw, (a[0] + 24, a[1] + 102), "home · rumbos 1-4 · encargo chips", f_small, MUTED)
-    text(draw, (a[0] + 24, a[1] + 122), "plan card · evidencia · avisos", f_small, MUTED)
-    text(draw, (a[0] + 24, a[1] + 148), "CLI fallback", f_kicker, MUTED)
-    text(draw, (a[0] + 24, a[1] + 168), "python -m tero demo | tui", f_mono, MENTA)
-    text(draw, (a[0] + 24, a[1] + 200), "Human gate — the model never writes", f_small, MUTED)
-    gx = a[0] + 24
-    gy = a[1] + 222
-    for label, bg in (
-        ("s", (20, 83, 45, 255)),
-        ("n", (88, 28, 28, 255)),
-        ("b", (66, 48, 8, 255)),
-        ("c", (30, 58, 90, 255)),
-    ):
-        gx += chip(draw, gx, gy, label, bg, CREMA, f_chip) + 8
-    text(draw, (gx + 4, gy + 6), "teacher decides", f_small, MUTED)
-
-    card(draw, *b, MENTA, "2. Bridge", "JSONL stdin/stdout")
-    text(draw, (b[0] + 24, b[1] + 78), "python -m tero bridge", f_mono, MENTA)
-    text(draw, (b[0] + 24, b[1] + 104), "One JSON object per line.", f_body, CREMA)
-    text(draw, (b[0] + 24, b[1] + 128), "Logs on stderr only.", f_small, MUTED)
-    text(draw, (b[0] + 24, b[1] + 152), "TUI drives the session.", f_small, MUTED)
-    text(draw, (b[0] + 24, b[1] + 176), "Host owns the write.", f_small, MUTED)
-    text(draw, (b[0] + 24, b[1] + 210), "protocol v1", f_mono_b, AQUA)
-
-    card(draw, *c, AQUA, "3. Strands Agents SDK", "TeacherSession")
-    text(draw, (c[0] + 24, c[1] + 78), "Agent loop", f_kicker, MUTED)
-    text(draw, (c[0] + 24, c[1] + 98), "model  →  tools  →  reason  →  pause", f_mono, CREMA)
-    text(draw, (c[0] + 24, c[1] + 128), "Phases: plan · draft · correct", f_body, CREMA)
-    text(
-        draw,
-        (c[0] + 24, c[1] + 154),
-        "propose_plan / draft_artifact stay in-memory.",
-        f_small,
-        MUTED,
-    )
-    text(
-        draw,
-        (c[0] + 24, c[1] + 176),
-        "If the model writes prose, host salvages a typed draft.",
-        f_small,
-        MUTED,
-    )
-    text(
-        draw,
-        (c[0] + 24, c[1] + 198),
-        "Draft tool budget is capped. Warnings never block s.",
-        f_small,
-        MUTED,
-    )
-    text(
-        draw, (c[0] + 24, c[1] + 228), "HITL is structural, not a chat afterthought.", f_small, LIMA
+    draw.text(
+        (48, 74),
+        "Una vuelta: el profesor pide, tero lee la carpeta, Nova Lite redacta, el profesor dice s / n / b / c.",
+        font=fnt("Inter-Regular.ttf", 15),
+        fill=MUTED,
     )
 
-    card(draw, *d, ORANGE, "4. AWS (lean inference)", "Amazon Bedrock")
-    text(draw, (d[0] + 24, d[1] + 78), "Live", f_kicker, ORANGE)
-    text(draw, (d[0] + 24, d[1] + 98), "BedrockModel  amazon.nova-lite-v1:0", f_mono, CREMA)
-    text(draw, (d[0] + 24, d[1] + 118), "us-east-1  ·  auto-enable on first invoke", f_small, MUTED)
-    text(draw, (d[0] + 24, d[1] + 146), "Offline (honest)", f_kicker, MENTA)
-    text(draw, (d[0] + 24, d[1] + 166), "OfflineModel  tero-offline", f_mono, MENTA)
-    text(
-        draw, (d[0] + 24, d[1] + 186), "real Strands Model — not a fake InvokeModel", f_small, MUTED
-    )
-    text(
+    # People -> agent -> model
+    arrow_right(draw, PX + PW, TX, PY + 88, CIAN)
+    caption(draw, (PX + PW + 18, PY + 66), "encargo", MUTED)
+    arrow_left(draw, TX, PX + PW, PY + 148, MENTA)
+    caption(draw, (PX + PW + 18, PY + 156), "borrador", MENTA)
+    arrow_right(draw, TX + TW, AX, AY + 88, ORANGE)
+    caption(draw, (TX + TW + 14, AY + 66), "pide texto", MUTED)
+    arrow_left(draw, AX, TX + TW, AY + 148, MENTA)
+    caption(draw, (TX + TW + 10, AY + 156), "redacci\u00f3n", MENTA)
+
+    card(draw, PX, PY, PW, PH, CIAN, "Profesor")
+    body(
         draw,
-        (d[0] + 24, d[1] + 214),
-        "IAM  bedrock:InvokeModel*     Budgets  Free Tier",
-        f_small,
-        CREMA,
+        PX + 24,
+        PY + 62,
+        [
+            ("En la terminal", CREMA),
+            ("pide un encargo", MUTED),
+            ("ve plan, borrador y avisos", MUTED),
+        ],
     )
-    rounded(
+    chips(
         draw,
-        (d[0] + 20, d[1] + 236, d[0] + d[2] - 20, d[1] + h1 - 16),
-        8,
-        PANEL2,
-        outline=(90, 60, 30, 255),
-        width=1,
+        PX + 24,
+        PY + 168,
+        [
+            ("s  s\u00ed", (20, 83, 45)),
+            ("n  no", (88, 28, 28)),
+        ],
     )
-    text(
+    chips(
         draw,
-        (d[0] + 32, d[1] + 244),
-        "AgentCore Harness = optional sketch, not the carpeta",
-        f_small,
+        PX + 24,
+        PY + 212,
+        [
+            ("b  borrador", (66, 48, 8)),
+            ("c  corregir", (30, 58, 90)),
+        ],
+    )
+    draw.text(
+        (PX + 24, PY + 258),
+        "n tira el papel. c pide otra pasada.",
+        font=fnt("Inter-Regular.ttf", 14),
+        fill=MUTED,
+    )
+
+    card(draw, TX, TY, TW, TH, MENTA, "tero  (Strands)")
+    body(
+        draw,
+        TX + 24,
+        TY + 62,
+        [
+            ("Lee la carpeta. Nunca la pisa.", CREMA),
+            ("Arma un plan y un borrador.", MUTED),
+            ("El borrador queda en memoria", MUTED),
+            ("hasta s o b. No decide.", MENTA),
+        ],
+    )
+
+    card(draw, AX, AY, AW, AH, ORANGE, "Amazon Bedrock")
+    body(
+        draw,
+        AX + 24,
+        AY + 62,
+        [
+            ("Nova Lite · us-east-1", CREMA),
+            ("solo infiere texto", MUTED),
+            ("la carpeta no sube a AWS", MUTED),
+            ("sin clave: tero-offline", MUTED),
+        ],
+    )
+
+    # Agent reads the folder
+    arrow_down(draw, TX + TW // 2, TY + TH, FY, AMBER)
+    caption(draw, (TX + TW // 2 + 12, TY + TH + 18), "lee fuentes/", AMBER)
+
+    # Teacher write path: down from profesor, then into the folder
+    write_y = FY + 184
+    draw.line((PX + PW // 2, PY + PH, PX + PW // 2, write_y), fill=MENTA, width=3)
+    draw.line((PX + PW // 2, write_y, FX - 12, write_y), fill=MENTA, width=3)
+    draw.polygon(
+        [(FX, write_y), (FX - 14, write_y - 7), (FX - 14, write_y + 7)],
+        fill=MENTA,
+    )
+    caption(draw, ((PX + PW // 2 + FX) // 2 - 42, write_y - 38), "s / b escribe", MENTA)
+
+    card(draw, FX, FY, FW, FH, VIOLET, "Carpeta de trabajo")
+    folder_row(
+        draw,
+        FX + 20,
+        FY + 58,
+        FW - 40,
+        58,
         AMBER,
+        "fuentes/",
+        "originales. tero lee, nadie las pisa",
     )
-
-    # Row 2 — tools + carpeta
-    y2, h2 = 468, 360
-    tools = (48, y2, 920, h2)
-    disk = (1108, y2, 844, h2)
-    # Strands calls tools (not AWS writing the folder)
-    tool_arrow_x = c[0] + 200
-    arrow_down(draw, tool_arrow_x, y1 + h1, y2, AQUA)
-    text(draw, (tool_arrow_x + 12, y1 + h1 + 18), "calls tools", f_small, AQUA)
-    arrow_right(draw, tools[0] + tools[2], y2 + 130, disk[0], AMBER)
-    text(draw, (tools[0] + tools[2] + 16, y2 + 108), "read + hash", f_small, AMBER)
-
-    card(
+    folder_row(
         draw,
-        *tools,
-        AMBER,
-        "5. Tools  (in-process, sandboxed)",
-        "Host tools — the model cannot write files",
+        FX + 20,
+        FY + 126,
+        FW - 40,
+        58,
+        ORANGE,
+        "borradores/",
+        "si el profesor aprieta b",
     )
-    col1 = tools[0] + 24
-    col2 = tools[0] + 470
-    ty = tools[1] + 78
-    text(draw, (col1, ty), "Read the carpeta", f_kicker, AMBER)
-    text(draw, (col2, ty), "Prepare (in-memory)", f_kicker, AMBER)
-    ty += 24
-    for i, line in enumerate(
-        (
-            "list_sources",
-            "search_sources",
-            "read_source",
-            "list_oa  /  get_oa  /  search_oa",
-        )
-    ):
-        text(draw, (col1, ty + i * 22), line, f_mono, CREMA)
-    for i, line in enumerate(("propose_plan", "cite_evidence", "draft_artifact + payload_json")):
-        text(draw, (col2, ty + i * 22), line, f_mono, CREMA)
-
-    ty = tools[1] + 220
-    text(draw, (col1, ty), "Host contracts (not the model)", f_kicker, MUTED)
-    text(
+    folder_row(
         draw,
-        (col1, ty + 22),
-        "SHA-256 index  ·  path sandbox  ·  salvage prose/JSON",
-        f_small,
-        CREMA,
-    )
-    text(
-        draw,
-        (col1, ty + 44),
-        "citation check  ·  coerce tool args  ·  OA catalog Chile (host-side)",
-        f_small,
-        CREMA,
-    )
-    text(
-        draw,
-        (col1, ty + 66),
-        "No Browser  ·  no Code Interpreter  ·  no write into fuentes/",
-        f_small,
-        MUTED,
-    )
-    text(
-        draw,
-        (col1, ty + 96),
-        "Chile OA catalog is paraphrase, not MINEDUC verbatim.",
-        f_small,
-        MUTED,
-    )
-
-    card(
-        draw,
-        *disk,
-        VIOLET,
-        "6. Carpeta de trabajo  =  system of record",
-        "Local disk — never S3, never Runtime",
-    )
-    rows = [
-        ("fuentes/", "originals  .md .txt .pdf", "hashed, read-only, never overwritten"),
-        ("borradores/", "after teacher presses b", "draft kept, not accepted"),
-        ("derivados/", "after teacher presses s", "accepted pages for class tomorrow"),
-        (".tero/", "criticas + transcripciones", "host notes, not the artifact"),
-    ]
-    ry = disk[1] + 80
-    for name, role, note in rows:
-        rounded(
-            draw,
-            (disk[0] + 20, ry, disk[0] + disk[2] - 20, ry + 58),
-            10,
-            PANEL2,
-            outline=LINE,
-            width=1,
-        )
-        text(draw, (disk[0] + 36, ry + 8), name, f_mono_b, VIOLET)
-        text(draw, (disk[0] + 200, ry + 8), role, f_body, CREMA)
-        text(draw, (disk[0] + 36, ry + 32), note, f_small, MUTED)
-        ry += 66
-
-    # Row 3 — gate / output
-    y3, h3 = 868, 268
-    gate = (48, y3, 1904, h3)
-    arrow_down(draw, 538, y2 + h2, y3, VIOLET)
-    text(draw, (550, y2 + h2 + 10), "in-memory draft", f_small, VIOLET)
-
-    card(
-        draw,
-        *gate,
-        LIMA,
-        "7. Output  ·  tero.gate writes only after the teacher",
-        "s / n / b / c is the product",
-    )
-    text(
-        draw,
-        (gate[0] + 24, gate[1] + 78),
-        "The Strands agent prepares. The host applies the decision. Originals are re-hashed after every write.",
-        f_body,
-        CREMA,
-    )
-    gx = gate[0] + 24
-    gy = gate[1] + 118
-    chips = (
-        ("s  →  derivados/", (20, 83, 45, 255)),
-        ("b  →  borradores/", (66, 48, 8, 255)),
-        ("n  →  discard", (88, 28, 28, 255)),
-        ("c  →  another pass", (30, 58, 90, 255)),
-    )
-    for label, bg in chips:
-        gx += chip(draw, gx, gy, label, bg, CREMA, f_chip) + 12
-    text(
-        draw,
-        (gate[0] + 24, gate[1] + 168),
-        "Export (host templates, not model TeX)",
-        f_kicker,
-        MUTED,
-    )
-    text(
-        draw,
-        (gate[0] + 24, gate[1] + 190),
-        "markdown   ·   docx   ·   LaTeX/PDF from JSON schemas in templates/latex/",
-        f_mono,
+        FX + 20,
+        FY + 194,
+        FW - 40,
+        58,
         MENTA,
-    )
-    text(
-        draw,
-        (gate[0] + 24, gate[1] + 214),
-        "thin_evidence / unverified_citation stay visible and never block s.",
-        f_small,
-        MUTED,
+        "derivados/",
+        "si el profesor aprieta s  (para la clase)",
     )
 
-    text(
-        draw,
-        (48, H - 36),
-        "No AgentCore Runtime as SoR  ·  no Gateway MCP for the folder  ·  no multi-agent A2A  ·  MIT  ·  github.com/marcorojasb/tero",
-        f_small,
-        MUTED,
-    )
-    return img.convert("RGB")
+    return img
+
+
+def render_svg() -> str:
+    def rgb(c: tuple[int, int, int]) -> str:
+        return hex_rgb(c)
+
+    fondo, panel, row = rgb(FONDO), rgb(PANEL), rgb(ROW)
+    crema, cian, menta = rgb(CREMA), rgb(CIAN), rgb(MENTA)
+    muted, line, amber = rgb(MUTED), rgb(LINE), rgb(AMBER)
+    violet, orange = rgb(VIOLET), rgb(ORANGE)
+    s_bg, n_bg, b_bg, c_bg = "#14532D", "#581C1C", "#423008", "#1E3A5A"
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-label="tero architecture">
+  <title>tero - el agente prepara, el profesor decide</title>
+  <rect width="{W}" height="{H}" fill="{fondo}"/>
+  <text x="48" y="54" fill="{cian}" font-family="Inter, sans-serif" font-size="34" font-weight="700">tero</text>
+  <text x="128" y="52" fill="{crema}" font-family="Inter, sans-serif" font-size="20">el agente prepara, el profesor decide</text>
+  <text x="48" y="88" fill="{muted}" font-family="Inter, sans-serif" font-size="15">Una vuelta: el profesor pide, tero lee la carpeta, Nova Lite redacta, el profesor dice s / n / b / c.</text>
+
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="{cian}"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="{menta}"/></marker>
+    <marker id="c" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="{orange}"/></marker>
+    <marker id="d" markerWidth="10" markerHeight="10" refX="5" refY="8" orient="auto"><path d="M0,0 L5,10 L10,0 Z" fill="{amber}"/></marker>
+  </defs>
+
+  <line x1="{PX + PW}" y1="{PY + 88}" x2="{TX - 8}" y2="{PY + 88}" stroke="{cian}" stroke-width="3" marker-end="url(#a)"/>
+  <text x="{PX + PW + 18}" y="{PY + 78}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">encargo</text>
+  <line x1="{TX}" y1="{PY + 148}" x2="{PX + PW + 8}" y2="{PY + 148}" stroke="{menta}" stroke-width="3" marker-end="url(#b)"/>
+  <text x="{PX + PW + 18}" y="{PY + 172}" fill="{menta}" font-family="Inter, sans-serif" font-size="13">borrador</text>
+  <line x1="{TX + TW}" y1="{AY + 88}" x2="{AX - 8}" y2="{AY + 88}" stroke="{orange}" stroke-width="3" marker-end="url(#c)"/>
+  <text x="{TX + TW + 18}" y="{AY + 78}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">pide texto</text>
+  <line x1="{AX}" y1="{AY + 148}" x2="{TX + TW + 8}" y2="{AY + 148}" stroke="{menta}" stroke-width="3" marker-end="url(#b)"/>
+  <text x="{TX + TW + 10}" y="{AY + 172}" fill="{menta}" font-family="Inter, sans-serif" font-size="13">redacci&#243;n</text>
+
+  <rect x="{PX}" y="{PY}" width="{PW}" height="{PH}" rx="16" fill="{panel}" stroke="{line}"/>
+  <rect x="{PX}" y="{PY}" width="6" height="{PH}" fill="{cian}"/>
+  <text x="{PX + 24}" y="{PY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">Profesor</text>
+  <text x="{PX + 24}" y="{PY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="17">En la terminal</text>
+  <text x="{PX + 24}" y="{PY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">pide un encargo</text>
+  <text x="{PX + 24}" y="{PY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">ve plan, borrador y avisos</text>
+  <rect x="{PX + 24}" y="{PY + 168}" width="88" height="32" rx="8" fill="{s_bg}"/><text x="{PX + 36}" y="{PY + 190}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">s  s&#237;</text>
+  <rect x="{PX + 122}" y="{PY + 168}" width="88" height="32" rx="8" fill="{n_bg}"/><text x="{PX + 134}" y="{PY + 190}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">n  no</text>
+  <rect x="{PX + 24}" y="{PY + 212}" width="140" height="32" rx="8" fill="{b_bg}"/><text x="{PX + 36}" y="{PY + 234}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">b  borrador</text>
+  <rect x="{PX + 174}" y="{PY + 212}" width="140" height="32" rx="8" fill="{c_bg}"/><text x="{PX + 186}" y="{PY + 234}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">c  corregir</text>
+  <text x="{PX + 24}" y="{PY + 274}" fill="{muted}" font-family="Inter, sans-serif" font-size="14">n tira el papel. c pide otra pasada.</text>
+
+  <rect x="{TX}" y="{TY}" width="{TW}" height="{TH}" rx="16" fill="{panel}" stroke="{line}"/>
+  <rect x="{TX}" y="{TY}" width="6" height="{TH}" fill="{menta}"/>
+  <text x="{TX + 24}" y="{TY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">tero  (Strands)</text>
+  <text x="{TX + 24}" y="{TY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="17">Lee la carpeta. Nunca la pisa.</text>
+  <text x="{TX + 24}" y="{TY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">Arma un plan y un borrador.</text>
+  <text x="{TX + 24}" y="{TY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">El borrador queda en memoria</text>
+  <text x="{TX + 24}" y="{TY + 162}" fill="{menta}" font-family="Inter, sans-serif" font-size="17">hasta s o b. No decide.</text>
+
+  <rect x="{AX}" y="{AY}" width="{AW}" height="{AH}" rx="16" fill="{panel}" stroke="{line}"/>
+  <rect x="{AX}" y="{AY}" width="6" height="{AH}" fill="{orange}"/>
+  <text x="{AX + 24}" y="{AY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock</text>
+  <text x="{AX + 24}" y="{AY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="17">Nova Lite · us-east-1</text>
+  <text x="{AX + 24}" y="{AY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">solo infiere texto</text>
+  <text x="{AX + 24}" y="{AY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">la carpeta no sube a AWS</text>
+  <text x="{AX + 24}" y="{AY + 162}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">sin clave: tero-offline</text>
+
+  <line x1="{TX + TW // 2}" y1="{TY + TH}" x2="{TX + TW // 2}" y2="{FY - 8}" stroke="{amber}" stroke-width="3" marker-end="url(#d)"/>
+  <text x="{TX + TW // 2 + 12}" y="{TY + TH + 32}" fill="{amber}" font-family="Inter, sans-serif" font-size="13">lee fuentes/</text>
+
+  <line x1="{PX + PW // 2}" y1="{PY + PH}" x2="{PX + PW // 2}" y2="{FY + 184}" stroke="{menta}" stroke-width="3"/>
+  <line x1="{PX + PW // 2}" y1="{FY + 184}" x2="{FX - 8}" y2="{FY + 184}" stroke="{menta}" stroke-width="3" marker-end="url(#b)"/>
+  <text x="{(PX + PW // 2 + FX) // 2 - 42}" y="{FY + 170}" fill="{menta}" font-family="Inter, sans-serif" font-size="13">s / b escribe</text>
+
+  <rect x="{FX}" y="{FY}" width="{FW}" height="{FH}" rx="16" fill="{panel}" stroke="{line}"/>
+  <rect x="{FX}" y="{FY}" width="6" height="{FH}" fill="{violet}"/>
+  <text x="{FX + 24}" y="{FY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">Carpeta de trabajo</text>
+
+  <rect x="{FX + 20}" y="{FY + 58}" width="{FW - 40}" height="58" rx="10" fill="{row}" stroke="{line}"/>
+  <rect x="{FX + 20}" y="{FY + 58}" width="5" height="58" fill="{amber}"/>
+  <text x="{FX + 36}" y="{FY + 82}" fill="{crema}" font-family="ui-monospace, monospace" font-size="15">fuentes/</text>
+  <text x="{FX + 36}" y="{FY + 104}" fill="{muted}" font-family="Inter, sans-serif" font-size="14">originales. tero lee, nadie las pisa</text>
+
+  <rect x="{FX + 20}" y="{FY + 126}" width="{FW - 40}" height="58" rx="10" fill="{row}" stroke="{line}"/>
+  <rect x="{FX + 20}" y="{FY + 126}" width="5" height="58" fill="{orange}"/>
+  <text x="{FX + 36}" y="{FY + 150}" fill="{crema}" font-family="ui-monospace, monospace" font-size="15">borradores/</text>
+  <text x="{FX + 36}" y="{FY + 172}" fill="{muted}" font-family="Inter, sans-serif" font-size="14">si el profesor aprieta b</text>
+
+  <rect x="{FX + 20}" y="{FY + 194}" width="{FW - 40}" height="58" rx="10" fill="{row}" stroke="{line}"/>
+  <rect x="{FX + 20}" y="{FY + 194}" width="5" height="58" fill="{menta}"/>
+  <text x="{FX + 36}" y="{FY + 218}" fill="{crema}" font-family="ui-monospace, monospace" font-size="15">derivados/</text>
+  <text x="{FX + 36}" y="{FY + 240}" fill="{muted}" font-family="Inter, sans-serif" font-size="14">si el profesor aprieta s  (para la clase)</text>
+</svg>
+"""
 
 
 def main() -> None:
-    img = render()
-    img.save(OUT, "PNG", optimize=True)
-    print(f"wrote {OUT} {img.size[0]}x{img.size[1]}")
+    img = render_png()
+    img.save(PNG, "PNG", optimize=False, compress_level=1)
+    SVG.write_text(render_svg(), encoding="utf-8")
+    print(f"wrote {PNG} {img.size[0]}x{img.size[1]} {PNG.stat().st_size} bytes")
+    print(f"wrote {SVG} {SVG.stat().st_size} bytes")
 
 
 if __name__ == "__main__":
