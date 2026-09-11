@@ -181,7 +181,7 @@ def test_ficha_assets_and_pages_workflow():
     assert "#4c566a" in theme
     css = _read(SITE / "styles.css")
     assert "--border: #4c566a" in css
-    assert '"border": "#4c566a"' in _read(SITE / "tui-grid.js") or "border: \"#4c566a\"" in _read(SITE / "tui-grid.js")
+    assert 'border: "#4c566a"' in _read(SITE / "tui-grid.js")
     for folder, n in (
         ("plan", 3),
         ("guia-sistemas", 3),
