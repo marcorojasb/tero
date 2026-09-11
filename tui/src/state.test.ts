@@ -10,6 +10,7 @@ import {
   handleHotkey,
   helpFor,
   initialState,
+  keyRoutesToInput,
   showChips,
   type AppState,
 } from "./state.ts"
@@ -290,6 +291,59 @@ describe("resultado y error", () => {
       retryable: false,
     })
     expect(handleHotkey(state, "r").kind).toBe("none")
+  })
+})
+
+describe("teclado y ayuda", () => {
+  test("el ? escrito llega al mensaje y no abre la ayuda", () => {
+    // Con texto en el input, el teclado es de la persona: toda pregunta en
+    // español termina en `?` y no puede abrir la ayuda.
+    expect(keyRoutesToInput("?", true, false)).toBe(true)
+    expect(keyRoutesToInput("a", true, false)).toBe(true)
+    expect(keyRoutesToInput("?", false, false)).toBe(false)
+    expect(keyRoutesToInput("a", false, false)).toBe(false)
+    // Tab y escape siguen siendo atajos aunque haya texto.
+    expect(keyRoutesToInput("tab", true, false)).toBe(false)
+    expect(keyRoutesToInput("escape", true, false)).toBe(false)
+    // Con la ayuda abierta, el input no recibe nada.
+    expect(keyRoutesToInput("?", true, true)).toBe(false)
+  })
+
+  test("? con el input vacío sí abre la ayuda", () => {
+    const state = initialState(encargo)
+    expect(keyRoutesToInput("?", false, state.help)).toBe(false)
+    const action = handleHotkey(state, "?")
+    expect(action.kind).toBe("state")
+    if (action.kind === "state") expect(action.state.help).toBe(true)
+  })
+
+  test("una pregunta con ? en medio y al final se envía completa", () => {
+    const withFinal = handleCommand(initialState(encargo), "cuantos OA hay?")
+    expect(withFinal.kind).toBe("send")
+    if (withFinal.kind === "send") {
+      expect(withFinal.message).toEqual({ type: "prompt", text: "cuantos OA hay?" })
+      expect(withFinal.state.messages[0]?.text).toBe("cuantos OA hay?")
+      expect(withFinal.state.help).toBe(false)
+    }
+    const inMiddle = handleCommand(initialState(encargo), "ab?cd")
+    expect(inMiddle.kind).toBe("send")
+    if (inMiddle.kind === "send") {
+      expect(inMiddle.message).toEqual({ type: "prompt", text: "ab?cd" })
+      expect(inMiddle.state.messages[0]?.text).toBe("ab?cd")
+    }
+  })
+
+  test("la franja de decisión no se usa para la ayuda", () => {
+    const helpState = { ...initialState(encargo), help: true }
+    // La ayuda vive en su panel: no inventa franja de decisión.
+    expect(decisionStrip(helpState)).toBe("")
+    expect(decisionStrip(helpState)).not.toContain("PgUp/PgDn")
+    expect(footerFor(helpState)).toContain("PgUp/PgDn")
+    // Con propuesta pendiente la franja es la de aprobación; la shell la
+    // esconde mientras la ayuda está abierta (ver shell.test.ts).
+    const pendingHelp = { ...withCard(initialState(encargo)), help: true }
+    expect(decisionStrip(pendingHelp)).toContain("¿escribo el archivo?")
+    expect(decisionStrip({ ...pendingHelp, help: false })).toBe(decisionStrip(pendingHelp))
   })
 })
 

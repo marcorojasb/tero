@@ -6,6 +6,7 @@ import {
   handleCommand,
   handleHotkey,
   initialState,
+  keyRoutesToInput,
   type AppState,
 } from "./state.ts"
 import { mountShell } from "./shell.ts"
@@ -115,10 +116,8 @@ export async function launch(opts: LaunchOptions): Promise<void> {
       return
     }
     // While there is text in the input, the keyboard belongs to the person:
-    // only the global affordances below stay alive.
-    const typing = Boolean(shell.input.value)
-    const globalKeys = new Set(["?", "tab", "escape"])
-    if (typing && !globalKeys.has(name) && !key.ctrl) return
+    // `?` must land in the message (every Spanish question ends with one).
+    if (keyRoutesToInput(name, Boolean(shell.input.value), state.help) && !key.ctrl) return
     if (state.help && name !== "?" && name !== "escape" && name !== "q") return
 
     const action = handleHotkey(state, key.ctrl ? `ctrl+${name}` : name)

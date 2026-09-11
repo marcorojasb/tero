@@ -718,15 +718,18 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
   return { kind: "none", state }
 }
 
-/** Franja de decisión: y aprueba, n descarta (o se escribe en el hilo). */
+/**
+ * Franja de decisión: y aprueba, n descarta (o se escribe en el hilo).
+ * La ayuda no usa esta franja: se queda en su propio panel.
+ */
 export function decisionStrip(state: AppState): string {
-  if (state.help) return "PgUp/PgDn · esc cierra"
   if (state.phase === "error" && state.retryable) return "[r] reintentar"
   if (state.cardStatus === "pendiente" && state.card) {
     const n = state.card.evidencias.length
     const mark = n ? `   evid ${state.evidenceIndex + 1}/${n}` : ""
     return `¿escribo el archivo?   [y] aprobar   [n] descartar   ·  o escribe tu decisión abajo${mark}`
-  }  if (state.cardStatus === "escrito") {
+  }
+  if (state.cardStatus === "escrito") {
     return `escrito · ${accionLabel(state.writtenAccion)} · ${shortPath(state.writtenPath)}`
   }
   if (state.cardStatus === "descartado") {
@@ -734,6 +737,18 @@ export function decisionStrip(state: AppState): string {
   }
   if (state.cardStatus === "aprobado") return "aprobado · escribiendo…"
   return ""
+}
+
+/**
+ * ¿La tecla pertenece al input? Mientras la persona escribe, el teclado es
+ * suyo: solo `tab` y `escape` siguen siendo atajos. `?` abre la ayuda
+ * únicamente con el input vacío (toda pregunta en español lleva `?`), y `q`
+ * nunca sale: se comería la primera letra de «qué», «cuándo» o «quién».
+ */
+export function keyRoutesToInput(name: string, hasInput: boolean, helpOpen: boolean): boolean {
+  if (helpOpen) return false
+  if (!hasInput) return false
+  return name !== "tab" && name !== "escape"
 }
 
 export function chips(encargo: Encargo): string[] {

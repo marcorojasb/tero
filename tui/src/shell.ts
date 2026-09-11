@@ -440,7 +440,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     evidenceText.content = renderEvidence(state)
     warnText.content = renderWarnings(state)
 
-    const strip = decisionStrip(state)
+    const strip = state.help ? "" : decisionStrip(state)
     decisionBar.visible = Boolean(strip)
     decisionText.content = strip
     if (state.cardStatus === "pendiente") {

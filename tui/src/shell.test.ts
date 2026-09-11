@@ -237,6 +237,22 @@ describe("shell conversacional", () => {
     expect(text).toContain("PgUp/PgDn")
     expect(text).not.toContain("Rumbos")
     expect(text).not.toContain("Puerta")
+    // La ayuda no usa la franja de aprobación.
+    expect(text).not.toContain("aprobación")
+    expect(text).not.toContain("¿escribo el archivo?")
+  })
+
+  test("la ayuda abierta con una propuesta pendiente tampoco muestra la franja", async () => {
+    const withCard = applyHostEvent(initialState(encargo), {
+      type: "propuesta",
+      id: "t6",
+      propuesta,
+    })
+    const text = await frame({ ...withCard, help: true }, 140, 46)
+    expect(text).toContain("ayuda")
+    expect(text).toContain("Propuesta pendiente")
+    expect(text).toContain("descartar")
+    expect(text).not.toContain("¿escribo el archivo?")
   })
 
   test("modo compacto esconde el pájaro y la columna de evidencia", async () => {
