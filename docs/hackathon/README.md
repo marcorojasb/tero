@@ -24,6 +24,7 @@ Cómo no gastar de más: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 
 | Archivo | Para |
 | --- | --- |
+| [JUDGES-EN.md](JUDGES-EN.md) | **Guía de jueces en inglés**: qué es / qué no es, puerta humana, uso de AWS, track A offline y B Bedrock con salidas reales, y tests. |
 | [DEVPOST.md](DEVPOST.md) | Descripción EN para jueces (copiar/pegar) |
 | [VIDEO.md](VIDEO.md) | Guion ≤ 5 min |
 | [BUILDER-POST.md](BUILDER-POST.md) | Artículo Builder Center |
