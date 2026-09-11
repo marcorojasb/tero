@@ -93,13 +93,14 @@ body {
 }
 
 .window {
-  max-width: 86rem;
+  max-width: 96rem;
   margin: 0 auto;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
   min-height: calc(100vh - 2.2rem);
+  width: min(96rem, calc(100vw - 2.2rem));
   box-shadow:
     0 0 0 1px #000,
     0 24px 70px #00000099;
@@ -169,6 +170,9 @@ body {
   background: var(--tui-bg);
   overflow: hidden;
   user-select: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+  width: 100%;
 }
 
 .tui-row {

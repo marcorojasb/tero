@@ -260,17 +260,17 @@ python -m tero demo --offline --yes
   function measure() {
     const host = $("tui-host");
     const probe = document.createElement("span");
-    probe.textContent = "M";
+    probe.textContent = "00000000";
     probe.style.cssText =
-      'position:absolute;visibility:hidden;font:13px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre';
+      'position:absolute;visibility:hidden;font:13px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre;font-variant-ligatures:none';
     host.appendChild(probe);
     const r = probe.getBoundingClientRect();
     probe.remove();
-    const cellW = r.width || 8;
+    const cellW = (r.width || 64) / 8;
     const cellH = r.height || 15.6;
     const box = host.getBoundingClientRect();
-    const cols = Math.max(80, Math.min(140, Math.floor(box.width / cellW)));
-    const rows = Math.max(28, Math.min(42, Math.floor(box.height / cellH)));
+    const cols = Math.max(80, Math.floor(box.width / cellW));
+    const rows = Math.max(24, Math.floor(box.height / cellH));
     state.cellW = cellW;
     state.cellH = cellH;
     state.cols = cols;
@@ -311,7 +311,7 @@ python -m tero demo --offline --yes
       promptTitle = "encargo";
       placeholder = "teclas arriba · /objetivo /oa";
       footer = "plan listo";
-      plan = rumbo ? rumbo.plan : "";
+      plan = rumbo ? rumbo.plan.split("\n").slice(1).join("\n").replace(/^\n/, "") : "";
       gate = "[a] aprobar   [e] supuesto   [x] cancelar";
       session = sessionListing(rumbo);
       activity = `${Tui.spinner(state.spinner)} plan`;
@@ -322,7 +322,7 @@ python -m tero demo --offline --yes
       promptTitle = "encargo";
       placeholder = "teclas arriba · o crítica con c";
       footer = "tu turno";
-      plan = rumbo ? `${rumbo.planTitle}\n\n${rumbo.plan.split("\n").slice(2, 6).join("\n")}` : "";
+      plan = rumbo ? rumbo.plan.split("\n").slice(1).join("\n").replace(/^\n/, "") : "";
       gate = `[s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/2`;
       gateTitle = " puerta ";
       proposal = rumbo ? rumbo.draft : "";
@@ -358,7 +358,7 @@ python -m tero demo --offline --yes
       rows: state.rows,
       header,
       chips: rumbo ? rumbo.chips : [],
-      path: "~/carpeta-tui",
+      path: state.phase === "home" ? "" : "~/carpeta-tui",
       promptTitle,
       placeholder,
       promptValue: "",
