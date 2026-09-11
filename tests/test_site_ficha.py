@@ -91,9 +91,9 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-win" in html
-    assert "tui-grid.js?v=vte-win" in html
-    assert "ficha.js?v=vte-win" in html
+    assert "styles.css?v=outer-win" in html
+    assert "tui-grid.js?v=outer-win" in html
+    assert "ficha.js?v=outer-win" in html
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
     assert "border-radius: 10px" not in css
@@ -107,6 +107,8 @@ def test_ficha_landing_is_the_github_page():
     assert "Never a second column" in css or "display: none !important" in css
     assert "paintFrame" in grid
     assert "paintShot" in grid
+    assert "drawWindow" in grid
+    assert "innerX" in grid
     assert "promptBoxFromFrame" in grid
     assert "viewportBudget" in grid
     assert "innerHeight - 96" not in grid
@@ -120,7 +122,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
-    assert "?v=vte-win" in js or "vte-win" in js
+    assert "?v=outer-win" in js or "outer-win" in js
     assert "plan-2" in js
     assert "puerta-2" in js
     assert "leyendo-2" in js
@@ -158,13 +160,24 @@ def test_ficha_assets_and_pages_workflow():
     assert "tui-grid.js" in home_html
     assert "fitHost" in home_html
     home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
-    assert "╭─ tero" in home_frame
+    home_lines = [line for line in home_frame.splitlines() if line]
+    assert home_lines[0].startswith("╭─ tero")
+    assert home_lines[-1].startswith("╰")
+    assert "examples/carpeta-demo" in home_lines[-1]
+    assert not home_lines[2].startswith("╰")
     assert "[1] Planificar" in home_frame
     assert "tus fuentes, tu criterio" in home_frame
     assert "secuencia de clase" in home_frame
     assert "5 fuentes" in home_frame
     assert "recientes" in home_frame
-    assert "examples/carpeta-demo" in home_frame
+    puerta_lines = [
+        line
+        for line in _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt").splitlines()
+        if line
+    ]
+    assert puerta_lines[0].startswith("╭─ tero")
+    assert puerta_lines[-1].startswith("╰")
+    assert "examples/carpeta-demo" in puerta_lines[-1]
     help_frame = _read(SITE / "assets" / "tui" / "frames" / "help.txt")
     assert "Rumbos" in help_frame
     assert "tero-offline" in help_frame or "cierra" in help_frame.lower()

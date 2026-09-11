@@ -1,40 +1,40 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · inicio · 5 fuentes                                                                                                             │
+│                                                                        ▲                                                                 │
+│                                                                       ╱│                                                                 │
+│                                                                ▄▄▄▄▄ ╱(o)*                                                               │
+│                                                               █     █▄▀                                                                  │
+│                                                               █ ▓▓▓▓  █                                                                  │
+│                                                                ▀▄▓▓▄▄▄▀                                                                  │
+│                                                                  ║   ║                                                                   │
+│                                                                 ─┘   └─                                                                  │
+│                                                                   tero                                                                   │
+│                                                         tus fuentes, tu criterio                                                         │
+│                                                                                                                                          │
+│                                          [1] Planificar   [2] Crear   [3] Evaluar   [4] Adaptar                                          │
+│                                secuencia de clase · guía o actividad · prueba o pauta · ajustar material                                 │
+│                                                       1–4 rumbo · o escribe abajo                                                        │
+│                                                                                                                                          │
+│                                           recientes                                                                                      │
+│                                             · derivado · 20260910-210457-planificacion-leer-…                                            │
+│                                             · derivado · 20260910-205527-planificacion-leer-…                                            │
+│                                             · derivado · 20260910-201559-planificacion-leer-…                                            │
+│╭─ ayuda ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ tero — inicio                                                                                                                          ││
+││                                                                                                                                        ││
+││ Rumbos                                                                                                                                 ││
+││   1 Planificar   2 Crear   3 Evaluar   4 Adaptar                                                                                       ││
+││                                                                                                                                        ││
+││ Escribe abajo: «Pregunta, explora o crea…»                                                                                             ││
+││ Chips tras rumbo o encargo. Catálogo OA Chile (host).                                                                                  ││
+││                                                                                                                                        ││
+││ ? cierra · q sale                                                                                                                      ││
+││                                                                                                                                        ││
+││                                                                                                                                        ││
+││                                                                                                                                        ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ pregunta ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ Pregunta, explora o crea…                                                                                                              ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ 5 fuentes     PgUp/PgDn  esc cierra                                                                                                      │
 ╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-                                                                         ▲                                                                  
-                                                                        ╱│                                                                  
-                                                                 ▄▄▄▄▄ ╱(o)*                                                                
-                                                                █     █▄▀                                                                   
-                                                                █ ▓▓▓▓  █                                                                   
-                                                                 ▀▄▓▓▄▄▄▀                                                                   
-                                                                   ║   ║                                                                    
-                                                                  ─┘   └─                                                                   
-                                                                    tero                                                                    
-                                                          tus fuentes, tu criterio                                                          
-                                                                                                                                            
-                                           [1] Planificar   [2] Crear   [3] Evaluar   [4] Adaptar                                           
-                                 secuencia de clase · guía o actividad · prueba o pauta · ajustar material                                  
-                                                        1–4 rumbo · o escribe abajo                                                         
-                                                                                                                                            
-                                            recientes                                                                                       
-                                              · derivado · 20260910-210457-planificacion-leer-…                                             
-                                              · derivado · 20260910-205527-planificacion-leer-…                                             
-                                              · derivado · 20260910-201559-planificacion-leer-…                                             
-╭─ ayuda ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ tero — inicio                                                                                                                            │
-│                                                                                                                                          │
-│ Rumbos                                                                                                                                   │
-│   1 Planificar   2 Crear   3 Evaluar   4 Adaptar                                                                                         │
-│                                                                                                                                          │
-│ Escribe abajo: «Pregunta, explora o crea…»                                                                                               │
-│ Chips tras rumbo o encargo. Catálogo OA Chile (host).                                                                                    │
-│                                                                                                                                          │
-│ ? cierra · q sale                                                                                                                        │
-│                                                                                                                                          │
-│                                                                                                                                          │
-│                                                                                                                                          │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ pregunta ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Pregunta, explora o crea…                                                                                                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
- 5 fuentes     PgUp/PgDn  esc cierra                                                                                                        

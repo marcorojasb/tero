@@ -183,7 +183,8 @@
     const compact = cols < 100 || rows < 28;
     const chips = model.chips || [];
     const showChips = chips.length > 0 && model.view !== "home";
-    const headerH = showChips ? 4 : 3;
+    const inset = 1;
+    const headerH = showChips ? 2 : 1;
     const promptH = 3;
     const footerH = 1;
     const gateH = model.gate ? 3 : 0;
@@ -194,56 +195,63 @@
       else if (model.view === "puerta") planH = compact ? 4 : 5;
       else planH = compact ? 8 : 11;
     }
-    const used = headerH + promptH + footerH + gateH + planH + clarifyH;
+    const used = inset * 2 + headerH + promptH + footerH + gateH + planH + clarifyH;
     const midH = Math.max(6, rows - used);
-    return { compact, showChips, headerH, promptH, footerH, gateH, planH, clarifyH, midH };
+    return {
+      compact,
+      showChips,
+      inset,
+      innerX: inset,
+      innerW: cols - inset * 2,
+      headerH,
+      promptH,
+      footerH,
+      gateH,
+      planH,
+      clarifyH,
+      midH,
+    };
   }
 
-  function drawHeader(screen, model, L) {
-    const w = screen.cols;
-    const path = model.path ? ` ${clip(model.path, Math.max(8, w - 8))} ` : "";
-    screen.box(0, 0, w, L.headerH, {
+  function drawWindow(screen, model) {
+    const path = model.path ? ` ${clip(model.path, Math.max(8, screen.cols - 8))} ` : "";
+    screen.box(0, 0, screen.cols, screen.rows, {
       title: " tero ",
       bottomTitle: path,
-      bg: T.panel,
+      bg: T.bg,
       border: T.border,
       titleFg: T.brand,
     });
-    screen.text(2, 1, clip(model.header || "offline · inicio", w - 4), T.text, T.panel);
+  }
+
+  function drawHeader(screen, model, L) {
+    const x = L.innerX;
+    const y = L.inset;
+    const w = L.innerW;
+    screen.fill(x, y, w, L.headerH, " ", T.text, T.panel);
+    screen.text(x + 1, y, clip(model.header || "offline · inicio", w - 2), T.text, T.panel);
     if (L.showChips) {
       const chips = (model.chips || []).map((c) => `[ ${clip(c, 22)} ]`).join("  ");
-      screen.text(2, 2, clip(chips, w - 4), T.chipFg, T.panel);
+      screen.text(x + 1, y + 1, clip(chips, w - 2), T.chipFg, T.panel);
     }
   }
 
   function drawPrompt(screen, model, L) {
-    const y = screen.rows - L.footerH - L.promptH;
-    const w = screen.cols;
-    const title = ` ${model.promptTitle || "encargo"} `;
-    const border =
-      model.view === "puerta" ? T.ok : model.view === "plan" ? T.accent : T.borderFocus;
-    screen.box(0, y, w, L.promptH, {
-      title,
-      bg: T.inputBg,
-      border,
-      titleFg: T.muted,
-    });
-    const ph = model.promptValue || model.placeholder || "Pregunta, explora o crea…";
-    const color = model.promptValue ? T.text : T.faint;
-    screen.text(2, y + 1, clip(ph, w - 4), color, T.inputBg);
-    return { x: 2, y: y + 1, w: w - 4 };
+    const y = screen.rows - L.inset - L.footerH - L.promptH;
+    return drawPromptAt(screen, model, y, L);
   }
 
-  function drawFooter(screen, model) {
-    const y = screen.rows - 1;
-    screen.fill(0, y, screen.cols, 1, " ", T.muted, T.bg);
-    screen.text(0, y, clip(` ${model.footer || ""}`, screen.cols), T.muted, T.bg);
+  function drawFooter(screen, model, L) {
+    const y = screen.rows - L.inset - 1;
+    const x = L.innerX;
+    screen.fill(x, y, L.innerW, 1, " ", T.muted, T.bg);
+    screen.text(x, y, clip(` ${model.footer || ""}`, L.innerW), T.muted, T.bg);
   }
 
   function drawHome(screen, model, L, hits) {
-    const y0 = L.headerH;
+    const y0 = L.inset + L.headerH;
     const midH = L.midH;
-    screen.fill(0, y0, screen.cols, midH, " ", T.text, T.bg);
+    screen.fill(L.innerX, y0, L.innerW, midH, " ", T.text, T.bg);
     const rumboLine = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ");
     const hints = RUMBOS.map((r) => r.hint).join(" · ");
     const homeHint = "1–4 rumbo · o escribe abajo";
@@ -289,14 +297,14 @@
   }
 
   function drawWorkspace(screen, model, L) {
-    const y = L.headerH;
+    const y = L.inset + L.headerH;
     const h = L.midH;
-    const w = screen.cols;
+    const w = L.innerW;
     const hideLeft = L.compact || model.view === "puerta";
     const leftW = hideLeft ? 0 : Math.min(26, Math.max(18, Math.floor(w * 0.19)));
     const rightW = Math.min(model.view === "puerta" ? 36 : 34, Math.max(22, Math.floor(w * 0.26)));
     const centerW = w - leftW - rightW;
-    let x = 0;
+    let x = L.innerX;
     if (leftW) {
       screen.box(x, y, leftW, h, {
         title: model.focus === "session" ? " ▸ sesión " : " sesión ",
@@ -361,40 +369,40 @@
 
   function drawPlan(screen, model, L) {
     if (!model.plan) return;
-    const y = L.headerH + (model.view === "plan" ? 0 : L.midH);
-    screen.box(0, y, screen.cols, L.planH, {
+    const y = L.inset + L.headerH + (model.view === "plan" ? 0 : L.midH);
+    screen.box(L.innerX, y, L.innerW, L.planH, {
       title: model.planTitle || " plan ",
       bg: T.overlay,
       border: T.accent,
       titleFg: T.accent,
     });
-    screen.wrap(2, y + 1, screen.cols - 4, L.planH - 2, model.plan, T.text, T.overlay);
+    screen.wrap(L.innerX + 2, y + 1, L.innerW - 4, L.planH - 2, model.plan, T.text, T.overlay);
   }
 
   function drawClarify(screen, model, L) {
     if (!model.clarify) return;
-    const y = L.headerH + (model.view === "plan" ? L.planH : L.midH + L.planH);
-    screen.box(0, y, screen.cols, L.clarifyH, {
+    const y = L.inset + L.headerH + (model.view === "plan" ? L.planH : L.midH + L.planH);
+    screen.box(L.innerX, y, L.innerW, L.clarifyH, {
       title: " clarificación ",
       bg: T.overlay,
       border: T.suggested,
       titleFg: T.suggested,
     });
-    screen.wrap(2, y + 1, screen.cols - 4, L.clarifyH - 2, model.clarify, T.text, T.overlay);
+    screen.wrap(L.innerX + 2, y + 1, L.innerW - 4, L.clarifyH - 2, model.clarify, T.text, T.overlay);
   }
 
   function drawGate(screen, model, L, hits) {
     if (!model.gate) return;
-    const y = screen.rows - L.footerH - L.promptH - L.gateH;
+    const y = screen.rows - L.inset - L.footerH - L.promptH - L.gateH;
     const border = model.view === "puerta" ? T.ok : T.accent;
     const title = model.gateTitle || (model.view === "puerta" ? " puerta " : " plan ");
-    screen.box(0, y, screen.cols, L.gateH, {
+    screen.box(L.innerX, y, L.innerW, L.gateH, {
       title,
       bg: T.overlay,
       border,
       titleFg: border,
     });
-    screen.text(2, y + 1, clip(model.gate, screen.cols - 4), T.text, T.overlay);
+    screen.text(L.innerX + 2, y + 1, clip(model.gate, L.innerW - 4), T.text, T.overlay);
     const keys = [
       { action: "gate", key: "s", token: "[s]" },
       { action: "gate", key: "n", token: "[n]" },
@@ -404,21 +412,30 @@
     ];
     for (const item of keys) {
       const at = model.gate.indexOf(item.token);
-      if (at >= 0) hits.push({ action: item.action, key: item.key, x: 2 + at, y: y + 1, w: item.token.length + 12, h: 1 });
+      if (at >= 0) {
+        hits.push({
+          action: item.action,
+          key: item.key,
+          x: L.innerX + 2 + at,
+          y: y + 1,
+          w: item.token.length + 12,
+          h: 1,
+        });
+      }
     }
   }
 
   function drawHelp(screen, model, L) {
     if (!model.help) return;
     const h = Math.min(14, L.midH);
-    const y = L.headerH;
-    screen.box(0, y, screen.cols, h, {
+    const y = L.inset + L.headerH;
+    screen.box(L.innerX, y, L.innerW, h, {
       title: " ayuda ",
       bg: T.overlay,
       border: T.accent,
       titleFg: T.accent,
     });
-    screen.wrap(2, y + 1, screen.cols - 4, h - 2, model.help, T.text, T.overlay);
+    screen.wrap(L.innerX + 2, y + 1, L.innerW - 4, h - 2, model.help, T.text, T.overlay);
   }
 
   function paint(el, model) {
@@ -427,19 +444,20 @@
     const screen = new Screen(cols, rows);
     const L = layout(model, cols, rows);
     const hits = [];
+    drawWindow(screen, model);
     drawHeader(screen, model, L);
     if (model.help) {
       drawHelp(screen, model, L);
       drawGate(screen, model, L, hits);
       const prompt = drawPrompt(screen, model, L);
-      drawFooter(screen, model);
+      drawFooter(screen, model, L);
       paintTo(el, screen);
       return { cols, rows, hits, prompt, layout: L };
     }
     if (model.view === "home") {
       drawHome(screen, model, L, hits);
       const prompt = drawPrompt(screen, model, L);
-      drawFooter(screen, model);
+      drawFooter(screen, model, L);
       paintTo(el, screen);
       return { cols, rows, hits, prompt, layout: L };
     }
@@ -447,18 +465,18 @@
       /* OpenTUI packs plan + gate + prompt from the top; leftover rows sit below the footer. */
       drawPlan(screen, model, L);
       drawClarify(screen, model, L);
-      const yGate = L.headerH + L.planH + (model.clarify ? L.clarifyH : 0);
+      const yGate = L.inset + L.headerH + L.planH + (model.clarify ? L.clarifyH : 0);
       const gateH = model.gate ? 3 : 0;
       const yPrompt = yGate + gateH;
       const yFooter = yPrompt + 3;
       if (model.gate) {
-        screen.box(0, yGate, screen.cols, 3, {
+        screen.box(L.innerX, yGate, L.innerW, 3, {
           title: model.gateTitle || " plan ",
           bg: T.overlay,
           border: T.accent,
           titleFg: T.accent,
         });
-        screen.text(2, yGate + 1, clip(model.gate, screen.cols - 4), T.text, T.overlay);
+        screen.text(L.innerX + 2, yGate + 1, clip(model.gate, L.innerW - 4), T.text, T.overlay);
         ["s", "n", "b", "c", "a"].forEach((key) => {
           const token = `[${key}]`;
           const at = model.gate.indexOf(token);
@@ -466,7 +484,7 @@
             hits.push({
               action: key === "a" ? "approve" : "gate",
               key,
-              x: 2 + at,
+              x: L.innerX + 2 + at,
               y: yGate + 1,
               w: token.length + 12,
               h: 1,
@@ -474,9 +492,9 @@
           }
         });
       }
-      const prompt = drawPromptAt(screen, model, yPrompt);
-      screen.fill(0, yFooter, screen.cols, 1, " ", T.muted, T.bg);
-      screen.text(0, yFooter, clip(` ${model.footer || ""}`, screen.cols), T.muted, T.bg);
+      const prompt = drawPromptAt(screen, model, yPrompt, L);
+      screen.fill(L.innerX, yFooter, L.innerW, 1, " ", T.muted, T.bg);
+      screen.text(L.innerX, yFooter, clip(` ${model.footer || ""}`, L.innerW), T.muted, T.bg);
       paintTo(el, screen);
       return { cols, rows, hits, prompt, layout: L };
     }
@@ -484,17 +502,18 @@
     if (model.plan && model.view === "puerta") drawPlan(screen, model, L);
     drawGate(screen, model, L, hits);
     const prompt = drawPrompt(screen, model, L);
-    drawFooter(screen, model);
+    drawFooter(screen, model, L);
     paintTo(el, screen);
     return { cols, rows, hits, prompt, layout: L };
   }
 
-  function drawPromptAt(screen, model, y) {
-    const w = screen.cols;
+  function drawPromptAt(screen, model, y, L) {
+    const x = L ? L.innerX : 0;
+    const w = L ? L.innerW : screen.cols;
     const title = ` ${model.promptTitle || "encargo"} `;
     const border =
       model.view === "puerta" ? T.ok : model.view === "plan" ? T.accent : T.borderFocus;
-    screen.box(0, y, w, 3, {
+    screen.box(x, y, w, 3, {
       title,
       bg: T.inputBg,
       border,
@@ -502,8 +521,8 @@
     });
     const ph = model.promptValue || model.placeholder || "Pregunta, explora o crea…";
     const color = model.promptValue ? T.text : T.faint;
-    screen.text(2, y + 1, clip(ph, w - 4), color, T.inputBg);
-    return { x: 2, y: y + 1, w: w - 4 };
+    screen.text(x + 2, y + 1, clip(ph, w - 4), color, T.inputBg);
+    return { x: x + 2, y: y + 1, w: w - 4 };
   }
 
   function cssRgba(c) {
@@ -521,7 +540,9 @@
     const markers = ["╭─ pregunta", "╭─ encargo", "╭─ crítica", "╭─ supuesto", "╭─ responde"];
     for (let y = 0; y < lines.length; y++) {
       if (markers.some((m) => lines[y].includes(m))) {
-        return { x: 2, y: y + 1, w: Math.max(8, (frame.cols || 140) - 4) };
+        const line = lines[y + 1] || "";
+        const start = Math.max(2, line.search(/[^\s│╭╮╰╯─]/));
+        return { x: start, y: y + 1, w: Math.max(8, (frame.cols || 140) - start - 2) };
       }
     }
     const cursor = frame.cursor || [2, Math.max(0, (frame.rows || 40) - 3)];
@@ -683,7 +704,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=vte-win`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=outer-win`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;

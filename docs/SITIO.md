@@ -2,9 +2,9 @@
 
 El chrome de [`site/`](../site/) **es la OpenTUI de tero**: el PNG
 capturado de `xfce4-terminal` 140×40 (JetBrains Mono 13). No hay un
-segundo titlebar alrededor. El header `╭─ tero ─╮` del shell es la
-ventana, igual en home, rumbo y puerta. Colores de `tui/src/theme.ts`
-(`#0b0d10`, accent `#82aaff`).
+segundo titlebar alrededor. El recuadro raíz `╭─ tero ─╮` envuelve
+home y sesión; la carpeta va en el borde inferior. Colores de
+`tui/src/theme.ts` (`#0b0d10`, accent `#82aaff`).
 
 La primera vista **es** el home de la TUI. Un rumbo no cambia de ventana:
 solo pinta el frame. Capturas auténticas viven en
