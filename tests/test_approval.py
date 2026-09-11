@@ -121,6 +121,27 @@ APROBAR_IDIOMA = [
     "ya no más",
 ]
 
+# Consulta con algo después del "?": el signo manda en cualquier posición.
+CONSULTAS_CON_SUFIJO = [
+    "¿ok? 👍",
+    "¿está bien? 🙂",
+    "¿de acuerdo? 🤝",
+    "¿ok?...",
+    "¿está bien? gracias",
+    "está bien? 🙂",
+]
+
+# Negadores que no son el token "no".
+NEGADORES_ALTERNATIVOS = [
+    "bueno, de ninguna manera",
+    "ya, ni ahí",
+    "bueno, ni ahí",
+    "perfecto, ni cagando",
+    "ya, tampoco",
+    "perfecto, nunca",
+    "ok, jamás",
+]
+
 
 @pytest.mark.parametrize("texto", APROBAR)
 def test_aprobaciones(texto: str) -> None:
@@ -172,6 +193,49 @@ def test_idioma_no_mas_sigue_aprobando(texto: str) -> None:
     resultado = classify_approval(texto)
     assert resultado.kind == "aprobar", texto
     assert resultado.note == "", texto
+
+
+@pytest.mark.parametrize("texto", CONSULTAS_CON_SUFIJO)
+def test_consulta_con_sufijo_no_aprueba(texto: str) -> None:
+    """Un emoji o una palabra después del "?" no desactiva la consulta."""
+    resultado = classify_approval(texto)
+    assert resultado.kind == "preguntar", texto
+    assert resultado.kind != "aprobar", texto
+
+
+@pytest.mark.parametrize("texto", NEGADORES_ALTERNATIVOS)
+def test_negadores_alternativos_descartan(texto: str) -> None:
+    """ "tampoco", "nunca", "jamás", "ni ahí" y "de ninguna manera" descartan."""
+    resultado = classify_approval(texto)
+    assert resultado.kind == "descartar", texto
+    assert resultado.kind != "aprobar", texto
+
+
+def test_cualquier_interrogacion_nunca_aprueba() -> None:
+    """Invariante: si el texto trae "?", no puede clasificarse como aprobar."""
+    textos = [
+        *CONSULTAS_CON_SUFIJO,
+        "¿cuánto dura?",
+        "¿puedes explicarme?",
+        "¿por qué ese OA?",
+        "¿ok?",
+        "¿está bien?",
+        "¿de acuerdo?",
+        "¿me gusta?",
+        "¿escríbelo?",
+        "¿no?",
+        "no sé, ¿qué me recomiendas?",
+    ]
+    for texto in textos:
+        assert "?" in texto, texto
+        assert classify_approval(texto).kind != "aprobar", texto
+
+
+def test_como_no_es_aceptacion_chilena() -> None:
+    """ "cómo no" aprueba; un reproche con "cómo no" no."""
+    for texto in ("cómo no", "como no", "cómo no, dale", "cómo no po", "¡cómo no!"):
+        assert classify_approval(texto).kind == "aprobar", texto
+    assert classify_approval("cómo no me avisaste").kind != "aprobar"
 
 
 def test_negacion_en_cualquier_posicion_nunca_aprueba() -> None:
@@ -317,8 +381,10 @@ def test_es_pura_y_determinista() -> None:
         *APROBAR_IDIOMA,
         *DESCARTAR,
         *DESCARTAR_POSPUESTO,
+        *NEGADORES_ALTERNATIVOS,
         *CAMBIAR,
         *PREGUNTAR,
+        *CONSULTAS_CON_SUFIJO,
         *AMBIGUO,
     ]
     for texto in textos:

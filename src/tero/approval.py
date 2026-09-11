@@ -10,8 +10,10 @@ de cambio gana, aunque venga acompañada de un "sí" o de un "no".
 Reglas de seguridad:
 
 - La negación cuenta en cualquier posición, no solo al inicio: "ya, no gracias" es
-  un descarte. La única excepción es el modismo de aceptación "no más" / "nomás".
-- Una consulta nunca aprueba: "¿está bien?", "¿de acuerdo?" son preguntas.
+  un descarte, igual que "tampoco", "nunca", "jamás" o "ni ahí". Las únicas
+  excepciones son los modismos de aceptación "no más" / "nomás" y "cómo no".
+- Una consulta nunca aprueba: basta un "?" en cualquier parte del texto, aunque
+  después venga un emoji o una palabra ("¿ok? 👍").
 - La categoría por defecto nunca es ``aprobar``. Si el texto no calza en ninguna
   regla, la respuesta es ``ambiguo`` y tero vuelve a preguntar.
 """
@@ -78,16 +80,19 @@ _DOUBT = re.compile(
 )
 
 # Descartar: negativa limpia, sin verbo de cambio. El "no" descarta en cualquier
-# posición ("ya, no gracias"), salvo el modismo de aceptación "no más" / "nomás".
+# posición ("ya, no gracias"), igual que los negadores alternativos ("ni ahí",
+# "tampoco"). Excepciones: los modismos de aceptación "no más" / "nomás" y
+# "cómo no". Ojo: "paso" no está y no debe estar, es vocabulario de planificación.
 _DISCARD_HEAD = re.compile(r"^n\b")
 _DISCARD = re.compile(
     r"\b(?:dejal[oa]|deja|borr\w*|anul\w*|olvid\w*|descart\w*|nada|esta\s+mal\w*)\b"
     r"|\bno\s+(?:me\s+)?sirv\w*\b"
     r"|\bno\b(?!\s*mas\b)"  # el plegado ya dejó "más" como "mas"
+    r"|\b(?:tampoco|nunca|jamas|ni\s+ahi|ni\s+cagando|de\s+ninguna\s+manera)\b"
 )
 
-# Preguntar: signo de interrogación o arranque interrogativo.
-_QUESTION_END = re.compile(r"\?\s*[!?…]*\s*$")
+# Preguntar: cualquier "?" convierte el texto en consulta, más el arranque
+# interrogativo. Ninguna aceptación legítima lleva "?".
 _QUESTION_HEAD = re.compile(
     r"^(?:que|como|por que|porque|cuando|donde|cual|cuales|cuanto|cuanta|cuantos|cuantas"
     r"|puedes|podrias|podemos|se puede|quien|tienes|hay)\b"
@@ -96,6 +101,16 @@ _QUESTION_HEAD = re.compile(
 # Aprobar: aceptación explícita. Los marcadores breves ("ok", "está bien") solo
 # valen al inicio; los firmes valen en cualquier posición. Ninguno aprueba dentro
 # de una consulta.
+_COMO_NO = r"\bcomo\s+no\b"
+# "cómo no" es aceptación corriente en Chile, pero solo si cierra la frase o trae
+# coletilla ("cómo no, dale"); si sigue una frase ("cómo no me avisaste") no
+# aprueba. El "?" queda fuera de la coletilla: una consulta nunca aprueba.
+_COMO_NO_APRUEBA = (
+    rf"{_COMO_NO}"
+    r"(?=\s*(?:$|[^\w\s?]|(?:si|dale|ok|okay|listo|bueno|gracias|obvio|pues|po)\b))"
+)
+_COMO_NO_RE = re.compile(_COMO_NO)
+_COMO_NO_APRUEBA_RE = re.compile(_COMO_NO_APRUEBA)
 _APPROVE_FIRM = re.compile(
     r"\b(?:me gusta|escribel[oa]|guardal[oa]|aprobad[oa]|apruebo|de acuerdo|asi nomas"
     r"|asi no mas|hazl[oa] (?:asi|tal cual|igual|nomas|no mas))\b"
@@ -145,6 +160,7 @@ _APPROVE_PHRASES = frozenset(
         "hazla no mas",
         "dale no mas",
         "ya no mas",
+        "como no",
         "nomas",
         "no mas",
     }
@@ -192,14 +208,22 @@ def classify_approval(text: str) -> Approval:
 
     head = _APERTURA.sub("", folded)
 
-    # 3. Descartar: negativa sin cambio, en cualquier posición del texto.
-    if _DISCARD_HEAD.match(head) or _DISCARD.search(folded):
+    # 3. Descartar: negativa sin cambio, en cualquier posición del texto. El
+    #    modismo de aceptación "cómo no" se neutraliza antes: no es una negación.
+    sin_como_no = _COMO_NO_RE.sub(" ", folded)
+    if _DISCARD_HEAD.match(head) or _DISCARD.search(sin_como_no):
         return Approval(kind="descartar", raw=raw)
 
-    question = bool(_QUESTION_END.search(folded) or _QUESTION_HEAD.match(head))
+    # 3b. "cómo no" aprueba, pero arranca con un interrogativo, así que se resuelve
+    #     antes de la regla de consulta. Un "?" explícito lo desactiva.
+    if _COMO_NO_APRUEBA_RE.search(folded):
+        return Approval(kind="aprobar", note=_approve_note(raw.strip()), raw=raw)
+
+    # Basta un "?" en cualquier parte, aunque después venga un emoji o una palabra.
+    question = "?" in folded or bool(_QUESTION_HEAD.match(head))
 
     # 4. Aprobar. Una consulta nunca aprueba, ni con marcadores firmes:
-    #    "¿está bien?" y "¿de acuerdo?" son preguntas, no aceptaciones.
+    #    "¿está bien?", "¿ok? 👍" y "¿de acuerdo?" son preguntas.
     if not question and (_APPROVE_FIRM.search(folded) or _APPROVE_SHORT.match(head)):
         return Approval(kind="aprobar", note=_approve_note(raw.strip()), raw=raw)
 
