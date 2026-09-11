@@ -1,55 +1,70 @@
-"""Session JSONL transcripts live in the carpeta (.tero/transcripciones/)."""
+"""Transcripción de la sesión: JSONL en la carpeta (.tero/transcripciones/)."""
 
 from __future__ import annotations
 
 import json
 
-from tero.config import Settings
-from tero.session import TeacherSession
 from tero.transcript import TRANSCRIPT_DIR, latest_transcript, sanitize_event
-from tero.types import Encargo
 from tero.workspace import Workspace
+from tests.support import PEDIDO_GUIA, PEDIDO_PREGUNTA, open_session
 
 
-def test_offline_session_writes_full_transcript(workspace: Workspace):
-    settings = Settings(offline=True, carpeta=workspace.root)
+def test_el_turno_completo_queda_en_la_transcripcion(workspace: Workspace):
     events: list[dict] = []
-    session = TeacherSession(
-        workspace,
-        settings,
-        encargo=Encargo(oa="OA 4", tipo=None),
-        emit=events.append,
-    )
-    session.start_turn("Prepara una planificación sobre el cuento.")
-    while session.phase == "esperando_clarificacion":
-        session.answer_plan_question(option_id="1")
-    session.decide_plan("approve")
-    session.decide_gate("s")
+    session = open_session(workspace, events=events)
+    session.start_turn(PEDIDO_GUIA)
+    session.start_turn(PEDIDO_PREGUNTA)
+    session.aprobar("dale")
 
     path = session.transcript.path
     assert path.is_file()
     assert TRANSCRIPT_DIR in path.as_posix()
-    lines = [
-        json.loads(row) for row in path.read_text(encoding="utf-8").splitlines() if row.strip()
-    ]
-    types = [row.get("type") for row in lines]
-    assert "session_start" in types
-    assert "host_action" in types
-    assert "plan" in types
-    assert "proposal" in types
-    assert "accepted" in types
-    start = next(row for row in lines if row.get("type") == "session_start")
+    rows = [json.loads(row) for row in path.read_text(encoding="utf-8").splitlines() if row.strip()]
+    tipos = [row.get("type") for row in rows]
+
+    assert "session_start" in tipos
+    assert "host_action" in tipos
+    assert "propuesta" in tipos
+    assert "respuesta" in tipos
+    assert "aprobacion" in tipos
+    assert "escrito" in tipos
+
+    start = next(row for row in rows if row.get("type") == "session_start")
     assert start["model"] == "tero-offline"
     assert start["offline"] is True
+
+    acciones = [row.get("action") for row in rows if row.get("type") == "host_action"]
+    assert "start_turn" in acciones
+    assert "aprobar" in acciones
     prompts = [
         row.get("prompt")
-        for row in lines
+        for row in rows
         if row.get("type") == "host_action" and row.get("action") == "start_turn"
     ]
-    assert any("cuento" in str(p).lower() for p in prompts)
-    # TUI still receives the live events (minus transcript-only host_action/session_start)
-    assert any(event.get("type") == "proposal" for event in events)
+    assert any("cuento" in str(prompt).lower() for prompt in prompts)
+
+    propuesta = next(row for row in rows if row.get("type") == "propuesta")
+    assert propuesta["propuesta"]["accion"] == "crear"
+    assert propuesta["propuesta"]["vista_previa"].strip()
+
+    escrito = next(row for row in rows if row.get("type") == "escrito")
+    assert str(escrito["path"]).endswith(".md")
+
+    # La TUI recibe los eventos en vivo (menos los que son solo de transcripción).
+    assert any(event.get("type") == "propuesta" for event in events)
+    assert any(event.get("type") == "respuesta" for event in events)
     assert latest_transcript(workspace) == path
+
+
+def test_cada_sesion_escribe_su_propio_jsonl(workspace: Workspace):
+    primera = open_session(workspace)
+    primera.start_turn(PEDIDO_GUIA)
+    segunda = open_session(workspace)
+    segunda.start_turn(PEDIDO_GUIA)
+
+    assert primera.transcript.path != segunda.transcript.path
+    assert primera.transcript.path.is_file()
+    assert segunda.transcript.path.is_file()
 
 
 def test_sanitize_redacts_credential_keys():

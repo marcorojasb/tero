@@ -10,8 +10,17 @@ from tero.workspace import Workspace
 
 
 def copy_demo_carpeta(dest: Path) -> Path:
+    """Copia la carpeta demo sin material generado: cada test parte hermético.
+
+    Si alguien corrió el demo en el repo, `examples/carpeta-demo/derivados/` puede
+    tener archivos sueltos. Los tests no deben depender de eso.
+    """
     target = dest / "carpeta"
-    shutil.copytree(EXAMPLE_CARPETA, target)
+    shutil.copytree(
+        EXAMPLE_CARPETA,
+        target,
+        ignore=shutil.ignore_patterns("derivados", "borradores", ".tero"),
+    )
     return target
 
 
