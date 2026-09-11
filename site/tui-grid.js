@@ -704,7 +704,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=outer-win`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=in-win`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;
@@ -722,6 +722,8 @@
     overlay.style.height = "100%";
     overlay.style.setProperty("--cell-w", `${fitted.cellW}px`);
     overlay.style.setProperty("--cell-h", `${fitted.cellH}px`);
+    host.style.setProperty("--cell-w", `${fitted.cellW}px`);
+    host.style.setProperty("--cell-h", `${fitted.cellH}px`);
     return {
       cols: frame.cols,
       rows: frame.rows,

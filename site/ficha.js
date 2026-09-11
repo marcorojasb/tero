@@ -35,7 +35,7 @@
   function loadFrames() {
     return Promise.all(
       FRAME_NAMES.map((name) =>
-        fetch(`./assets/tui/frames/${name}.json?v=outer-win`)
+        fetch(`./assets/tui/frames/${name}.json?v=in-win`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             frames[name] = data;
@@ -340,6 +340,9 @@ python -m tero demo --offline --yes
       state.phase === "esperando_criterio" ||
       state.phase === "esperando_plan" ||
       state.phase === "listo";
+    const host = $("tui-host");
+    host.style.setProperty("--cell-w", `${state.cellW}px`);
+    host.style.setProperty("--cell-h", `${state.cellH}px`);
   }
 
   function paintLive(captured) {

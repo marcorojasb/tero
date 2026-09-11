@@ -91,9 +91,13 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=outer-win" in html
-    assert "tui-grid.js?v=outer-win" in html
-    assert "ficha.js?v=outer-win" in html
+    assert "styles.css?v=in-win" in html
+    assert "tui-grid.js?v=in-win" in html
+    assert "ficha.js?v=in-win" in html
+    assert "left: var(--cell-w, 10px)" in css
+    assert "top: var(--cell-h, 24px)" in css
+    assert "left: 8%" not in css
+    assert 'host.style.setProperty("--cell-w"' in js
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
     assert "border-radius: 10px" not in css
@@ -122,7 +126,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
-    assert "?v=outer-win" in js or "outer-win" in js
+    assert "?v=in-win" in js or "in-win" in js
     assert "plan-2" in js
     assert "puerta-2" in js
     assert "leyendo-2" in js
