@@ -4,9 +4,10 @@ tero is a **conversational Strands agent** plus an **OpenTUI** shell. The
 agent understands the first message and acts on the intent: **a)**
 answer or interact, **b)** create new material, **c)** edit or adapt
 existing material (including NEE adaptation). It only writes when the
-person approves. The only artifact writes are `derivados/` (approved)
-and `borradores/` (draft kept without approval). Originals are hashed
-and never overwritten.
+person approves. The only artifact write is `derivados/`, after approval;
+there is no write without approval. Originals are hashed and never
+overwritten. `borradores/` is legacy: existing files can still be read,
+edited or adapted, but tero writes nothing new there.
 
 > Target contract (this doc). Code migration follows in later PRs
 > (session, TUI, CLI, tests); until then, code may still show the
@@ -55,7 +56,7 @@ flowchart TB
   subgraph Disk["Carpeta de trabajo"]
     Fuentes[Originales .md .txt .pdf]
     Derivados[derivados/]
-    Borradores[borradores/]
+    Borradores["borradores/ (legado)"]
   end
 
   TUI --> JSONL
@@ -68,7 +69,6 @@ flowchart TB
   Salvage --> Coerce
   Approval --> Approve
   Approve --> Derivados
-  Approve --> Borradores
 ```
 
 ## Loop
