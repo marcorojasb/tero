@@ -145,6 +145,20 @@ def test_ficha_landing_is_the_github_page():
     assert "#82aaff" in grid
     assert "╭" in grid
 
+    # La franja en inglés para jueces: explica qué miran, sin tapar la TUI.
+    assert 'id="judge-legend"' in html
+    assert 'lang="en"' in html
+    assert "conversational teacher agent for Chilean classrooms" in html
+    assert "writes nothing until you approve" in html
+    assert "judge-legend" in css
+    assert ".judge-legend {" in css
+    assert "position: fixed" in css
+    assert "judgeLegendHeight" in grid
+    assert "--judge-legend" not in css
+    # La franja no reemplaza al producto: la TUI sigue en español.
+    assert "tus fuentes, tu criterio" in html
+    assert "Pregunta, explora o crea" in html
+
     # El sello REVISAR sigue siendo la fotocopia, no un CTA.
     assert 'id="stamp-label"' in html
     assert "REVISAR" in html

@@ -462,3 +462,83 @@ a {
     box-shadow: none;
   }
 }
+
+/* English legend for hackathon judges: the terminal stays Spanish (it is the
+   product); this strip explains what they are looking at. Fixed at the bottom so
+   it never reflows the TUI; tui-grid.js reserves its height in viewportBudget(). */
+.judge-legend {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 6px;
+  z-index: 20;
+  margin: 0;
+  padding: 7px 12px 8px;
+  background: #0f1319;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.45);
+}
+
+.judge-legend p {
+  margin: 0;
+}
+
+.judge-legend-title {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.judge-legend-title strong {
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.judge-legend-motto {
+  color: var(--accent);
+  font-size: 11px;
+  margin-left: 6px;
+  opacity: 0.75;
+}
+
+.judge-legend-stack {
+  color: var(--faint);
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.judge-legend-body {
+  color: var(--muted);
+}
+
+.judge-legend-body b {
+  color: var(--chip-fg);
+}
+
+.judge-legend-note {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.judge-legend a {
+  color: var(--accent);
+}
+
+.judge-legend kbd {
+  background: var(--chip);
+  border: 1px solid var(--border-soft);
+  border-radius: 2px;
+  padding: 0 4px;
+  color: var(--chip-fg);
+  font: inherit;
+}
+
+@media (max-width: 720px) {
+  .judge-legend-stack,
+  .judge-legend-note {
+    display: none;
+  }
+}

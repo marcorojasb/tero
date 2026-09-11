@@ -1,20 +1,17 @@
 # Docs — tero
 
-Índice corto. La tesis cabe en una línea: **el agente prepara, el o la
-docente decide** (`s` / `n` / `b` / `c`).
+Index of project documentation and research reports. Thesis: **the agent proposes, the educator decides**.
 
-| Doc | Para qué |
+| Document | Purpose |
 | --- | --- |
-| [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md) | Por qué los avisos no bloquean `s` (decisión con evidencia de corridas). |
-| [SITIO.md](SITIO.md) | OpenTUI en una ventana; el papel es solo de las hojas creadas. |
-| [NORMAS.md](NORMAS.md) | Normas de producto e ingeniería. |
-| [ARCHITECTURE.md](../ARCHITECTURE.md) | Host + OpenTUI + carpeta. |
-| [STRESS-BEDROCK.md](STRESS-BEDROCK.md) | Stress Nova Lite y qué se hizo después. |
-| [INFORME-MEJORAS.md](INFORME-MEJORAS.md) | TUI, puerta, contratos de host. |
-| [ANALISIS-ADVERSARIAL.md](ANALISIS-ADVERSARIAL.md) | Autocrítica de elegibilidad y HITL. |
-| [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) | AgentCore no es el producto; calidad = ficha usable. |
-| [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md) | JSON → plantilla, catálogo Chile host-side. |
-| [AWS-GRATIS.md](AWS-GRATIS.md) | Nova Lite + Free Tier; el playground de AgentCore no es tero. |
-| [hackathon/README.md](hackathon/README.md) | Pack Devpost: texto, video, diagrama, post Builder. |
+| [EVALUATION-PAPER.md](EVALUATION-PAPER.md) | **Scientific benchmark paper**: empirical evaluation of 5 Bedrock models across 4 pedagogical journeys. |
+| [CONVERSACIONAL.md](CONVERSACIONAL.md) | Frozen protocol specification: intents a/b/c, in-memory proposals, natural approval. |
+| [hackathon/JUDGES-EN.md](hackathon/JUDGES-EN.md) | **Judges' Quickstart Guide (English)** for Agents for Humans evaluators. |
+| [hackathon/README.md](hackathon/README.md) | Devpost submission pack: overview, track, video outline, Builder post. |
+| [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md) | Why warnings inform but never block human approval. |
+| [SITIO.md](SITIO.md) | Public landing: OpenTUI terminal in one single window. |
+| [NORMAS.md](NORMAS.md) | Engineering standards, trust boundaries, and prior work disclosures. |
+| [ARCHITECTURE.md](../ARCHITECTURE.md) | Strands Agent host + OpenTUI shell + Begonia API + Ley 21.719 privacy guard. |
+| [AWS-GRATIS.md](AWS-GRATIS.md) | Lean Bedrock execution (Amazon Nova Lite serverless default). |
 
-La página pública es la TUI: <https://marcorojasb.github.io/tero/>.
+Public live demo: <https://marcorojasb.github.io/tero/>.

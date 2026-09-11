@@ -39,23 +39,6 @@ def sync_encargo_from_prompt(encargo: Encargo, prompt: str) -> Encargo:
     )
 
 
-def apply_rumbo(encargo: Encargo, rumbo_raw: str) -> Encargo:
-    rumbo = Rumbo.parse(rumbo_raw)
-    if rumbo is None:
-        return encargo
-    tipo = encargo.tipo or rumbo.default_tipo
-    return Encargo(
-        curso=encargo.curso,
-        asignatura=encargo.asignatura,
-        oa=encargo.oa,
-        duracion=encargo.duracion,
-        tipo=tipo,
-        notas=encargo.notas,
-        rumbo=rumbo.value,
-        tema=encargo.tema,
-    )
-
-
 def source_domain_warning(workspace: Workspace, prompt: str, encargo: Encargo) -> str | None:
     """Non-blocking aviso when carpeta domain ≠ encargo domain."""
     try:

@@ -560,8 +560,16 @@
     return { cellW, cellH, fontSize: fs, cols, rows };
   }
 
+  function judgeLegendHeight() {
+    /* English judge strip is position:fixed, so the TUI must budget its height. */
+    const el = document.getElementById("judge-legend");
+    if (!el) return 0;
+    const box = el.getBoundingClientRect();
+    return box.height ? box.height + 6 : 0;
+  }
+
   function viewportBudget() {
-    /* Reserve only body padding. There is no second titlebar. */
+    /* Reserve body padding plus the fixed judge legend. No second titlebar. */
     const styles = getComputedStyle(document.body);
     const padX =
       (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
@@ -569,7 +577,7 @@
       (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
     return {
       maxW: Math.max(280, window.innerWidth - padX),
-      maxH: Math.max(240, window.innerHeight - padY),
+      maxH: Math.max(240, window.innerHeight - padY - judgeLegendHeight()),
     };
   }
 

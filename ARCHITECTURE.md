@@ -1,62 +1,60 @@
 # Architecture — tero
 
-tero is a **conversational Strands agent** plus an **OpenTUI** shell. The
-agent understands the first message and acts on the intent: **a)**
-answer or interact, **b)** create new material, **c)** edit or adapt
-existing material (including NEE adaptation). It only writes when the
-person approves. The only artifact write is `derivados/`, after approval;
-there is no write without approval. Originals are hashed and never
-overwritten. `borradores/` is legacy: existing files can still be read,
-edited or adapted, but tero writes nothing new there.
+tero is a **conversational Strands agent** paired with an **OpenTUI** shell. The
+agent understands the user's message and acts upon their intent:
+- **a) Answer / interact:** pedagogical queries, curriculum questions, and local source inspection without creating files.
+- **b) Create new material:** grounded lesson plans, reading guides, quizzes, rubrics, and activities.
+- **c) Edit or adapt existing material:** iterative modifications, alternate versions ("Fila B"), and special education (NEE) accommodations under Chile's **Decreto 83/2015**.
 
-> Target contract (this doc). Code migration follows in later PRs
-> (session, TUI, CLI, tests); until then, code may still show the
-> previous step-by-step flow.
+The agent operates strictly in memory: **the language model never writes files to disk**. The only write destination is `derivados/`, which is written exclusively by host-side code upon explicit human conversational approval. Original classroom sources in `fuentes/` are hashed with SHA-256 and are read-only. `borradores/` is a legacy directory: existing files can be read, edited, or adapted, but no new files are placed there without approval.
 
 The public face of the repo is the **OpenTUI of tero**, virtualized in
 one window — not a splash wave, not a SaaS page. Photocopied paper is
 only for pages tero creates:
 [site/](site/) → <https://marcorojasb.github.io/tero/>.
 
+---
+
 ## Thesis
 
-> your sources, your judgment / agent converses, person approves
+> *your sources, your judgment — the agent proposes, the educator decides*
 
-The teacher's folder is the system of record. Tools only read. There is
-no step-by-step flow: no home rumbos 1–4, no typed plan with approve /
-edit / cancel keys, no numbered clarifications, no `s` / `n` / `b` / `c`
-gate. If information is missing, the agent **asks in natural language**.
-Before writing, it shows **what it will do + a preview** and asks for
-approval. Warnings never block approval. See
-[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md) for why the old blocking
-gate was rejected — the same reasoning now applies to conversational
-approval.
+The teacher's local folder is the system of record. Tools only read. There is
+no rigid step-by-step wizard: no home rumbos menu, no typed plan with approve/cancel keys, no numbered clarification questions, and no `s` / `n` / `b` / `c` gate. If information is missing, the agent **asks in natural language**. Before writing, it presents **what it will do + a structured preview** and waits for approval. Warnings never block approval. See [docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md).
 
-## Components
+---
+
+## Component Topology
 
 ```mermaid
 flowchart TB
-  subgraph TUI["OpenTUI (Bun / @opentui/core)"]
-    Chat[Conversación]
-    Proposal[Propuesta: qué hará + vista previa]
-    Approval[Aprobación en lenguaje natural]
+  subgraph TUI["OpenTUI Shell (Bun / @opentui/core)"]
+    Chat[Conversational Stream]
+    Proposal[Proposal Card: Summary + Section Diff + Preview]
+    Approval[Natural Language Approval Classifier]
   end
 
-  subgraph Host["python -m tero bridge"]
-    JSONL[JSONL stdin/stdout]
+  subgraph Host["Host Engine (python -m tero bridge)"]
+    JSONL[JSONL stdin/stdout Bridge]
     Agent[Strands Agent]
     Offline[OfflineModel tero-offline]
-    Bedrock[BedrockModel]
-    Tools["list_sources / read_source (sandbox)"]
-    Salvage[salvage prose or JSON]
-    Coerce[payload contracts]
-    Approve[host writes only after approval]
+    Bedrock[BedrockModel on-demand]
+    Tools["Sandboxed Read Tools: list_sources / read_source / list_artifacts / read_artifact"]
+    BegoniaClient["Begonia API Client: buscar_banco / leer_item / orientaciones"]
+    Privacy["Ley 21.719 Privacy Filter"]
+    Salvage[Salvage Parser: Prose / Leaked Calls -> Proposal]
+    Coerce[Payload Schema Coercion]
+    GateHost[Host Gate Writer: write_approved]
   end
 
-  subgraph Disk["Carpeta de trabajo"]
-    Fuentes[Originales .md .txt .pdf]
-    Derivados[derivados/]
-    Borradores["borradores/ (legado)"]
+  subgraph Disk["Local Teacher Dossier"]
+    Fuentes["Original Sources (fuentes/ - Read-only, SHA-256 Hashed)"]
+    Derivados["Accepted Derived Materials (derivados/)"]
+    Borradores["Legacy Drafts (borradores/)"]
+  end
+
+  subgraph External["Official Curriculum Service"]
+    BegoniaDB["Begonia Pedagogical Bank (13,722 MINEDUC Items)"]
   end
 
   TUI --> JSONL
@@ -64,65 +62,51 @@ flowchart TB
   Agent --> Offline
   Agent --> Bedrock
   Agent --> Tools
-  Tools --> Fuentes
+  Agent --> BegoniaClient
+  BegoniaClient -.-> BegoniaDB
+  Tools --> Privacy
+  Privacy --> Fuentes
   Agent --> Salvage
   Salvage --> Coerce
-  Approval --> Approve
-  Approve --> Derivados
+  Approval --> GateHost
+  GateHost --> Derivados
 ```
 
-## Loop
+---
 
-1. The teacher writes a first message in natural language. The agent
-   understands the intent: **a)** answer / interact, **b)** create new
-   material (planificación, guía, evaluación, pauta, actividad),
-   **c)** edit or adapt existing material (versions, NEE adaptation).
-2. If information is missing (course, subject, OA, length, which file to
-   edit), the agent **asks in natural language** — no numbered options,
-   no typed plan to approve.
-3. The agent **reads** only inside the carpeta (path sandbox + hash index)
-   and prepares the answer or material **in memory**, with evidence
-   citations. Payload JSON (or markdown fallback) fills the LaTeX
-   template. Tool use is capped (`DRAFT_TOOL_BUDGET`). Activity emits
-   **one start per tool call**, not per stream delta.
-4. Warnings (OA mismatch, thin skeleton, missing rubric, paraphrase,
-   unknown path) are **visible and non-blocking**.
-5. Before writing, the agent shows **what it will do + a preview** and
-   asks for approval in natural language. On explicit approval the
-   **host** writes `derivados/`; a change the teacher asks for triggers
-   another pass. The model never writes files.
-6. Re-hash originals after write. A change is a warning, never a rewrite
-   of the source.
+## Conversational Execution Loop
 
-## Why this conversational shape
+1. **Teacher Prompt:** The educator enters a natural-language message. The agent infers the intent:
+   - **a)** Answer / interact.
+   - **b)** Create new material (`proponer_crear`).
+   - **c)** Edit or adapt existing material (`proponer_editar`), including Decreto 83 NEE accommodations.
+2. **Clarification:** If essential context is missing (grade level, specific topic, target file to adapt), the agent **asks conversationally** rather than hallucinating defaults.
+3. **Inspection & Begonia Grounding:** The agent reads only inside the sandboxed dossier (with Ley 21.719 excluding sensitive health/grade records) and queries the official MINEDUC pedagogical bank (`begonia`) for matching items and teaching guidances.
+4. **In-Memory Proposal:** The agent prepares the artifact in memory with verifiable citations (`fuentes/...` or `banco:<id>`). Tool usage is capped by host-side budgets (`DRAFT_TOOL_BUDGET`), with one activity event emitted per tool call.
+5. **Non-Blocking Warnings:** The host evaluates alignment, catalog coverage, and evidence density. For NEE adaptations, it attaches the non-blocking `paci_no_oficial` advisory.
+6. **Conversational Approval:** The teacher reviews the staged summary and Markdown preview, answering naturally (*"dale"*, *"me parece bien"*, *"sí"*, or key **`y`**).
+7. **Host-Side Emission:** The host writes the approved Markdown into `derivados/`. If adapting or creating a Fila B, a **new** file is created referencing `origen: ...`, leaving the base file untouched.
+8. **Integrity Re-hash:** Original sources are re-hashed to verify zero unauthorized modification.
 
-The previous tree used Strands `HumanInTheLoop` around a `write_derived`
-tool, then a host gate with `s` / `n` / `b` / `c`, typed plans and
-numbered clarifications. That flow is retired: it forced every teacher
-through the same steps whether she wanted a quick answer, a new
-evaluación, or a small edit.
+---
 
-What stays from that history: the agent loop is Strands, the write is
-the **host** so the TUI can show the proposal, the evidence, and the
-correction pass without the model being able to dump a file mid-stream.
-Approval is now conversational, but it is still structural: only an
-explicit user approval after a clear preview lets the host write.
+## Trust Boundaries and Invariants
 
-A draft that blocked `s` on `thin_evidence` / `unknown_source` (PR #8)
-was rejected: it made the host the teacher. Quality loops with Nova Lite,
-MiniMax, GLM and Qwen showed usable fichas that almost always carry a
-paraphrase warning. Those must still be approvable.
+| Action | Agent Capability | Host Enforcement Mechanism |
+| :--- | :---: | :--- |
+| **Read outside dossier** | **Forbidden** | `Workspace._safe_join()` raises `WorkspaceError` on path traversal or symlink escapes. |
+| **Overwrite original sources** | **Forbidden** | `Workspace.is_write_allowed()` raises `WriteGuardError` if target is inside `fuentes/`. |
+| **Direct LLM file writes** | **Forbidden** | Tool registry provides zero write primitives. Writing occurs exclusively in `tero.gate.write_approved()`. |
+| **Exposure of student health data** | **Prevented** | `Workspace._iter_source_files()` filters out files matching health/grade criteria under **Ley 21.719**. |
+| **Fabricated Bedrock offline calls** | **Prevented** | `tero-offline` is an explicit, scripted `strands.models.Model` labeled honestly as `tero-offline`. |
+| **Unverified citations** | **Audited** | Host verifies snippets against local files or active `banco_ids`; unverified quotes receive the `?` badge and warning. |
+| **Blocking teacher decisions** | **Forbidden** | Heuristics and quality checks inform the educator of trade-offs but never prevent the teacher from approving. |
 
-## Trust boundaries
+---
 
-| Can the agent… | |
-| --- | --- |
-| Read files outside the work folder | No |
-| Overwrite originals | No (`WriteGuardError`) |
-| Write `derivados/` itself | No — only the host, after explicit user approval of a clear preview |
-| Invent a live Bedrock call in `--offline` | No — `tero-offline` is a scripted Strands `Model` |
-| Cite a snippet that is not in the file | Allowed, but host marks it `verified: false` and warns |
-| Block approval because citations are thin | No — that is the teacher’s call |
+## Deployment Models & Empirically Benchmarked Trio
 
-Package layout: `src/tero` (canonical). The older `tero/` layout from
-PR #1 is not used.
+Following empirical benchmarking across 5 foundation models on Amazon Bedrock (see [docs/EVALUATION-PAPER.md](docs/EVALUATION-PAPER.md)), tero recommends three models:
+1. **`amazon.nova-lite-v1:0` (Default):** Native serverless AWS Bedrock execution, ultra-low cost (~$0.06/1M input tokens), 100% benchmark completion rate, high Begonia citation density.
+2. **`zai.glm-4.7-flash`:** High-speed operational engine (sub-10s latency), exact Decreto 83 NEE structured schema adherence.
+3. **`minimax.minimax-m2.5`:** Highest-quality classroom literary prose and granular assessment rubrics in authentic Chilean Spanish.

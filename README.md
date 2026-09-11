@@ -1,6 +1,6 @@
 # tero
 
-**tus fuentes, tu criterio — el agente propone, el o la docente decide**
+**your sources, your judgment — the agent proposes, the educator decides**
 
 ```
 ╭─ tero ─────────────────────────────────╮
@@ -19,54 +19,43 @@
 ╰────────────────────────────────────────╯
 ```
 
-El chrome es la **TUI**. La persona escribe en lenguaje natural; tero
-entiende la intención —responder, crear material o editar/adaptar lo que
-ya existe— y **propone en memoria**. La hoja que tero crea —la fotocopia
-que sale mañana a la sala— aparece solo cuando la persona aprueba. La
-[página de GitHub](https://marcorojasb.github.io/tero/) es esa sesión,
-en **una** ventana: conversación, avisos a la vista, aprobación.
-Si el link da 404, enciende Pages una vez en
-[Settings → Pages](https://github.com/marcorojasb/tero/settings/pages)
-(Source **GitHub Actions**) y re-ejecuta el workflow `pages` — el token
-de Actions no puede crear el sitio. Detalle: [docs/SITIO.md](docs/SITIO.md).
-El modelo de la demo en el sitio es `tero-offline` (Strands scripted).
-No finge Bedrock. AgentCore no es el producto.
+**tero** is an open-source, keyboard-first conversational AI teacher agent built for Chilean K-12 educators. Powered by the **AWS Strands Agents SDK** and **Amazon Bedrock**, it runs inside a dense **OpenTUI** terminal shell (from the same terminal family as [OpenCode](https://opencode.ai)). 
 
-![TUI de tero: home OpenTUI con el queltehue y la línea de mensaje](site/assets/tero-og.png)
+While tero converses in authentic Chilean classroom Spanish—tailored for teachers preparing real-world lesson plans, reading guides, quizzes, and special education adaptations—the engineering and architecture are built to global standards for the **[Agents for Humans](https://agentsforhumans.devpost.com/) AWS Global Hackathon** (Track: **Professional Agents**).
 
-Teacher agent for [Agents for Humans](https://agentsforhumans.devpost.com/): AWS
-**Strands** behind a dense **OpenTUI** shell (same TUI family as
-[OpenCode](https://opencode.ai)). Sibling *idea* of Pteron — your
-sources, your judgment — without copying Pteron’s Electron/Solid/Meridian
-desktop. Cheapest live path is **local Nova Lite**, not AgentCore
-Runtime — [docs/AWS-GRATIS.md](docs/AWS-GRATIS.md). Submission pack:
-[docs/hackathon/README.md](docs/hackathon/README.md).
+- **Live Interactive Demo:** [marcorojasb.github.io/tero](https://marcorojasb.github.io/tero/) (virtualizes the authentic OpenTUI in a single window). If the GitHub Pages link returns 404 on a fresh fork, enable Pages under [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages) (Source: **GitHub Actions**) and re-run the `pages` workflow.
+- **Cheapest & Fastest Live Path:** Native serverless **Amazon Nova Lite** (`amazon.nova-lite-v1:0`) on Amazon Bedrock—see [docs/AWS-GRATIS.md](docs/AWS-GRATIS.md).
+- **Scientific Benchmark Paper:** [docs/EVALUATION-PAPER.md](docs/EVALUATION-PAPER.md).
+- **Judge Quickstart (English):** [docs/hackathon/JUDGES-EN.md](docs/hackathon/JUDGES-EN.md) · Submission Pack: [docs/hackathon/README.md](docs/hackathon/README.md).
 
-Spanish UI. Keyboard-first. MIT.
+![TUI de tero: OpenTUI terminal with southern lapwing silhouette](site/assets/tero-og.png)
+
+---
+
+## The Human-in-the-Loop (HITL) Contract
 
 ```
-mensaje → el agente entiende (responder | crear | editar/adaptar) → propuesta + vista previa → aprobación → derivados/
+teacher message → intent inferred (inquiry | creation | adaptation) → in-memory proposal + preview → explicit human approval → derivados/
 ```
 
-The model **never writes files**. It reads the folder and proposes in
-memory; only the host writes, only after the person approves, only into
-`derivados/`. Editing or adapting writes a **new** file and leaves the
-origin untouched. Sources are hashed; tero refuses to overwrite them.
-Warnings (`thin_evidence`, `unverified_citation`, OA raro) are visible
-and **never block approval** — the teacher sees the cost and decides. See
-[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md) and the frozen protocol in
-[docs/CONVERSACIONAL.md](docs/CONVERSACIONAL.md).
+1. **The model never writes files directly:** Language model tools only read local files and query the curriculum bank. All proposed artifacts live strictly in memory as structured `Propuesta` objects.
+2. **Your local folder is the immutable System of Record (SoR):** Original classroom readings in `fuentes/` are verified with SHA-256 digests; tero refuses to overwrite them.
+3. **Transparent pre-write staging:** Before anything is written, tero displays a concise summary, specific section modifications, and an exact Markdown preview.
+4. **Natural conversational approval:** The educator reviews the proposal and decides in natural language (e.g., *"dale"*, *"me parece bien"*, *"sí"*, or key **`y`** in the TUI), requests an adjustment (*"cambia la pregunta 1 para que sea..."*), or discards (*"no, descártalo"* / **`n`**). Only host-side code writes to `derivados/`.
+5. **Warnings never block the educator:** Heuristics (`thin_evidence`, `unverified_citation`, `paci_no_oficial`) inform the teacher of trade-offs but **never block approval**. See [docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md) and protocol specification in [docs/CONVERSACIONAL.md](docs/CONVERSACIONAL.md).
 
-## 20-minute judge path
+---
 
-Python **3.10+**. Two tracks:
+## 20-Minute Judge Path
 
-| Track | Time | What it proves |
-| --- | --- | --- |
-| **A. Offline** | ~2 min | Full Strands loop (tools + propuesta + evidencia + aprobación + `derivados/`) with a scripted model. No AWS. |
-| **B. Bedrock** | ~15 min | Same loop with **Amazon Nova Lite** (`amazon.nova-lite-v1:0`). |
+Requires **Python 3.10+** (Python 3.11+ recommended). Two execution tracks:
 
-### A. Offline (no keys) — video path
+| Track | Elapsed Time | What it Proves |
+| :--- | :---: | :--- |
+| **Track A. Offline** | ~2 min | Full Strands Agent loop (tools + in-memory proposal + evidence + natural approval + file emission into `derivados/`) with a scripted model. **USD $0, zero API keys**. |
+| **Track B. Bedrock** | ~15 min | Identical loop powered live by **Amazon Bedrock** (`amazon.nova-lite-v1:0`, `zai.glm-4.7-flash`, or `minimax.minimax-m2.5`). |
+
+### Track A. Offline (Zero Keys — Instant Verification)
 
 ```bash
 git clone https://github.com/marcorojasb/tero.git
@@ -74,95 +63,123 @@ cd tero
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 python -m tero demo --offline --yes
-# or: make demo-offline
 ```
 
-Uses a real `strands.Agent` plus a scripted `OfflineModel` labeled
-**`tero-offline`** (not a fake Bedrock call). It reads
-`examples/carpeta-demo/`, reads the sources, **proposes** a planificación
-with evidence and a preview, approves it (`--yes`) and writes markdown
-under `derivados/`. Originals stay hashed.
+Uses a real `strands.Agent` combined with a deterministic `OfflineModel` explicitly labeled **`tero-offline`** (does not fake a cloud call). It reads `examples/carpeta-demo/`, queries the local sources, proposes a lesson plan with citations and preview, auto-approves (`--yes`), and writes the generated Markdown to `derivados/`. Original files stay untouched.
 
-Interactive approval (drop `--yes`): tero muestra la propuesta y tú
-respondes «sí», «no» o pides un cambio en lenguaje natural.
+To test the **interactive conversational gate** (drop `--yes`):
+```bash
+python -m tero demo --offline
+# tero presents the in-memory proposal and asks:
+# ¿Escribo este material? (sí / no / pide un cambio)
+```
 
-OpenTUI (needs [Bun](https://bun.sh)):
-
+To launch the **OpenTUI terminal interface** (requires [Bun](https://bun.sh)):
 ```bash
 python -m tero tui --offline
 ```
 
-**Home first:** queltehue ASCII, brand `tero`, one prompt line
-*Pregunta, explora o crea…*. There is no menu of rumbos: escribe lo que
-necesitas. Si a tero le falta un dato (curso, tema, OA, qué material
-editar), **te lo pregunta**.
+- **Keys & Shortcuts:** **`y`** approve (host writes to `derivados/`) · **`n`** discard · type naturally in the prompt stream (*"dale"*, *"no, gracias"*, *"mejor para 2° básico"*) · **`r`** retry · **`?`** contextual help · **`[` `]`** cycle evidence · **Tab** switch panels · **`/export md|docx|latex`** export latest approved artifact.
 
-**Keys:** **`y`** aprueba (el host escribe en `derivados/`) · **`n`**
-descarta · escribe tu respuesta en el hilo —«dale», «no, gracias»,
-«mejor para 2° básico»— y el host la interpreta (`tero.approval`) ·
-**`r`** reintentar error · **`?`** ayuda · **`[` `]`** evidencia ·
-**Tab** paneles. Citas **✓** están en el archivo; **?** es paráfrasis.
-`/export md|docx|latex` exporta el último material escrito.
+---
 
-### B. Amazon Bedrock (lean — Nova Lite only)
+### Track B. Amazon Bedrock (Serverless Default)
 
-One Strands agent → Bedrock. **No** AgentCore Runtime/Gateway/Browser
-as the product. Observability, if ever, is opt-in and does not move the
-carpeta.
+Zero cloud infrastructure setup: one Strands agent connecting directly to Bedrock ConverseStream API. **No** AgentCore Runtime/Gateway servers required.
 
-#### AWS free tier / Nova Lite checklist
+#### AWS Free Tier / Amazon Nova Lite Checklist
 
-1. Region with Amazon Nova on-demand (README default **`us-east-1`**).
-2. **No Model access page** — AWS retired it. Serverless models (Nova Lite)
-   auto-enable on first `InvokeModel` / Converse. Optional smoke: Bedrock
-   **Model catalog** → playground with `amazon.nova-lite-v1:0`. If the
-   account wants a cross-region profile, `TERO_MODEL=us.amazon.nova-lite-v1:0`.
-3. IAM: `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`
-   on that model id (and `amazon.nova-micro-v1:0` only if you switch).
-   Amazon Nova is not Marketplace; no `aws-marketplace:Subscribe` for Lite.
-4. Credentials: `aws configure`, or `AWS_ACCESS_KEY_ID` /
-   `AWS_SECRET_ACCESS_KEY`, or `AWS_BEARER_TOKEN_BEDROCK`. **Never commit
-   `.env`.**
-5. `cp .env.example .env` → set `TERO_OFFLINE=0` → fill keys:
+1. **AWS Region:** Default **`us-east-1`** (or any region with Amazon Nova on-demand).
+2. **Model Access:** Serverless Amazon Nova models auto-enable on the first `InvokeModel` call.
+3. **IAM Permissions:** `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on `amazon.nova-lite-v1:0`.
+4. **Environment Setup:**
+   ```bash
+   cp .env.example .env
+   # Edit .env -> set TERO_OFFLINE=0 and fill AWS credentials
+   python -m tero demo --yes
+   # or launch the live TUI:
+   python -m tero tui
+   ```
 
-```bash
-python -m tero tui
-# or
-python -m tero demo --yes
+Default model: `amazon.nova-lite-v1:0` via `TERO_MODEL` (alias `TERO_MODEL_ID`). Alternative verified models on Bedrock: `zai.glm-4.7-flash` and `minimax.minimax-m2.5`.
+
+---
+
+## The 4 Canonical Pedagogical Journeys
+
+Tero is engineered to handle 4 real-world classroom workflows without rigid menu steps:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. Pedagogical Inquiry (Intent a)                                           │
+│    "What sources do I have for 4th grade and what official guidelines       │
+│     exist for reading comprehension?"                                       │
+│    -> Conversational answer, inspects folder & Begonia bank, ZERO file writes.│
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 2. Grounded Material Creation (Intent b)                                    │
+│    "Create a 45-minute reading guide based on the folder's story, querying  │
+│     the pedagogical bank for official MINEDUC OA 4 items."                  │
+│    -> Reads local files + Begonia API, proposes in memory, writes on "dale". │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 3. Special Education (NEE) Adaptation under Decreto 83 (Intent c)           │
+│    "Adapt the previous guide for a student with learning accommodations     │
+│     using Decreto 83 access criteria (extra time and visual scaffolding)."  │
+│    -> Populates notas_nee ('acceso · tiempo: ...'), emits paci_no_oficial,  │
+│       writes a NEW file in derivados/ leaving origin untouched.             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 4. Assessment Variation ("Fila B") & Interactive Dialogue (Intent c)        │
+│    "Generate a Fila B swapping questions. [Then]: Change item 1 to evaluate │
+│     character attitude instead."                                            │
+│    -> Model proposes, handles conversational refinement, and writes on OK.   │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Default model: `amazon.nova-lite-v1:0` via `TERO_MODEL` (alias
-**`TERO_MODEL_ID`**). Nova Micro is cheaper for smokes. Other Bedrock
-ids (GLM, MiniMax, Qwen) are the quality loop, not a hardcoded trio in
-the host.
+---
 
-**Resilience (already in host):** Bedrock errors are humanized in Spanish
-(auth / throttle / model / network). If the model returns tools/text
-without a draft, tero **retries the draft once**, then **salvages**
-prose/JSON into a typed proposal so you still have something to review. Curriculum OA
-+ LaTeX stay **host-side** (catalog + templates). The model fills
-**JSON**, not free-form TeX.
+## Empirical Model Benchmarks (Top 3 Selected)
 
-Video day: prefer `python -m tero demo --offline --yes` (honest
-`tero-offline` label). Use Bedrock live only if keys + Nova access are
-confirmed.
+We conducted an empirical evaluation across 5 models on Amazon Bedrock. See full paper in [docs/EVALUATION-PAPER.md](docs/EVALUATION-PAPER.md).
 
-## What this is (and is not)
+| Model Identifier | Success Rate | Mean Latency | Primary Recommended Use Case |
+| :--- | :---: | :---: | :--- |
+| **`amazon.nova-lite-v1:0`** | **100%** | **10.0s** | **Hackathon & Classroom Default:** Lowest cost (~$0.06/1M tok), native serverless, dense official Begonia citations. |
+| **`zai.glm-4.7-flash`** | **100%** | **10.6s** | **High-Speed Precision Engine:** Sub-10s tool calling, exact Decreto 83 NEE schema compliance. |
+| **`minimax.minimax-m2.5`** | **100%** | **39.5s** | **Classroom Prose & Rubrics:** Highest pedagogical depth, authentic Chilean classroom voice, full assessment rubrics. |
 
-| In scope | Out of scope |
-| --- | --- |
-| Carpeta de trabajo as system of record | Electron desktop / TipTap / Meridian |
-| Typed optional plan (objetivo, OA, duración, tipo) | Full Biblioteca UI |
-| Artifact types: planificación, guía, evaluación, pauta/rúbrica, actividad | iPhone companion |
-| Evidence panel (path + snippet + section) | SQLite session DB as product |
-| Streaming activity (one event per tool call) | Ollama as default |
-| Export `.md`, optional `.docx`, **LaTeX via JSON→plantilla** | Secrets in git |
-| Catálogo OA Chile host-side (`list_oa` / `get_oa`) | Currículum oficial MINEDUC completo |
-| Warnings visible before approval, never blocking | Magic `forzar` to override the teacher |
+---
 
-Ollama / local LLMs can come later; they are not the default.
+## Official Pedagogical Bank Integration (`begonia`)
 
-## Architecture
+Tero connects locally (`http://127.0.0.1:8766`) to **begonia**, an offline read-only database mirror curated from official Chilean Ministry of Education (`Curriculum Nacional`) frameworks:
+- **13,722 approved pedagogical items** and **1,159 teacher guidances** indexed by official learning objectives (e.g., `CN05 OA 12`).
+- Integrated tools: `buscar_banco`, `leer_item_banco`, and `orientaciones_banco`.
+- Official citations receive the `banco:<id>` prefix, verified directly against the bank.
+- Full provenance traceability: approved artifacts embed `banco_snapshot: <id>` in their front matter. If the bank is offline, tero degrades gracefully to local sources.
+
+---
+
+## Statutory Privacy Guard (Ley 21.719)
+
+Chile's **Ley 21.719** on personal and health data protection takes effect on December 1, 2026, strictly forbidding automated processing of student health data in educational environments (Art. 16 bis).
+- `tero.privacy` automatically intercepts file admission: gradebooks (`notas*.csv`), diagnostic reports (`fudei*`, `paci*`), and files containing Chilean national IDs (RUT) are **excluded from the model context**.
+- Files remain intact on disk. A single non-blocking advisory (`dato_sensible_excluido`) informs the educator. Configurable via `TERO_DATOS_SENSIBLES=excluir|incluir`.
+
+---
+
+## LaTeX & PDF Compilation (Zero Hallucinated TeX)
+
+Language models never emit raw LaTeX or uncontrolled `\documentclass` code. The host engine populates pre-audited templates in `templates/latex/` directly from Markdown or structured JSON schemas:
+
+```bash
+# Export approved artifact to LaTeX / PDF:
+python -m tero export --format latex path/to/artifact.md
+# Compile to PDF if latexmk is installed:
+python -m tero export --format latex --pdf path/to/artifact.md
+```
+
+---
+
+## Project Architecture & Trust Boundaries
 
 ```
 ┌─ OpenTUI (Bun, @opentui/core) ─────────────┐
@@ -175,9 +192,10 @@ Ollama / local LLMs can come later; they are not the default.
 │  tools: list/search/read (sandbox)         │
 │         list_artifacts/read_artifact       │
 │         list_oa/get_oa/search_oa (catálogo)│
+│         buscar_banco/leer_item_banco       │
 │         cite_evidence, proponer_crear,     │
 │         proponer_editar  (en memoria)      │
-│  host: hash check, salvage, coerce payload │
+│  host: hash check, privacy, coerce payload │
 │         warnings, aprobación, write        │
 │         export md|docx|latex (templates)   │
 └────────────────────────────────────────────┘
@@ -187,75 +205,33 @@ Ollama / local LLMs can come later; they are not the default.
          carpeta/borradores  (legado)
 ```
 
-HITL is structural: `proponer_crear` / `proponer_editar` are
-**in-memory**. Only the host writes files, and only after the person
-approves a proposal they saw.
+| In Scope | Out of Scope |
+| :--- | :--- |
+| Teacher's folder as system of record | Electron desktop / TipTap / Meridian |
+| Conversational intents (inquiry, creation, NEE adaptation) | Full Biblioteca cloud UI |
+| Chilean Decreto 83 NEE accommodations (access vs. curricular) | Native iPhone companion app |
+| Evidence verification panel (local files + official Begonia bank) | SQLite session database as user-facing product |
+| Ley 21.719 student health and personal data privacy filter | Ollama as default |
+| Safe LaTeX/PDF export via JSON schema templates | Secrets stored in git repository |
+| Visible, non-blocking pedagogical trade-off warnings | Magic `forzar` overrides to bypass human teacher |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md). Docs index:
-[docs/README.md](docs/README.md). Adversarial self-critique:
-[docs/ANALISIS-ADVERSARIAL.md](docs/ANALISIS-ADVERSARIAL.md). LaTeX +
-currículo: [docs/ADVERSARIAL-LATEX-CURRICULO.md](docs/ADVERSARIAL-LATEX-CURRICULO.md).
-Por qué los avisos no bloquean la aprobación:
-[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md). Ficha landing:
-[docs/SITIO.md](docs/SITIO.md).
+---
 
-## Contexto del encargo + OA de catálogo
-
-El contexto (curso, asignatura, OA, duración, tipo preferido) es
-**contexto**, no un formulario que haya que llenar antes de conversar:
+## Testing & Verification
 
 ```bash
-python -m tero tui --offline --curso "4° básico" --oa "LEN-4B-OA04" --duracion "45 min" --tipo planificacion
-```
-
-TUI: `/curso 4° básico` · `/asignatura Lenguaje` carga OA reales del
-catálogo · `/oa LEN-4B-OA04` (valida) · `/tipo guia` · `/export latex`.
-Cambiar el contexto no reinicia nada: el agente lo usa en el próximo
-mensaje.
-
-Catálogo mínimo (4°–6° Lenguaje/Matemática/Ciencias): `curriculum/chile/`
-— **no** es texto oficial MINEDUC verbatim. Lineamientos de evaluación
-(resumen de aula): `curriculum/chile/evaluacion/lineamientos.md`.
-
-## Export LaTeX (JSON → plantilla)
-
-Nova Lite (y el offline) **no** emiten TeX libre. El host rellena
-plantillas en `templates/latex/` desde un JSON schema (o desde el
-markdown de la propuesta):
-
-```bash
-# tras aprobar la propuesta:
-python -m tero export --format latex path/al/artefacto.md
-# o payload schema directo (smoke Nova Lite-safe):
-python -m tero export --format latex --payload guia.json --out /tmp/guia.tex /tmp/noop.md
-```
-
-PDF opcional si hay `latexmk` (`--pdf` / sin shell-escape). Si no, queda
-el `.tex`.
-
-Extra classroom pack from the first MVP (agua / 5° básico, includes a
-PDF): `fixtures/aula-5basico-agua/`.
-
-```bash
-python -m tero demo --offline --yes --carpeta fixtures/aula-5basico-agua
-```
-
-## Tests
-
-```bash
+# Python unit, integration, and benchmark suite:
 pytest
+# Code style and formatting checks:
 ruff check src tests && ruff format --check src tests
+# OpenTUI terminal test suite:
 cd tui && bun install && bun test src
 ```
 
-## Hackathon disclosure
+---
 
-This public MIT repo is a **new project** (tero), built for Agents for
-Humans. The *product concept* (teacher-in-the-loop pedagogical
-preparation) is inspired by **Pteron**, a private Electron app by Marco
-Rojas / Patagua. It does **not** copy that Electron/SolidJS codebase.
-Offline demo is scripted on purpose so the video does not pretend to be
-a live Bedrock call.
+## Hackathon Disclosure & Prior Work
 
-See [docs/NORMAS.md](docs/NORMAS.md), [AGENTS.md](AGENTS.md),
-[CONTRIBUTING.md](CONTRIBUTING.md).
+This public repository is a **new project** built specifically for the **Agents for Humans: AWS AI Agent Global Hackathon**. The pedagogical product concept (teacher-in-the-loop preparation for Chilean schools) is inspired by **Pteron**, an earlier private application by the author. No code was copied from that private Electron/SolidJS codebase. The offline demonstration track is purposefully scripted with an honest `tero-offline` label so evaluators can run the system immediately without cloud keys.
+
+See [docs/NORMAS.md](docs/NORMAS.md), [AGENTS.md](AGENTS.md), and [CONTRIBUTING.md](CONTRIBUTING.md).

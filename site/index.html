@@ -3,18 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>tero — tus fuentes, tu criterio</title>
+    <title>tero — a conversational teacher agent for Chilean classrooms</title>
     <meta
       name="description"
-      content="tero es el queltehue del aula: avisa, no decide. Conversa, propone y solo escribe en derivados/ si tú apruebas con y —o diciendo «dale». Offline honesto (tero-offline)."
+      content="tero is a conversational AI teacher agent for Chilean K-12 classrooms (AWS Strands Agents + Amazon Bedrock). It grounds material in the official MINEDUC curriculum, proposes in memory, and writes nothing until the teacher approves. Conversational UI in Chilean Spanish. Offline demo labeled tero-offline."
     />
     <meta name="theme-color" content="#0b0d10" />
     <link rel="icon" href="./assets/tero-mark.svg" type="image/svg+xml" />
     <link rel="icon" href="./assets/tero-stamp.png" type="image/png" />
-    <meta property="og:title" content="tero — tus fuentes, tu criterio" />
+    <meta property="og:title" content="tero — a conversational teacher agent for Chilean classrooms" />
     <meta
       property="og:description"
-      content="Asistente pedagógico. El tero avisa. Tú decides."
+      content="Your sources, your judgment: the agent proposes, the educator decides. Strands Agents + Amazon Bedrock, official curriculum grounding, and nothing written without approval. Tus fuentes, tu criterio."
     />
     <meta property="og:image" content="./assets/tero-og.png" />
     <meta property="og:type" content="website" />
@@ -82,6 +82,27 @@
       </div>
     </div>
 
+    <footer class="judge-legend" id="judge-legend" lang="en">
+      <p class="judge-legend-title">
+        <strong>tero</strong> — a conversational teacher agent for Chilean classrooms
+        <span class="judge-legend-motto">tus fuentes, tu criterio</span>
+        <span class="judge-legend-stack">AWS Strands Agents · Amazon Bedrock · OpenTUI</span>
+      </p>
+      <p class="judge-legend-body">
+        Type a message above and watch the real terminal. It understands the intent:
+        <b>a)</b> ask something and it answers &nbsp;·&nbsp;
+        <b>b)</b> ask for material and it proposes a draft &nbsp;·&nbsp;
+        <b>c)</b> ask to change or adapt it and it versions the file.
+        It grounds content in the official MINEDUC curriculum bank, and
+        <b>writes nothing until you approve</b> — press <kbd>y</kbd> or just say
+        <em>«dale»</em>.
+      </p>
+      <p class="judge-legend-note">
+        The terminal is in Spanish because tero is built for Chilean teachers.
+        <a href="https://github.com/marcorojasb/tero">Source, docs &amp; judge guide →</a>
+      </p>
+    </footer>
+
     <nav class="sr-only" aria-label="Escenas de la sesión conversacional">
       <p>
         tero conversa: entiende la intención de tu mensaje y actúa. Responde,
@@ -147,6 +168,13 @@
       <p>
         Código: <a href="https://github.com/marcorojasb/tero">github.com/marcorojasb/tero</a>
       </p>
+      <div class="judge-context" lang="en">
+        <p><strong>Agents for Humans AWS Hackathon — Judge Context:</strong></p>
+        <p>
+          tero is a conversational teacher agent built on the <strong>AWS Strands Agents SDK</strong> and <strong>Amazon Bedrock</strong> for Chilean K-12 classrooms.
+          The model never writes files directly: it explores local dossiers (<code>fuentes/</code>) and queries the official MINEDUC curriculum database (<em>begonia</em>), proposing lesson plans and special education (Decreto 83 NEE) accommodations in memory. The teacher approves conversationally (e.g. saying <em>«dale»</em> or pressing <em>y</em>), and only host-side code writes to <code>derivados/</code>. Protected by Chile's Ley 21.719 student privacy guard.
+        </p>
+      </div>
     </section>
 
     <script src="./tui-grid.js?v=conversacional"></script>

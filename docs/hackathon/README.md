@@ -1,46 +1,45 @@
-# Agents for Humans — pack de postulación
+# Agents for Humans — submission pack
 
-Cierre: **lunes 14 septiembre 2026, 17:00 PDT**.
-Créditos USD 50: formulario hasta **viernes 11 sep 2026, 12:00 PT**.
+Deadline: **Monday, September 14, 2026, 17:00 PDT** (21:00 Chile continental).
+USD 50 credits form: closed (credits fully disbursed as of 2026-09-11).
 
-Cómo no gastar de más: [../AWS-GRATIS.md](../AWS-GRATIS.md).
+How not to overspend: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 
-## Estado
+## Status
 
-- [x] Repo público MIT: <https://github.com/marcorojasb/tero>
-- [x] README + arquitectura en el repo
-- [x] Inscrito en Devpost (submission empezado)
-- [x] Cuenta AWS Free plan (us-east-1)
-- [ ] Pedir USD 50 si el form sigue abierto: <https://forms.gle/6sjzKiX6bKUMA5NEA>
-- [ ] Builder ID: <https://profile.aws.amazon.com>
-- [ ] Pegar texto Devpost: [DEVPOST.md](DEVPOST.md)
-- [ ] Subir diagrama: [architecture.png](architecture.png)
-- [ ] Video ≤ 5 min (YouTube o Vimeo público): [VIDEO.md](VIDEO.md)
-- [ ] Live demo: <https://marcorojasb.github.io/tero/> (si 404, enciende Pages)
-- [ ] Post bonus `#AgentsforHumans`: [BUILDER-POST.md](BUILDER-POST.md)
-- [ ] About del repo: Homepage = Pages; topics `strands-agents`, `amazon-bedrock`
+- [x] Public MIT repo: <https://github.com/marcorojasb/tero>
+- [x] README, ARCHITECTURE and benchmark paper in English
+- [x] Registered on Devpost (submission started)
+- [x] AWS account, `us-east-1`
+- [x] Repo About: Homepage = Pages; topics `strands-agents`, `amazon-bedrock`
+- [ ] AWS Builder ID: <https://profile.aws.amazon.com>
+- [ ] Paste Devpost text: [DEVPOST.md](DEVPOST.md)
+- [ ] Upload diagram: [architecture.png](architecture.png)
+- [ ] Video ≤ 5 min (public YouTube or Vimeo): [VIDEO.md](VIDEO.md)
+- [ ] Live demo: <https://marcorojasb.github.io/tero/> (if 404, enable Pages)
+- [ ] Bonus post: [BUILDER-POST.md](BUILDER-POST.md)
 
-## Archivos
+## Files
 
-| Archivo | Para |
+| File | Purpose |
 | --- | --- |
-| [JUDGES-EN.md](JUDGES-EN.md) | **Guía de jueces en inglés**: qué es / qué no es, puerta humana, uso de AWS, track A offline y B Bedrock con salidas reales, y tests. |
-| [DEVPOST.md](DEVPOST.md) | Descripción EN para jueces (copiar/pegar) |
-| [VIDEO.md](VIDEO.md) | Guion ≤ 5 min |
-| [BUILDER-POST.md](BUILDER-POST.md) | Artículo Builder Center |
-| [harness-playground.md](harness-playground.md) | Qué pegar en AgentCore (sketch, no el producto) |
-| [architecture.png](architecture.png) | Diagrama para Devpost (regenerar: `python docs/hackathon/render_architecture.py`) |
-| [architecture.svg](architecture.svg) | Misma arquitectura en vector |
-| [iam-bedrock-minimo.json](iam-bedrock-minimo.json) | IAM lean |
-| [budget-tero.json](budget-tero.json) | Alerta de gasto |
+| [JUDGES-EN.md](JUDGES-EN.md) | **English judge guide**: what tero is / is not, trust model, AWS usage, official curriculum bank, Ley 21.719 privacy, Decreto 83 NEE, Track A offline + Track B Bedrock with real outputs, and what "green" means. |
+| [DEVPOST.md](DEVPOST.md) | English submission text (copy/paste). |
+| [VIDEO.md](VIDEO.md) | ≤ 5 min script covering the three intents. |
+| [BUILDER-POST.md](BUILDER-POST.md) | Builder Center article. |
+| [harness-playground.md](harness-playground.md) | Optional AgentCore sketch (not the product). |
+| [architecture.png](architecture.png) | Diagram for Devpost (regenerate: `python docs/hackathon/render_architecture.py`). |
+| [architecture.svg](architecture.svg) | Same architecture, vector. |
+| [iam-bedrock-minimo.json](iam-bedrock-minimo.json) | Lean IAM policy. |
+| [budget-tero.json](budget-tero.json) | Spend alert. |
 
 ## Track
 
-**Professional Agents.** El usuario primario es una o un docente, no un
-curso entero (eso sería Good Neighbor). El brief de Devpost nombra a
-teachers que convierten una clase en material para treinta alumnas.
+**Professional Agents.** The primary user is a teacher, not a whole school
+distribution (that would be Good Neighbor). The Devpost brief names teachers who
+turn one class into material for thirty students.
 
-## Lo que el juez tiene que poder hacer
+## What a judge must be able to do
 
 ```bash
 git clone https://github.com/marcorojasb/tero.git
@@ -50,4 +49,11 @@ pip install -e ".[dev]"
 python -m tero demo --offline --yes
 ```
 
-Bedrock es opcional. Si hay keys: `python -m tero tui` con Nova Lite.
+Bedrock is optional. With keys: `python -m tero tui` using Nova Lite.
+
+## Language policy
+
+The **product** (TUI, CLI output, generated classroom artifacts) is in **Spanish**,
+because tero is built for Chilean teachers. Everything judge-facing — this pack,
+the README, ARCHITECTURE, the benchmark paper and the judge guide — is in
+**English**.
