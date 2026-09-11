@@ -444,27 +444,44 @@ function frameToHtml(frame: FrameDump): string {
           return `<span style="color:${fg};background:${bg};${bold}">${text}</span>`
         })
         .join("")
-      return `<div class="row">${inner}</div>`
+      return `<div class="tui-row">${inner}</div>`
     })
     .join("\n")
   return `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>tero OpenTUI · ${frame.name}</title>
-  <style>
-    html, body { margin: 0; background: ${theme.bg}; }
-    .grid {
-      font: 13px/1.2 "IBM Plex Mono", ui-monospace, monospace;
-      white-space: pre;
-      letter-spacing: 0;
-      padding: 0;
-    }
-    .row { height: 1.2em; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../../../styles.css?v=window-tero"/>
 </head>
-<body>
-  <div class="grid">${rows}</div>
+<body data-offline-model="tero-offline">
+  <div class="window" id="app">
+    <header class="window-chrome">
+      <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="window-title">tero</span>
+      <span class="window-path">~/tero</span>
+    </header>
+    <div class="tui-host" id="tui-host">
+      <div id="tui-grid" class="tui-grid">${rows}</div>
+    </div>
+  </div>
+  <script src="../../../tui-grid.js?v=window-tero"></script>
+  <script>
+    (function () {
+      const host = document.getElementById("tui-host");
+      const grid = document.getElementById("tui-grid");
+      const fit = function () {
+        if (window.teroTui) window.teroTui.fitHost(host, grid, ${frame.cols}, ${frame.rows});
+      };
+      fit();
+      window.addEventListener("resize", fit);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    })();
+  </script>
 </body>
 </html>
 `
@@ -481,7 +498,22 @@ async function main() {
     writeFileSync(join(outDir, `${dump.name}.html`), frameToHtml(dump))
     index.push({ name: dump.name, cols: dump.cols, rows: dump.rows })
     gallery.push(
-      `<section><h2>${dump.name} · ${dump.cols}×${dump.rows}</h2>${frameToHtml(dump).match(/<div class="grid">[\s\S]*<\/div>/)![0]}</section>`,
+      `<section><h2>${dump.name} · ${dump.cols}×${dump.rows}</h2><div class="tui-grid">${dump.lines
+        .map((line) => {
+          const inner = line.spans
+            .map((span) => {
+              const fg = cssColor(span.fg)
+              const bg = cssColor(span.bg)
+              const text = span.text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+              return `<span style="color:${fg};background:${bg}">${text}</span>`
+            })
+            .join("")
+          return `<div class="tui-row">${inner}</div>`
+        })
+        .join("")}</div></section>`,
     )
     console.log(`captured ${dump.name} ${dump.cols}x${dump.rows}`)
   }
