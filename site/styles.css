@@ -399,12 +399,6 @@ a {
   margin: 0 0 0.6rem;
 }
 
-.pane-title {
-  margin: 0 0 0.65rem;
-  color: var(--accent);
-  font-size: 0.72rem;
-}
-
 /* El sello REVISAR vive sobre la fotocopia: la hoja que el host escribió
    sigue pasando por el criterio del docente. */
 .stamp-label {

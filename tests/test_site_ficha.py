@@ -488,3 +488,11 @@ def test_docs_record_pr8_decision_and_index():
     assert "site/assets/tero-og.png" in readme
     assert "PUERTA-Y-PR8.md" in readme
     assert "forzar" in readme  # listed as out of scope
+
+
+def test_tero_txt_no_menciona_el_flujo_retirado():
+    """El archivo de marca no puede prometer el flujo por pasos ya retirado."""
+    marca = _read(SITE / "assets" / "tero.txt")
+    assert "s / n / b / c" not in marca
+    assert "apruebas" in marca
+    assert "Vanellus chilensis" in marca
