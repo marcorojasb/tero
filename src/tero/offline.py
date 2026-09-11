@@ -223,8 +223,19 @@ _ASK_HINTS = (
 )
 
 
+def _user_request(prompt: str) -> str:
+    """Quita el encabezado "Contexto: …" para leer solo lo que pidió la persona."""
+    blob = prompt or ""
+    if blob.lstrip().lower().startswith("contexto:"):
+        _, _, rest = blob.partition("\n\n")
+        if rest.strip():
+            return rest
+    return blob
+
+
 def _intent(prompt: str, encargo: Encargo) -> str:
     """Guion del modelo offline: responder, crear o editar (incluye NEE)."""
+    prompt = _user_request(prompt)
     folded = (prompt or "").lower()
     # Una revisión conserva la acción de la propuesta que se está corrigiendo.
     match = re.search(r"acci[oó]n esperada:\s*(crear|editar|adaptar)", folded)

@@ -176,9 +176,11 @@ class TeacherSession:
                 "encargo": self.encargo.as_dict(),
             }
         )
+        # La propuesta pendiente NO se borra aquí: si la persona pregunta algo
+        # mientras tiene una a la vista, sigue en la mesa hasta que la apruebe,
+        # la descarte o el agente entregue una nueva.
         self.ctx.pending_propuesta = None
         self.ctx.evidence = []
-        self.pending_propuesta = None
         self.workspace.ensure_index()
         try:
             self._run_turn(turn, self._user_payload(cleaned))
