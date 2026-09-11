@@ -132,17 +132,33 @@ Each model was evaluated across multiple isolated test runs using sandboxed copi
 
 ### 4.1 Quantitative Performance Matrix
 
-| Model Identifier | Pathway 1 (Inquiry) | Pathway 2 (Creation) | Pathway 3 (NEE Adapt) | Pathway 4 (Fila B Edit) | Mean Latency | Tool Precision |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`zai.glm-4.7-flash`** | **100%** (6.6s) | **100%** (12.5s) | **100%** (8.9s) | **100%** (14.3s) | **10.6s** | **High (10-16)** |
-| **`amazon.nova-lite-v1:0`** | **100%** (4.7s) | **100%** (10.6s) | **100%** (9.9s) | **100%** (15.0s) | **10.0s** | **Optimal (4-8)** |
-| **`minimax.minimax-m2.5`** | **100%** (38.5s) | **100%** (53.4s) | **100%** (32.8s) | **100%** (33.4s) | **39.5s** | **Exhaustive (10-14)** |
-| **`amazon.nova-micro-v1:0`** | **100%** (2.9s) | **100%** (5.8s) | *Partial* (8.0s) | **100%** (9.4s) | **6.5s** | **Minimal (4-6)** |
-| **`qwen.qwen3-next-80b-a3b`** | **100%** (13.9s) | **100%** (26.7s) | *Partial* (26.5s) | **100%** (20.3s) | **21.8s** | **Medium (8-14)** |
+**Sample sizes (declared explicitly).** Each evaluation unit is one full journey
+run in an isolated sandboxed copy of the same 4th-grade dossier, with a fresh
+session, fresh `derivados/`, and a deterministic prompt. Because the slowest model
+costs 30–60 s per journey, repetitions were budgeted by latency rather than fixed:
+`amazon.nova-lite-v1:0` and `zai.glm-4.7-flash` ran **N=2** per journey (plus 2
+additional smoke repetitions), `minimax.minimax-m2.5` and
+`qwen.qwen3-next-80b-a3b` **N=1**, and `amazon.nova-micro-v1:0` **N=2**. The
+percentages below are therefore *completion rates over the runs performed*, not
+confidence intervals; the latency column is a mean over those runs. We state this
+rather than presenting an unqualified mean because the small N would not support
+inferential claims.
 
-*Table 1: Benchmark results across 5 Amazon Bedrock models. Latencies represent wall-clock time from prompt delivery to host state settlement.*
+| Model Identifier | N per journey | Pathway 1 (Inquiry) | Pathway 2 (Creation) | Pathway 3 (NEE Adapt) | Pathway 4 (Fila B Edit) | Mean Latency | Tool calls (range) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`zai.glm-4.7-flash`** | 2 | **100%** (6.6s) | **100%** (12.5s) | **100%** (8.9s) | **100%** (14.3s) | **10.6s** | High (10–16) |
+| **`amazon.nova-lite-v1:0`** | 2 | **100%** (4.7s) | **100%** (10.6s) | **100%** (9.9s) | **100%** (15.0s) | **10.0s** | Optimal (4–8) |
+| **`minimax.minimax-m2.5`** | 1 | **100%** (38.5s) | **100%** (53.4s) | **100%** (32.8s) | **100%** (33.4s) | **39.5s** | Exhaustive (10–14) |
+| **`amazon.nova-micro-v1:0`** | 2 | **100%** (2.9s) | **100%** (5.8s) | *Partial* (8.0s) | **100%** (9.4s) | **6.5s** | Minimal (4–6) |
+| **`qwen.qwen3-next-80b-a3b`** | 1 | **100%** (13.9s) | **100%** (26.7s) | *Partial* (26.5s) | **100%** (20.3s) | **21.8s** | Medium (8–14) |
 
-### 4.2 Detailed Qualitative Analysis of the Top 3 Models
+*Table 1: Benchmark results across 5 Amazon Bedrock models. Latency is wall-clock
+time from prompt delivery to host state settlement. "Partial" in Pathway 3 means
+the run still produced an approvable artifact, but the structured `notas_nee`
+field was left empty, so the declared intent was only partially satisfied — see
+§5 for the failure analysis.*
+
+### 4.2 Qualitative analysis of the top three models
 
 ```
                                MODEL TRADE-OFF PROFILES
