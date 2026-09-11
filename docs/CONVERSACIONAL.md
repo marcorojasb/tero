@@ -73,6 +73,8 @@ Un objeto JSON por línea.
 | `encargo` | `encargo` | Contexto actualizado |
 | `oa_options` | `oas`, `curso`, `asignatura` | Catálogo para el contexto |
 | `exported` | `path`, `format`, `source_kind`, `source_path`, `feedback?`, `pdf?` | Tras `export` |
+| `turn` | `turn` | Estado completo del turno (útil para depurar; la TUI se guía por `respuesta`/`propuesta`) |
+| `bye` | — | El host se apaga tras `shutdown` |
 
 ### Objeto `propuesta`
 
