@@ -44,7 +44,7 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
     """Return (code, Spanish message) for Bedrock / network / generic failures.
 
     Lean path: one Strands + Bedrock stack. No AgentCore. Messages must tell the
-    teacher what to fix (creds, region, model enablement) without raw boto dumps.
+    teacher what to fix (creds, region, IAM, model id) without raw boto dumps.
     """
     if isinstance(exc, TeroError):
         return exc.code, exc.message
@@ -69,8 +69,9 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         return (
             "bedrock_model",
             f"Sin acceso al modelo en esta cuenta/región ({text[:120]}). "
-            f"En Bedrock → Model access habilita Nova Lite; "
-            f"TERO_MODEL={DEFAULT_MODEL_ID}; región us-east-1.",
+            f"Nova Lite se habilita al invocarlo (ya no hay página Model access). "
+            f"Revisa IAM bedrock:InvokeModel*, TERO_MODEL={DEFAULT_MODEL_ID}, "
+            f"región us-east-1 (o us.amazon.nova-lite-v1:0).",
         )
     if any(
         token in blob
@@ -131,8 +132,9 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         return (
             "bedrock_model",
             f"El modelo no está disponible en esta cuenta/región ({text[:140]}). "
-            f"En la consola Bedrock habilita Nova Lite, usa región us-east-1, "
-            f"y deja TERO_MODEL={DEFAULT_MODEL_ID} (o TERO_MODEL_ID).",
+            f"Nova Lite se habilita al primer invoke; no hay página Model access. "
+            f"Usa us-east-1, IAM InvokeModel*, TERO_MODEL={DEFAULT_MODEL_ID} "
+            f"(o us.amazon.nova-lite-v1:0 / TERO_MODEL_ID).",
         )
     if any(
         token in blob

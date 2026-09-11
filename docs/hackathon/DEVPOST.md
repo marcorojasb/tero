@@ -61,7 +61,7 @@ python -m tero demo --offline --yes
 
 TUI (needs Bun): `python -m tero tui --offline`
 
-Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`, enable Nova Lite in us-east-1.
+Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`. Nova Lite auto-enables on first invoke in us-east-1 (no Model access page).
 
 ### Disclosure
 

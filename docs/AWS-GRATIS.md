@@ -44,8 +44,8 @@ ni Code Interpreter.
 Checklist:
 
 1. Región **us-east-1**.
-2. [Model access](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess) → habilita **Amazon Nova Lite** (`amazon.nova-lite-v1:0`). Si pide perfil cross-region, usa `us.amazon.nova-lite-v1:0` en `TERO_MODEL`.
-3. IAM mínimo: [hackathon/iam-bedrock-minimo.json](hackathon/iam-bedrock-minimo.json) (`InvokeModel` + `InvokeModelWithResponseStream`).
+2. **No hay página Model access.** AWS la retiró: los modelos serverless (Nova Lite incluido) se habilitan solos al **primer invoke** en la cuenta. Catálogo: [Model catalog](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/model-catalog). Humo barato: [text playground](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/text-playground) → Amazon Nova Lite → un prompt. Si Strands pide inference profile, `TERO_MODEL=us.amazon.nova-lite-v1:0`. Docs: [model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
+3. IAM mínimo: [hackathon/iam-bedrock-minimo.json](hackathon/iam-bedrock-minimo.json) (`InvokeModel` + `InvokeModelWithResponseStream`). Nova es de Amazon: **no** pasa por Marketplace. El formulario de Anthropic / `aws-marketplace:Subscribe` solo aplica si invocas Claude u otro tercero — no lo hagas para ahorrar.
 4. `cp .env.example .env` → `TERO_OFFLINE=0`. Credenciales en el entorno, **nunca en git**.
 5. Presupuesto de alerta: [hackathon/budget-tero.json](hackathon/budget-tero.json) o créalo a mano en [Budgets](https://us-east-1.console.aws.amazon.com/billing/home#/budgets).
 
@@ -110,7 +110,7 @@ USD 100 más, dentro de 6 meses:
 
 | Actividad | Cómo (corto) | Riesgo |
 | --- | --- | --- |
-| Amazon Bedrock | [Text playground](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/text-playground) → Nova Lite → un prompt. | Bajo. Si ves ~USD 120, esta ya está. |
+| Amazon Bedrock | [Text playground](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/text-playground) → Nova Lite → un prompt. Ese invoke **es** el alta del modelo. | Bajo. Si ves ~USD 120, esta ya está. |
 | AWS Budgets | [Crear presupuesto](https://us-east-1.console.aws.amazon.com/billing/home#/budgets) de USD 5 con alerta al 80%. | Nulo. Hazla. |
 | AWS Lambda | Function URL hello-world y bórrala. | Bajo. |
 | Amazon EC2 | Lanza t3.micro, **termina en el mismo rato**. | Alto si se te olvida. |

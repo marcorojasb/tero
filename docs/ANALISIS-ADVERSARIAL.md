@@ -40,10 +40,12 @@ disclosure failure. Say: new stack, same thesis.
 4. **PDF.** `pypdf` extract. Scanned PDFs become `[PDF sin texto extraíble]`.
    There is no OCR.
 5. **Bedrock is the unpaid bill.** Default `amazon.nova-lite-v1:0` in
-   `us-east-1`. No account, no demo. Nova enablement, IAM
-   `InvokeModel`/`InvokeModelWithResponseStream`, and region mismatch are the
-   usual failure modes. Temperature is `TERO_TEMPERATURE` (default 0.3). There
-   is no retry/backoff UI.
+   `us-east-1`. No account, no demo. IAM
+   `InvokeModel`/`InvokeModelWithResponseStream`, region mismatch, and
+   inference-profile ids (`us.amazon.nova-lite-v1:0`) are the
+   usual failure modes. There is no Model access page to click: Nova
+   auto-enables on first invoke. Temperature is `TERO_TEMPERATURE`
+   (default 0.3). There is no retry/backoff UI.
 6. **OpenTUI needs Bun.** `python -m tero tui` fails closed if Bun is missing
    and tells you to run the CLI demo. A judge without Bun still has the
    offline CLI.

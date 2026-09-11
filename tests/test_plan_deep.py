@@ -102,6 +102,8 @@ def test_humanize_bedrock_model_and_throttle():
     )
     assert code == "bedrock_model"
     assert "Nova Lite" in msg or "TERO_MODEL" in msg
+    assert "Model access habilita" not in msg
+    assert "primer invoke" in msg or "invocarlo" in msg
 
     code, msg = humanize_exception(Fake("ThrottlingException: Rate exceeded"))
     assert code == "bedrock_throttle"

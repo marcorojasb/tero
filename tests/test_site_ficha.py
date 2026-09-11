@@ -178,6 +178,9 @@ def test_docs_record_pr8_decision_and_index():
     assert "forms.gle/6sjzKiX6bKUMA5NEA" in aws
     assert "amazon.nova-lite-v1:0" in aws
     assert "AgentCore Harness es un chat administrado" in aws
+    assert "modelaccess" not in aws
+    assert "model-catalog" in aws
+    assert "se habilitan solos" in aws
     assert (DOCS / "hackathon" / "architecture.svg").is_file()
     assert (DOCS / "hackathon" / "DEVPOST.md").is_file()
 
