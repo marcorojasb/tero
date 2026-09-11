@@ -88,6 +88,9 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
+    assert "paintFrame" in grid
+    assert "loadFrames" in js
+    assert "assets/tui/frames/" in js
 
 
 def test_ficha_assets_and_pages_workflow():

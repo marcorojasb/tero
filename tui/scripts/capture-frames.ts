@@ -83,8 +83,8 @@ function planFixture(state: AppState): AppState["plan"] {
 const shots: { name: string; width: number; height: number; state: () => AppState }[] = [
   {
     name: "home",
-    width: 120,
-    height: 36,
+    width: 140,
+    height: 40,
     state: () => ({
       ...initialState({
         curso: "",

@@ -9,6 +9,22 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const scale = reduceMotion ? 0.05 : 1;
   const Tui = window.teroTui;
+  const GRID_COLS = 140;
+  const GRID_ROWS = 40;
+  const frames = { home: null, encargo: null, plan: null, puerta: null };
+
+  function loadFrames() {
+    return Promise.all(
+      Object.keys(frames).map((name) =>
+        fetch(`./assets/tui/frames/${name}.json`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            frames[name] = data;
+          })
+          .catch(() => {}),
+      ),
+    );
+  }
 
   const state = {
     phase: "home",
@@ -258,23 +274,36 @@ python -m tero demo --offline --yes
   }
 
   function measure() {
-    const host = $("tui-host");
-    const probe = document.createElement("span");
-    probe.textContent = "00000000";
-    probe.style.cssText =
-      'position:absolute;visibility:hidden;font:13px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre;font-variant-ligatures:none';
-    host.appendChild(probe);
-    const r = probe.getBoundingClientRect();
-    probe.remove();
-    const cellW = (r.width || 64) / 8;
-    const cellH = r.height || 15.6;
-    const box = host.getBoundingClientRect();
-    const cols = Math.max(80, Math.floor(box.width / cellW) - 1);
-    const rows = Math.max(24, Math.floor(box.height / cellH) - 1);
-    state.cellW = cellW;
-    state.cellH = cellH;
-    state.cols = cols;
-    state.rows = rows;
+    const fitted = Tui.fitHost($("tui-host"), $("tui-grid"), GRID_COLS, GRID_ROWS);
+    state.cellW = fitted.cellW;
+    state.cellH = fitted.cellH;
+    state.cols = GRID_COLS;
+    state.rows = GRID_ROWS;
+  }
+
+  function frameForPhase() {
+    if (state.help) return null;
+    if (state.phase === "home") return frames.home;
+    return null;
+  }
+
+  function paint() {
+    measure();
+    const model = currentModel();
+    model.cols = GRID_COLS;
+    model.rows = GRID_ROWS;
+    state.model = model;
+    const captured = frameForPhase();
+    const painted = captured
+      ? Tui.paintFrame($("tui-grid"), captured)
+      : Tui.paint($("tui-grid"), model);
+    state.hits = painted.hits;
+    state.promptBox = painted.prompt;
+    placePrompt(painted.prompt);
+    document.body.dataset.view = model.view === "home" ? "home" : "session";
+    $("window-path").textContent = model.path || "~/carpeta-tui";
+    $("prompt").placeholder = model.placeholder;
+    $("prompt").readOnly = model.view === "puerta" || model.view === "plan";
   }
 
   function placePrompt(box) {
@@ -376,20 +405,6 @@ python -m tero demo --offline --yes
       focus: view === "puerta" ? "proposal" : "proposal",
       tagline: "tus fuentes, tu criterio",
     };
-  }
-
-  function paint() {
-    measure();
-    const model = currentModel();
-    state.model = model;
-    const painted = Tui.paint($("tui-grid"), model);
-    state.hits = painted.hits;
-    state.promptBox = painted.prompt;
-    placePrompt(painted.prompt);
-    document.body.dataset.view = model.view === "home" ? "home" : "session";
-    $("window-path").textContent = model.path;
-    $("prompt").placeholder = model.placeholder;
-    $("prompt").readOnly = model.view === "puerta" || model.view === "plan";
   }
 
   function setPhase(phase, activity) {
@@ -747,6 +762,8 @@ python -m tero demo --offline --yes
     .catch(() => {});
 
   setGateEnabled(false);
-  paint();
-  $("prompt").focus();
+  loadFrames().finally(() => {
+    paint();
+    $("prompt").focus();
+  });
 })();

@@ -456,12 +456,91 @@
     return { cols, rows, hits, prompt, layout: L };
   }
 
+  function cssRgba(c) {
+    if (!c || !c.length) return "#000";
+    const r = Math.round((c[0] <= 1 ? c[0] : c[0] / 255) * 255);
+    const g = Math.round((c[1] <= 1 ? c[1] : c[1] / 255) * 255);
+    const b = Math.round((c[2] <= 1 ? c[2] : c[2] / 255) * 255);
+    const a = c[3] == null ? 1 : c[3];
+    if (a < 0.999) return `rgba(${r},${g},${b},${a})`;
+    return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function paintFrame(el, frame) {
+    const parts = [];
+    for (const line of frame.lines) {
+      parts.push('<div class="tui-row">');
+      for (const span of line.spans) {
+        const fg = cssRgba(span.fg);
+        const bg = cssRgba(span.bg);
+        const bold = span.attributes & 1 ? "font-weight:600;" : "";
+        const text = String(span.text || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        parts.push(`<span style="color:${fg};background:${bg};${bold}">${text}</span>`);
+      }
+      parts.push("</div>");
+    }
+    el.innerHTML = parts.join("");
+    const hits = hitsFromText(frame.text || "", frame.cols);
+    const cursor = frame.cursor || [2, Math.max(0, frame.rows - 3)];
+    return {
+      cols: frame.cols,
+      rows: frame.rows,
+      hits,
+      prompt: { x: 2, y: cursor[1], w: Math.max(8, frame.cols - 4) },
+      capture: true,
+    };
+  }
+
+  function hitsFromText(text, cols) {
+    const hits = [];
+    const lines = String(text || "").split("\n");
+    lines.forEach((line, y) => {
+      RUMBOS.forEach((r) => {
+        const token = `[${r.key}] ${r.label}`;
+        const x = line.indexOf(token);
+        if (x >= 0) hits.push({ action: "rumbo", key: r.key, x, y, w: token.length, h: 1 });
+      });
+      ["s", "n", "b", "c"].forEach((key) => {
+        const token = `[${key}]`;
+        const x = line.indexOf(token);
+        if (x >= 0) hits.push({ action: "gate", key, x, y, w: Math.min(16, cols - x), h: 1 });
+      });
+    });
+    return hits;
+  }
+
+  function fitHost(host, el, cols, rows) {
+    const probe = document.createElement("span");
+    probe.textContent = "00000000";
+    probe.style.cssText =
+      'position:absolute;visibility:hidden;font:10px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre;font-variant-ligatures:none';
+    host.appendChild(probe);
+    const box = probe.getBoundingClientRect();
+    probe.remove();
+    const ratioW = box.width / 8 / 10;
+    const ratioH = box.height / 10;
+    const hostBox = host.getBoundingClientRect();
+    const fs = Math.max(
+      8,
+      Math.min(hostBox.width / (cols * ratioW), hostBox.height / (rows * ratioH)) * 0.992,
+    );
+    el.style.fontSize = `${fs}px`;
+    el.style.lineHeight = "1.2";
+    return { cellW: fs * ratioW, cellH: fs * ratioH, fontSize: fs, cols, rows };
+  }
+
   window.teroTui = {
     theme: T,
     bird: BIRD,
     rumbos: RUMBOS,
     spinner: (n) => SPINNER[n % SPINNER.length],
     paint,
+    paintFrame,
+    hitsFromText,
+    fitHost,
     clip,
   };
 })();
