@@ -95,7 +95,7 @@ def test_ficha_landing_is_the_github_page():
     assert '$("consulta").hidden = true' in js
     assert '$("prompt").readOnly' in js
     assert 'state.phase === "esperando_criterio"' in js
-    assert "const editable = inPrompt && !$(\"prompt\").readOnly" in js or "editable = inPrompt" in js
+    assert 'const editable = inPrompt && !$("prompt").readOnly' in js or "editable = inPrompt" in js
     assert "#consulta" in css
     assert "Never a second column" in css or "display: none !important" in css
     assert "paintFrame" in grid
