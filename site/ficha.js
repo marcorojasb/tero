@@ -35,7 +35,7 @@
   function loadFrames() {
     return Promise.all(
       FRAME_NAMES.map((name) =>
-        fetch(`./assets/tui/frames/${name}.json?v=in-win`)
+        fetch(`./assets/tui/frames/${name}.json?v=ave`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             frames[name] = data;

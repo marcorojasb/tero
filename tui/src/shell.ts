@@ -36,16 +36,16 @@ const syntax = SyntaxStyle.fromStyles({
   "markup.bold": { fg: theme.text, bold: true },
 })
 
-/** Compact queltehue — same bird as site/assets/tero.txt, sized for the home card. */
+/** Queltehue de perfil — cresta, ojo, carúncula y pico. Líneas al mismo ancho. */
 export const HOME_BIRD = [
-  "         ▲",
-  "        ╱│",
-  " ▄▄▄▄▄ ╱(o)*",
-  "█     █▄▀",
-  "█ ▓▓▓▓  █",
-  " ▀▄▓▓▄▄▄▀",
-  "   ║   ║",
-  "  ─┘   └─",
+  "              ▲  ",
+  "             ╱   ",
+  "       ▄▄▄▄▄╱(•)>",
+  "      █▀  ▄▄▀▀▀  ",
+  "      █  ▓▓▓  █  ",
+  "       ▀▄▄▄▄▄▀   ",
+  "         ║  ║    ",
+  "        ─┘  └─   ",
 ].join("\n")
 
 export type Shell = {

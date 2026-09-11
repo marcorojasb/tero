@@ -29,14 +29,14 @@
   };
 
   const BIRD = [
-    "         ▲",
-    "        ╱│",
-    " ▄▄▄▄▄ ╱(o)*",
-    "█     █▄▀",
-    "█ ▓▓▓▓  █",
-    " ▀▄▓▓▄▄▄▀",
-    "   ║   ║",
-    "  ─┘   └─",
+    "              ▲  ",
+    "             ╱   ",
+    "       ▄▄▄▄▄╱(•)>",
+    "      █▀  ▄▄▀▀▀  ",
+    "      █  ▓▓▓  █  ",
+    "       ▀▄▄▄▄▄▀   ",
+    "         ║  ║    ",
+    "        ─┘  └─   ",
   ];
 
   const RUMBOS = [
@@ -260,8 +260,10 @@
     const block = L.compact ? 6 : BIRD.length + 6;
     let y = y0 + Math.max(0, Math.floor((midH - block) / 2));
     if (!L.compact) {
+      const birdW = Math.max(...BIRD.map((line) => line.length));
+      const birdX = centerX(screen.cols, " ".repeat(birdW));
       for (const line of BIRD) {
-        screen.text(centerX(screen.cols, line), y, line, T.accent, T.bg);
+        screen.text(birdX, y, line, T.accent, T.bg);
         y += 1;
       }
     }
@@ -704,7 +706,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=in-win`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=ave`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;

@@ -35,6 +35,7 @@ describe("shell frames", () => {
       expect(frame).toContain("secuencia de clase")
       expect(frame).toContain("guía o actividad")
       expect(frame).toMatch(/▲/)
+      expect(frame).toContain("(•)>")
       expect(frame).not.toContain("sin encargo")
     } finally {
       setup.renderer.destroy()

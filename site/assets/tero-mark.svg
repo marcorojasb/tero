@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="tero">
-  <rect width="64" height="64" fill="#070B0C"/>
-  <g fill="#F4F1DE">
-    <rect x="12" y="14" width="40" height="8" rx="1.5"/>
-    <rect x="28" y="14" width="8" height="36" rx="1.5"/>
-  </g>
-  <rect x="12" y="52" width="8" height="6" rx="1" fill="#22D3EE"/>
-  <rect x="22" y="52" width="8" height="6" rx="1" fill="#14B8A6"/>
-  <rect x="32" y="52" width="8" height="6" rx="1" fill="#86EFAC"/>
-  <rect x="42" y="52" width="8" height="6" rx="1" fill="#A3E635"/>
+  <rect width="64" height="64" fill="#0b0d10"/>
+  <!-- queltehue de perfil: cresta hacia atrás, cabeza, pico, patas -->
+  <path d="M34 5 L41 26 L35 24 Z" fill="#82aaff"/>
+  <ellipse cx="26" cy="40" rx="16" ry="11" fill="#82aaff"/>
+  <circle cx="42" cy="32" r="7.2" fill="#9aa4b2"/>
+  <circle cx="44.2" cy="30.6" r="1.7" fill="#0b0d10"/>
+  <path d="M48.2 31.2 L59 33.2 L48.2 35.4 Z" fill="#c9a227"/>
+  <circle cx="47.2" cy="35.6" r="1.5" fill="#e06c75"/>
+  <path d="M20 51 L18 61 M30 51 L32 61" stroke="#9aa4b2" stroke-width="2.2" stroke-linecap="round" fill="none"/>
 </svg>
