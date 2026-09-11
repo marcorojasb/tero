@@ -24,6 +24,7 @@ from tero.gate import WriteResult, write_approved
 from tero.offline import OfflineModel
 from tero.prompts import system_prompt
 from tero.salvage import salvage_propuesta_from_text
+from tero.sanitize import strip_thinking_tags
 from tero.tools import DRAFT_AGENT_TURNS, DRAFT_TOOL_BUDGET, TurnContext, build_tools
 from tero.transcript import TranscriptLog
 from tero.types import Encargo, Propuesta, ProtocolPhase, Turn
@@ -206,7 +207,7 @@ class TeacherSession:
     def _run_turn(self, turn: Turn, prompt: str) -> None:
         self._set_phase("pensando")
         self.emit({"type": "status", "phase": "pensando", "detail": "pensando", "step": "turn"})
-        text = self._call_model(prompt)
+        text = strip_thinking_tags(self._call_model(prompt))
         propuesta = self.ctx.pending_propuesta
         if propuesta is None:
             propuesta = salvage_propuesta_from_text(

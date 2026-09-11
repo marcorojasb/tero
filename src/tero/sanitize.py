@@ -15,6 +15,13 @@ _TOOL_NAMES = (
     "read_source",
     "list_sources",
     "search_sources",
+    "proponer_crear",
+    "proponer_editar",
+    "buscar_banco",
+    "leer_item_banco",
+    "orientaciones_banco",
+    "list_artifacts",
+    "read_artifact",
     "draft_artifact",
     "propose_plan",
     "list_oa",
@@ -79,9 +86,19 @@ def flatten_tex_leaks(text: str) -> str:
     return out
 
 
+_THINKING = re.compile(r"<thinking>.*?(?:</thinking>|$)", flags=re.DOTALL | re.IGNORECASE)
+
+
+def strip_thinking_tags(text: str) -> str:
+    """Remove model chain-of-thought XML tags (<thinking>...</thinking>)."""
+    if not text or "<thinking" not in text.lower():
+        return text
+    return _THINKING.sub("", text).strip()
+
+
 def scrub_ficha_text(text: str) -> str:
-    """Tool traces first, then leaked TeX. Safe on ordinary Spanish prose."""
-    return flatten_tex_leaks(strip_tool_traces(text))
+    """Thinking tags first, then tool traces, then leaked TeX. Safe on ordinary Spanish prose."""
+    return flatten_tex_leaks(strip_tool_traces(strip_thinking_tags(text)))
 
 
 def strip_tool_traces_value(value: Any) -> Any:

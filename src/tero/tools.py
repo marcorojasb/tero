@@ -190,6 +190,7 @@ def build_tools(ctx: TurnContext) -> list[Any]:
         _read_artifact(ctx),
         _search_sources(ctx),
         _read_source(ctx),
+        _leer_source_alias(ctx),
         _list_oa(ctx),
         _get_oa(ctx),
         _search_oa(ctx),
@@ -321,6 +322,16 @@ def _read_source(ctx: TurnContext):
         return json.dumps(payload, ensure_ascii=False)
 
     return read_source
+
+
+def _leer_source_alias(ctx: TurnContext):
+    @tool
+    def leer_source(path: str) -> str:
+        """Alias en español de read_source: lee una fuente original de la carpeta."""
+        fn = _read_source(ctx)
+        return fn(path=path)
+
+    return leer_source
 
 
 def _list_oa(ctx: TurnContext):
