@@ -46,7 +46,7 @@ flowchart TB
     Agent[Strands Agent]
     Offline[OfflineModel tero-offline]
     Bedrock[BedrockModel]
-    Tools[list_sources / read_source (sandbox)]
+    Tools["list_sources / read_source (sandbox)"]
     Salvage[salvage prose or JSON]
     Coerce[payload contracts]
     Approve[host writes only after approval]
@@ -89,9 +89,8 @@ flowchart TB
    unknown path) are **visible and non-blocking**.
 5. Before writing, the agent shows **what it will do + a preview** and
    asks for approval in natural language. On explicit approval the
-   **host** writes `derivados/`; a draft the teacher shelves goes to
-   `borradores/`; a correction (`c`-style critique under
-   `.tero/criticas/`) triggers another pass. The model never writes files.
+   **host** writes `derivados/`; a change the teacher asks for triggers
+   another pass. The model never writes files.
 6. Re-hash originals after write. A change is a warning, never a rewrite
    of the source.
 
