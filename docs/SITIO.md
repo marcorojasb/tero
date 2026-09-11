@@ -41,6 +41,7 @@ de la demo es `tero-offline`. AgentCore no es el producto.
 | `tui/scripts/capture-frames.ts` | Vuelca frames OpenTUI (`createTestRenderer` + `captureSpans`). |
 | `tui/scripts/rasterize-frames.py` | PNG JetBrains si no hay display. |
 | `tui/scripts/screenshot-frames.py` | PNG del terminal real 140×40. |
+| `tui/scripts/compose-og.py` | OG de GitHub desde el home capturado. |
 | `site/assets/tui/frames/` | Home, help, leyendo, plan y puerta por rumbo 1–4. |
 | `site/stamp.py` | En cada Pages deploy escribe el SHA en `build-info.json`. |
 | `.github/workflows/pages.yml` | Publica `site/` desde `main`. |

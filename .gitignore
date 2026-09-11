@@ -216,7 +216,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Generated on serve / Pages deploy — tracks the git SHA in the splash.
+# Generated on serve / Pages deploy — tracks the git SHA on the landing.
 site/build-info.json
 
 # tero / bun / OpenTUI
