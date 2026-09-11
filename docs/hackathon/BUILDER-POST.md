@@ -13,9 +13,11 @@ folder: a story, OA notes, last week’s vocabulary. What they need by
 morning is a page they can photocopy — and they need to have **said
 yes** to it.
 
-**tero** is a Strands agent for that loop. The model prepares. The
-teacher decides with `s` / `n` / `b` / `c`. I built it for the AWS
-Agents for Humans hackathon, Professional Agents track.
+**tero** is a conversational Strands agent for that loop. The teacher writes in
+plain Spanish; tero answers, proposes new material, or adapts what already exists —
+always **in memory**, with a preview, and never writing until the teacher approves
+by saying *"dale"* or pressing `y`. I built it for the AWS Agents for Humans
+hackathon, Professional Agents track.
 
 ## What I refused to put on AWS
 
@@ -29,8 +31,11 @@ So the lean path is:
 - **Strands Agents SDK** on the teacher’s machine
 - **Amazon Bedrock** Nova Lite (`amazon.nova-lite-v1:0`) in `us-east-1`
 - OpenTUI for the shell
-- Host tools that only **read** (sandbox + SHA-256). `tero.gate` writes
-  `derivados/` after `s`
+- Host tools that only **read** (sandbox + SHA-256). Only `tero.gate` writes,
+  only into `derivados/`, only after approval
+- A read-only connection to the official Chilean curriculum bank (13,722 MINEDUC
+  items), so material is grounded instead of invented
+- A Ley 21.719 filter: gradebooks, rosters and health reports never reach the model
 
 An AgentCore Harness playground can hold a sketch of the system prompt.
 That is fine for a screenshot. It is not tero.
@@ -53,20 +58,20 @@ surprise (Free plan **closes** when credits hit zero).
 
 Not a chatbot that talks about pedagogy. A loop:
 
-1. list/read sources in the carpeta
-2. optional typed plan the teacher edits
-3. citations checked against the file
-4. draft artifact
-5. human gate
+1. the teacher writes a message; the agent infers the intent
+2. it reads the folder and, when configured, the official curriculum bank
+3. citations are checked against the file or the bank
+4. the artifact is proposed in memory, with a preview
+5. the teacher approves, and the host writes `derivados/`
 
-If the model writes `draft_artifact(...)` as prose, the host salvages
-it. If citations are paraphrases, the panel shows `?` and still lets
-the teacher press `s`. That is the product: prepare, don’t decide.
+If the model prints the tool call as prose, the host salvages it into a typed
+proposal. If citations are paraphrases, the panel shows `?` — and the teacher can
+still approve. That is the product: propose, and let the teacher decide.
 
 ## Links
 
 - Repo: https://github.com/marcorojasb/tero
-- Live splash: https://marcorojasb.github.io/tero/
+- Live demo: https://marcorojasb.github.io/tero/
 - Hackathon: https://agentsforhumans.devpost.com/
 
 #AgentsforHumans
