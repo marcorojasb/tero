@@ -269,8 +269,8 @@ python -m tero demo --offline --yes
     const cellW = (r.width || 64) / 8;
     const cellH = r.height || 15.6;
     const box = host.getBoundingClientRect();
-    const cols = Math.max(80, Math.floor(box.width / cellW));
-    const rows = Math.max(24, Math.floor(box.height / cellH));
+    const cols = Math.max(80, Math.floor(box.width / cellW) - 1);
+    const rows = Math.max(24, Math.floor(box.height / cellH) - 1);
     state.cellW = cellW;
     state.cellH = cellH;
     state.cols = cols;

@@ -178,6 +178,10 @@ body {
 .tui-row {
   height: 1.2em;
   display: block;
+  white-space: pre;
+  overflow: hidden;
+  width: max-content;
+  max-width: 100%;
 }
 
 .tui-row span {
