@@ -3,19 +3,28 @@
 **tus fuentes, tu criterio — el agente prepara, el o la docente decide**
 
 ```
-tero@carpeta:~
-
-preguntas
-mejores          ~~~  ola ASCII (cian / menta / lima)
-aprendizajes     tero
-reales           asistente pedagógico
-                 > Presiona Enter para comenzar
+╭─ tero ─────────────────────────────────╮
+│ offline · inicio                       │
+╰────────────────────────────────────────╯
+              ▲
+             ╱│
+      ▄▄▄▄▄ ╱(o)*     tero
+     █     █▄▀        tus fuentes, tu criterio
+     █ ▓▓▓▓  █
+      ▀▄▓▓▄▄▄▀
+        ║   ║
+       ─┘   └─
+  [1] Planificar  [2] Crear  [3] Evaluar  [4] Adaptar
+╭─ pregunta ─────────────────────────────╮
+│ Pregunta, explora o crea…              │
+╰────────────────────────────────────────╯
 ```
 
 El chrome es la **TUI**. Las hojas que tero crea —la fotocopia que sale
 mañana a la sala— aparecen al final, después de `s` o `b`. La
-[página de GitHub](https://marcorojasb.github.io/tero/) es esa sesión:
-ola ASCII, rumbos `1–4`, avisos a la vista, puerta `s` / `n` / `b` / `c`.
+[página de GitHub](https://marcorojasb.github.io/tero/) es esa sesión,
+en **una** ventana: rumbos `1–4`, avisos a la vista, puerta `s` / `n` /
+`b` / `c`.
 Si el link da 404, enciende Pages una vez en
 [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages)
 (Source **GitHub Actions**) y re-ejecuta el workflow `pages` — el token
@@ -23,7 +32,7 @@ de Actions no puede crear el sitio. Detalle: [docs/SITIO.md](docs/SITIO.md).
 El modelo de la demo en el sitio es `tero-offline` (Strands scripted).
 No finge Bedrock. AgentCore no es el producto.
 
-![Splash tero: terminal, ola ASCII, wordmark pixel](site/assets/tero-og.png)
+![TUI de tero: home OpenTUI con queltehue y rumbos](site/assets/tero-og.png)
 
 Teacher agent for [Agents for Humans](https://aws.amazon.com/): AWS
 **Strands** behind a dense **OpenTUI** shell (same TUI family as
@@ -77,8 +86,8 @@ OpenTUI (needs [Bun](https://bun.sh)):
 python -m tero tui --offline
 ```
 
-**Home first:** brand `tero`, four rumbos (`1` Planificar · `2` Crear ·
-`3` Evaluar · `4` Adaptar), hero *Pregunta, explora o crea…*. Chips
+**Home first:** queltehue ASCII, brand `tero`, four rumbos (`1` Planificar · `2` Crear ·
+`3` Evaluar · `4` Adaptar), prompt *Pregunta, explora o crea…*. Chips
 appear after a rumbo or prompt.
 
 **Keys:** **`s`** sí → `derivados/` · **`n`** no · **`b`** borrador ·

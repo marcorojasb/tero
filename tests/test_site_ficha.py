@@ -1,4 +1,4 @@
-"""The public GitHub page is a TUI session, not an AgentCore hero."""
+"""The public GitHub page is one OpenTUI window, not an AgentCore hero."""
 
 from __future__ import annotations
 
@@ -43,19 +43,31 @@ def test_ficha_landing_is_the_github_page():
     assert "hojas/guia-sistemas" in js or "guia-sistemas/p1.png" in js
 
     assert "--tui-bg: #0b0d10" in css
-    assert "--tui-accent: #22d3ee" in css
-    assert 'id="splash"' in html
-    assert 'id="wave"' in html
-    assert "Presiona Enter para comenzar" in html
+    assert "--tui-accent: #82aaff" in css
+    assert "--accent: #82aaff" in css
+    assert 'id="tui-grid"' in html
+    assert 'id="app"' in html
+    assert "window-chrome" in html
+    assert "window-chrome sr-only" in html
+    assert "term-chrome" not in html
+    assert 'id="splash"' not in html
+    assert 'id="wave"' not in html
+    assert "wave.js" not in html
+    assert not (SITE / "wave.js").exists()
     assert "asistente pedagógico" in html
     assert "Vanellus chilensis" in html
     assert "queltehue" in html
     assert "El tero avisa" in html
-    assert "IBM Plex Mono" in css
+    assert "JetBrains Mono" in css
     assert ".hoja-frame" in css
     assert "photocopied" in css.lower()
-    header = "\n".join(css.splitlines()[:6]).lower()
-    assert "brand" in header or "terminal" in header or "tui" in header
+    header = "\n".join(css.splitlines()[:8]).lower()
+    assert "opentui" in header or "tui" in header
+    assert html.count("window-chrome") == 1
+    grid = _read(SITE / "tui-grid.js")
+    assert "#82aaff" in grid
+    assert "╭" in grid
+    assert "Planificar" in grid
 
     assert "WARNINGS_BLOCK_S = false" in js
     assert "function canAccept" in js
@@ -76,6 +88,59 @@ def test_ficha_landing_is_the_github_page():
     assert "vos decidís" not in js
     assert "Get started" not in html
     assert "Sign up" not in html
+    assert "enterSession" not in js
+    assert 'id="session"' not in html
+    assert "tui-grid.js" in html
+    assert "styles.css?v=in-win" in html
+    assert "tui-grid.js?v=in-win" in html
+    assert "ficha.js?v=in-win" in html
+    assert "left: var(--cell-w, 10px)" in css
+    assert "top: var(--cell-h, 24px)" in css
+    assert "left: 8%" not in css
+    assert 'host.style.setProperty("--cell-w"' in js
+    assert "min-height: calc(100vh" not in css
+    assert "0 24px 70px" not in css
+    assert "border-radius: 10px" not in css
+    assert "background: var(--tui-bg)" in css
+    assert '$("consulta").hidden = false' not in js
+    assert '$("consulta").hidden = true' in js
+    assert '$("prompt").readOnly' in js
+    assert 'state.phase === "esperando_criterio"' in js
+    assert 'const editable = inPrompt && !$("prompt").readOnly' in js or "editable = inPrompt" in js
+    assert "#consulta" in css
+    assert "Never a second column" in css or "display: none !important" in css
+    assert "paintFrame" in grid
+    assert "paintShot" in grid
+    assert "drawWindow" in grid
+    assert "innerX" in grid
+    assert "promptBoxFromFrame" in grid
+    assert "viewportBudget" in grid
+    assert "innerHeight - 96" not in grid
+    assert "paddingLeft" in grid
+    assert 'scale >= 0.999 ? "pixelated"' in grid
+    assert "html,\nbody {\n  margin: 0;\n  min-height: 100%;\n  overflow: hidden;\n}" in css
+    assert "padding: 12px" in css
+    assert "justify-content: flex-start" in css
+    assert ".window-chrome.sr-only" in css
+    assert "image-rendering: pixelated" in css
+    assert ".tui-prompt:not(.is-typing)" in css
+    assert "loadFrames" in js
+    assert "assets/tui/frames/" in js
+    assert "?v=in-win" in js or "in-win" in js
+    assert "plan-2" in js
+    assert "puerta-2" in js
+    assert "leyendo-2" in js
+    assert "frames.help" in js
+    assert "~/carpeta-tui" not in html
+    assert 'id="window-path"' in html
+    assert "blitCanvas" in grid
+    assert "createImageBitmap" in grid
+    assert "colorSpaceConversion" in grid
+    assert 'id="tui-shot"' in html
+    assert ".tui-shot-src" in css
+    assert '$("tui-canvas")' in js
+    assert "~/tero" in html
+    assert '$("window-path").textContent = "~/tero"' in js or 'textContent = "~/tero"' in js
 
 
 def test_ficha_assets_and_pages_workflow():
@@ -85,14 +150,55 @@ def test_ficha_assets_and_pages_workflow():
     assert (SITE / "assets" / "tero-wordmark.svg").is_file()
     assert (SITE / "assets" / "tero.txt").is_file()
     assert (SITE / "brand.json").is_file()
-    assert (SITE / "wave.js").is_file()
+    assert (SITE / "tui-grid.js").is_file()
     assert (SITE / "stamp.py").is_file()
     brand = _read(SITE / "brand.json")
-    assert "22D3EE" in brand
+    assert "82AAFF" in brand
     assert "Vanellus chilensis" in brand
     mark = _read(SITE / "assets" / "tero.txt")
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
+    home_html = _read(SITE / "assets" / "tui" / "frames" / "home.html")
+    assert "window-chrome sr-only" in home_html
+    assert 'class="traffic"' not in home_html
+    assert "tui-grid.js" in home_html
+    assert "fitHost" in home_html
+    home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
+    home_lines = [line for line in home_frame.splitlines() if line]
+    assert home_lines[0].startswith("╭─ tero")
+    assert home_lines[-1].startswith("╰")
+    assert "examples/carpeta-demo" in home_lines[-1]
+    assert not home_lines[2].startswith("╰")
+    assert "[1] Planificar" in home_frame
+    assert "tus fuentes, tu criterio" in home_frame
+    assert "secuencia de clase" in home_frame
+    assert "5 fuentes" in home_frame
+    assert "recientes" in home_frame
+    puerta_lines = [
+        line
+        for line in _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt").splitlines()
+        if line
+    ]
+    assert puerta_lines[0].startswith("╭─ tero")
+    assert puerta_lines[-1].startswith("╰")
+    assert "examples/carpeta-demo" in puerta_lines[-1]
+    help_frame = _read(SITE / "assets" / "tui" / "frames" / "help.txt")
+    assert "Rumbos" in help_frame
+    assert "tero-offline" in help_frame or "cierra" in help_frame.lower()
+    puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
+    assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
+    guia_puerta = _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt")
+    assert "guía" in guia_puerta.lower() or "sistemas" in guia_puerta.lower()
+    assert "cóndor" not in guia_puerta.lower()
+    leyendo = _read(SITE / "assets" / "tui" / "frames" / "leyendo-2.txt")
+    assert "leyendo" in leyendo.lower()
+    theme = _read(SITE / "assets" / "tui" / "frames" / "theme.json")
+    assert "#82aaff" in theme
+    assert "#0b0d10" in theme
+    assert "#4c566a" in theme
+    css = _read(SITE / "styles.css")
+    assert "--border: #4c566a" in css
+    assert 'border: "#4c566a"' in _read(SITE / "tui-grid.js")
     for folder, n in (
         ("plan", 3),
         ("guia-sistemas", 3),
@@ -103,6 +209,17 @@ def test_ficha_assets_and_pages_workflow():
             path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
             assert path.is_file(), path
             assert path.stat().st_size > 10_000
+    frames_dir = SITE / "assets" / "tui" / "frames"
+    for html_path in frames_dir.glob("*.html"):
+        if html_path.name == "gallery.html":
+            continue
+        frame_html = _read(html_path)
+        assert "window-chrome sr-only" in frame_html, html_path.name
+        assert 'class="traffic"' not in frame_html, html_path.name
+    for shot in ("home", "help", "puerta-2", "plan-2", "leyendo-2"):
+        png = frames_dir / f"{shot}.png"
+        assert png.is_file(), png
+        assert png.stat().st_size > 8_000
     assert (SITE / "assets" / "tui" / "puerta.webp").is_file()
     assert (SITE / "404.html").is_file()
     not_found = _read(SITE / "404.html")
@@ -122,9 +239,21 @@ def test_ficha_assets_and_pages_workflow():
     assert "marcorojasb.github.io/tero" in sitio
     assert "queltehue" in sitio.lower()
     assert "stamp.py" in sitio
-    assert "wave.js" in sitio
+    assert "tui-grid.js" in sitio
+    assert "capture-frames" in sitio
+    assert "compose-og" in sitio
+    assert "una sola ventana" in sitio.lower() or "una ventana" in sitio.lower()
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
+    agents = _read(ROOT / "AGENTS.md")
+    assert "splash + ASCII wave" not in agents
+    assert "OpenTUI" in agents
+    arch = _read(ROOT / "ARCHITECTURE.md")
+    assert "not a splash wave" in arch.lower()
+    assert "OpenTUI of tero" in arch
+    contrib = _read(ROOT / "CONTRIBUTING.md")
+    assert "ola ASCII" not in contrib
+    assert "OpenTUI" in contrib
 
 
 def test_ficha_serve_maps_missing_path_to_extraviada_sheet():

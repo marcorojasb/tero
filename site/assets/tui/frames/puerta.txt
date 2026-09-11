@@ -1,0 +1,40 @@
+╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ offline · puerta · 3 fuentes                                                                                                             │
+│ [ planificar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ planificacion ]                                         │
+│╭─ ▸ propuesta ──────────────────────────────────────────────────────────────────────────────────────╮╭─ evidencia ──────────────────────╮│
+││ # Planificación                                                                                    ││ ▸ 1/2  ✓ en archivo              ││
+││                                                                                                    ││   fuentes/cuento-el-condor-y-el- ││
+││ ## Objetivo                                                                                        ││ huemul.md                        ││
+││ Extraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que ││   desarrollo                     ││
+││ el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).                             ││   “El cóndor afirma ver el mar   ││
+││                                                                                                    ││   desde la cornisa”              ││
+││ Inicio pregunta. Desarrollo lectura. Cierre ticket.                                                ││                                  ││
+││                                                                                                    ││   2/2  ?  fuentes/bases-oa-      ││
+││                                                                                                    ││ lenguaje-4b.md                   ││
+││                                                                                                    ││     OA 4                         ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││ avisos (no bloquean)             ││
+││                                                                                                    ││ ! Hay parafraseo del cuento. No  ││
+││                                                                                                    ││ lo trates como cita literal.     ││
+││                                                                                                    ││                                  ││
+││                                                                                                    ││                                  ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────╯│
+│╭─ plan · p detalle ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ planificación · cuento                                                                                                                 ││
+││                                                                                                                                        ││
+││ Extraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.                                                ││
+│╰─4° básico · OA 4 · 45 min                                                                                                             ─╯│
+│╭─ puerta ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ [s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/2                                                                       ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ encargo ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ teclas arriba · o crítica con c                                                                                                        ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ tu turno                                                                                                                                 │
+╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
