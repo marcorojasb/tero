@@ -1,22 +1,23 @@
 import type {
   Activity,
+  CardStatus,
   ClientMessage,
   Encargo,
   Evidence,
   HostEvent,
+  Mensaje,
   OAOption,
   Phase,
-  Plan,
-  PlanQuestion,
+  Propuesta,
+  PropuestaAccion,
   RecentSession,
-  TurnSummary,
+  ThreadRole,
   WarningItem,
 } from "./protocol.ts"
 
-export type UiMode = "prompt" | "critique" | "assumption" | "clarify"
-export type FocusPanel = "session" | "proposal" | "evidence"
-export type Screen = "home" | "workspace"
-export const FOCUS_PANELS: FocusPanel[] = ["session", "proposal", "evidence"]
+export type FocusPanel = "hilo" | "propuesta" | "evidencia"
+export type Screen = "home" | "conversacion"
+export const FOCUS_PANELS: FocusPanel[] = ["hilo", "propuesta", "evidencia"]
 
 export type AppState = {
   ready: boolean
@@ -25,95 +26,88 @@ export type AppState = {
   carpeta: string
   phase: Phase
   encargo: Encargo
-  turns: TurnSummary[]
+  /** Hilo de conversación: persona, agente y notas del host. */
+  messages: Mensaje[]
+  /** Texto en streaming del turno en curso (`delta`). */
+  streaming: string
+  /** Última propuesta del agente (pendiente, escrita o descartada). */
+  card: Propuesta | null
+  cardId: string
+  cardStatus: CardStatus | ""
+  writtenPath: string
+  writtenAccion: string
   activities: Activity[]
-  proposal: string
-  proposalTitle: string
-  evidence: Evidence[]
   warnings: WarningItem[]
-  plan: Plan | null
   help: boolean
   statusLine: string
   lastError: string
   errorCode: string
   retryable: boolean
-  uiMode: UiMode
   lastPath: string
+  lastExport: string
   evidenceIndex: number
   focusPanel: FocusPanel
   sourceCount: number
   changedCount: number
-  planPinned: boolean
-  /** Full plan card outside plan-wait phases (toggle with p). */
-  planDetail: boolean
   screen: Screen
   recentSessions: RecentSession[]
-  question: PlanQuestion | null
   thinking: boolean
   thinkingLabel: string
   spinnerFrame: number
   compact: boolean
-  assumptionEditId: string
-  lastExport: string
   started: boolean
   oaOptions: OAOption[]
   oaHint: string
+  /** Correlativo local para ids de mensajes del hilo. */
+  seq: number
 }
 
 export function initialState(encargo: Encargo): AppState {
-  const hasChips = Boolean(encargo.curso || encargo.asignatura || encargo.oa || encargo.rumbo)
+  const hasContext = Boolean(encargo.curso || encargo.asignatura || encargo.oa || encargo.tema)
   return {
     ready: false,
     mode: "…",
     model: "…",
     carpeta: "",
-    phase: "home",
-    encargo: hasChips ? encargo : { curso: "", asignatura: "", oa: "", duracion: "", tipo: null },
-    turns: [],
+    phase: "idle",
+    encargo: hasContext ? encargo : { curso: "", asignatura: "", oa: "", duracion: "", tipo: null },
+    messages: [],
+    streaming: "",
+    card: null,
+    cardId: "",
+    cardStatus: "",
+    writtenPath: "",
+    writtenAccion: "",
     activities: [],
-    proposal: "",
-    proposalTitle: "",
-    evidence: [],
     warnings: [],
-    plan: null,
     help: false,
-    statusLine: "elige rumbo o escribe",
+    statusLine: "escribe lo que necesitas",
     lastError: "",
     errorCode: "",
     retryable: false,
-    uiMode: "prompt",
     lastPath: "",
+    lastExport: "",
     evidenceIndex: 0,
-    focusPanel: "proposal",
+    focusPanel: "propuesta",
     sourceCount: 0,
     changedCount: 0,
-    planPinned: false,
-    planDetail: false,
     screen: "home",
     recentSessions: [],
-    question: null,
     thinking: false,
     thinkingLabel: "",
     spinnerFrame: 0,
     compact: false,
-    assumptionEditId: "",
-    lastExport: "",
     started: false,
     oaOptions: [],
     oaHint: "",
+    seq: 0,
   }
 }
 
 export const PHASE_LABEL: Record<Phase, string> = {
   idle: "listo",
-  home: "inicio",
-  leyendo: "leyendo",
-  proponiendo_plan: "plan…",
-  esperando_clarificacion: "clarificar",
-  esperando_plan: "plan",
-  escribiendo: "borrador…",
-  esperando_criterio: "puerta",
-  exportando: "export…",
+  pensando: "pensando",
+  esperando_aprobacion: "tu decisión",
   listo: "listo",
   error: "error",
 }
@@ -125,25 +119,23 @@ export const TOOL_LABEL: Record<string, string> = {
   list_oa: "OA lista",
   get_oa: "OA",
   search_oa: "OA busca",
-  propose_plan: "plan",
-  plan: "plan",
   cite_evidence: "cita",
-  draft_artifact: "borrador",
-  draft: "borrador",
+  proponer_crear: "propuesta",
+  proponer_editar: "propuesta",
   host: "host",
 }
 
-export const RUMBOS = [
-  { id: "planificar", key: "1", label: "Planificar", hint: "secuencia de clase" },
-  { id: "crear", key: "2", label: "Crear", hint: "guía o actividad" },
-  { id: "evaluar", key: "3", label: "Evaluar", hint: "prueba o pauta" },
-  { id: "adaptar", key: "4", label: "Adaptar", hint: "ajustar material" },
-] as const
+/** Etiqueta legible de la acción de una propuesta. */
+export function accionLabel(accion: string): string {
+  if (accion === "editar") return "editar"
+  if (accion === "adaptar") return "adaptar (NEE)"
+  return "crear"
+}
 
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
 export function spinnerGlyph(frame: number): string {
-  return SPINNER[frame % SPINNER.length]
+  return SPINNER[frame % SPINNER.length] ?? "⠋"
 }
 
 export function shortPath(path: string): string {
@@ -166,17 +158,11 @@ export function shortModel(model: string): string {
   return leaf.length > 28 ? `${leaf.slice(0, 27)}…` : leaf
 }
 
-/** Plan card shows full detail during plan wait, or when planDetail is on. */
-export function planShowsDetail(state: AppState): boolean {
-  if (state.phase === "esperando_plan" || state.phase === "esperando_clarificacion") return true
-  return state.planDetail
-}
-
 export function applyHostEvent(state: AppState, event: HostEvent): AppState {
   const next = {
     ...state,
     activities: [...state.activities],
-    turns: [...state.turns],
+    messages: [...state.messages],
     warnings: [...state.warnings],
   }
   switch (event.type) {
@@ -185,6 +171,7 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       next.mode = String(event.mode ?? next.mode)
       next.model = String(event.model ?? next.model)
       next.carpeta = String(event.carpeta ?? next.carpeta)
+      appendTranscript(next, event.transcript)
       next.statusLine =
         next.mode === "offline" ? "listo · offline" : `listo · ${shortModel(next.model)}`
       break
@@ -198,61 +185,125 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       if (Array.isArray(event.sessions)) {
         next.recentSessions = event.sessions as RecentSession[]
       }
+      appendTranscript(next, event.transcript)
       if (!next.started) {
-        next.screen = "home"
-        next.phase = "home"
+        next.phase = "idle"
         next.statusLine = next.sourceCount
-          ? `${next.sourceCount} fuente${next.sourceCount === 1 ? "" : "s"}`
-          : "elige rumbo o escribe"
+          ? `${next.sourceCount} fuente${next.sourceCount === 1 ? "" : "s"} en la carpeta`
+          : "escribe lo que necesitas"
       }
       break
     case "status": {
-      next.phase = (event.phase as Phase) || next.phase
+      const phase = normalizePhase(event.phase)
+      if (phase) next.phase = phase
       const detail = event.detail ? String(event.detail) : ""
-      const progress = event.progress ? String(event.progress) : ""
-      const step = event.step ? String(event.step) : ""
-      // Quiet status during HITL waits — action keys live in the gate strip.
-      if (
-        next.phase === "esperando_plan" ||
-        next.phase === "esperando_clarificacion" ||
-        next.phase === "esperando_criterio"
-      ) {
-        next.statusLine =
-          next.phase === "esperando_plan"
-            ? "plan listo"
-            : next.phase === "esperando_clarificacion"
-              ? "clarificar"
-              : "tu turno"
-      } else {
-        const label = [progress && `${progress}`, detail || PHASE_LABEL[next.phase] || next.phase]
-          .filter(Boolean)
-          .join(" · ")
-        next.statusLine = label
-      }
-      if (
-        next.phase === "leyendo" ||
-        next.phase === "proponiendo_plan" ||
-        next.phase === "escribiendo"
-      ) {
+      if (next.phase === "pensando") {
+        next.thinking = true
+        next.thinkingLabel = detail || "pensando"
+        next.statusLine = detail || "pensando…"
         next.lastError = ""
         next.errorCode = ""
-        next.thinking = true
-        next.thinkingLabel = step === "draft_retry"
-          ? "reintento borrador"
-          : detail || PHASE_LABEL[next.phase]
-        next.screen = "workspace"
+        next.screen = "conversacion"
         next.started = true
-      } else if (
-        next.phase === "esperando_plan" ||
-        next.phase === "esperando_clarificacion" ||
-        next.phase === "esperando_criterio" ||
-        next.phase === "idle" ||
-        next.phase === "listo" ||
-        next.phase === "home"
-      ) {
+      } else {
         next.thinking = false
         next.thinkingLabel = ""
+        if (next.phase === "esperando_aprobacion") next.statusLine = "tu decisión: y / n"
+        else if (next.phase === "error") next.statusLine = next.lastError || "error"
+        else if (detail) next.statusLine = detail
       }
+      break
+    }
+    case "delta":
+      if (typeof event.text === "string" && event.text) {
+        next.streaming = next.streaming + event.text
+        next.thinking = true
+        next.thinkingLabel = "escribiendo…"
+        next.statusLine = `${spinnerGlyph(next.spinnerFrame)} escribiendo…`
+        next.screen = "conversacion"
+        next.started = true
+      }
+      break
+    case "respuesta": {
+      const text = String(event.texto ?? "")
+      next.streaming = ""
+      next.thinking = false
+      next.thinkingLabel = ""
+      next.screen = "conversacion"
+      next.started = true
+      next.phase = "idle"
+      if (text) appendMessage(next, { id: eventId(event, next), role: "agente", text })
+      next.statusLine =
+        next.card && next.cardStatus === "pendiente"
+          ? "respuesta · la propuesta sigue pendiente"
+          : ""
+      break
+    }
+    case "propuesta": {
+      const card = normalizePropuesta(event.propuesta)
+      next.streaming = ""
+      next.thinking = false
+      next.thinkingLabel = ""
+      next.screen = "conversacion"
+      next.started = true
+      if (card) {
+        next.card = card
+        next.cardId = String(event.id ?? "")
+        next.cardStatus = "pendiente"
+        next.evidenceIndex = 0
+        next.phase = "esperando_aprobacion"
+        next.statusLine = "tu decisión: y aprueba · n descarta · o escribe"
+      }
+      break
+    }
+    case "aprobacion": {
+      const decision = String(event.decision ?? "")
+      const note = event.note ? String(event.note) : ""
+      const suffix = note ? ` · ${note}` : ""
+      if (decision === "descartar") {
+        next.cardStatus = next.card ? "descartado" : ""
+        next.phase = "idle"
+        next.thinking = false
+        next.statusLine = "descartado · no se escribió nada"
+        appendMessage(next, {
+          id: eventId(event, next),
+          role: "host",
+          text: `descartado${suffix} · no se escribió nada`,
+        })
+      } else {
+        next.cardStatus = next.card ? "aprobado" : ""
+        next.phase = "pensando"
+        next.thinking = true
+        next.thinkingLabel = "escribiendo"
+        next.statusLine = `aprobado${suffix} · escribiendo…`
+        appendMessage(next, {
+          id: eventId(event, next),
+          role: "host",
+          text: `aprobado${suffix} · escribiendo…`,
+        })
+      }
+      break
+    }
+    case "escrito": {
+      const path = String(event.path ?? "")
+      const accion = String(event.accion ?? "")
+      next.cardStatus = next.card ? "escrito" : ""
+      next.phase = "listo"
+      next.thinking = false
+      next.thinkingLabel = ""
+      next.lastPath = path
+      next.writtenPath = path
+      next.writtenAccion = accion
+      next.screen = "conversacion"
+      next.started = true
+      next.statusLine = `escrito · ${accionLabel(accion)} · ${shortPath(path)}`
+      appendMessage(next, {
+        id: eventId(event, next),
+        role: "host",
+        text: `escrito · ${accionLabel(accion)}`,
+        path,
+        accion,
+      })
       break
     }
     case "activity": {
@@ -276,162 +327,10 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       }
       break
     }
-    case "delta":
-      if (typeof event.text === "string" && event.text) {
-        next.thinking = true
-        next.thinkingLabel = "modelo · generando…"
-        next.statusLine = `${spinnerGlyph(next.spinnerFrame)} ${next.thinkingLabel}`
+    case "warning":
+      if (event.warning && typeof event.warning === "object") {
+        next.warnings = mergeWarnings(next.warnings, [normalizeWarning(event.warning)])
       }
-      break
-    case "plan":
-      next.plan = event.plan as Plan
-      next.planPinned = true
-      next.screen = "workspace"
-      next.started = true
-      next.thinking = false
-      {
-        const pending = pendingQuestion(next.plan)
-        if (pending) {
-          next.question = pending
-          next.phase = "esperando_clarificacion"
-          next.uiMode = "clarify"
-          next.statusLine = "elige 1/2/3 o escribe"
-        } else {
-          next.question = null
-          next.phase = "esperando_plan"
-          next.uiMode = "prompt"
-          next.statusLine = "plan listo"
-        }
-      }
-      break
-    case "plan_question":
-      next.plan = (event.plan as Plan) ?? next.plan
-      next.question = event.question as PlanQuestion
-      next.phase = "esperando_clarificacion"
-      next.uiMode = "clarify"
-      next.thinking = false
-      next.planPinned = true
-      next.statusLine = "clarificar"
-      break
-    case "plan_ready":
-      next.plan = (event.plan as Plan) ?? next.plan
-      next.question = null
-      next.phase = "esperando_plan"
-      next.uiMode = "prompt"
-      next.thinking = false
-      next.statusLine = "plan listo"
-      break
-    case "plan_approved":
-      next.plan = (event.plan as Plan) ?? next.plan
-      next.question = null
-      next.statusLine = "aprobado · redactando"
-      next.thinking = true
-      next.thinkingLabel = "borrador"
-      next.planDetail = false
-      break
-    case "plan_cancelled":
-      next.phase = "idle"
-      next.plan = null
-      next.question = null
-      next.planPinned = false
-      next.planDetail = false
-      next.uiMode = "prompt"
-      next.thinking = false
-      next.proposal = ""
-      next.proposalTitle = ""
-      next.evidence = []
-      next.warnings = []
-      next.screen = "home"
-      next.statusLine = "plan cancelado"
-      break
-    case "proposal_cleared":
-      next.proposal = ""
-      next.proposalTitle = ""
-      next.evidence = []
-      if (String(event.reason ?? "") === "plan_cancelado") {
-        next.warnings = []
-      } else {
-        next.warnings = [
-          ...next.warnings.filter((w) => w.code !== "stale_proposal"),
-          {
-            code: "stale_proposal",
-            message: "Propuesta anterior archivada — el nuevo encargo manda.",
-            blocking: false,
-          },
-        ]
-      }
-      break
-    case "proposal": {
-      const artifact = event.artifact as {
-        titulo?: string
-        tipo_label?: string
-        cuerpo_markdown?: string
-        evidencias?: Evidence[]
-        warnings?: WarningItem[]
-      }
-      next.proposalTitle = artifact?.titulo ?? ""
-      next.proposal = artifact?.cuerpo_markdown ?? ""
-      next.evidence = artifact?.evidencias ?? []
-      next.warnings = mergeWarnings(next.warnings, artifact?.warnings ?? [])
-      next.evidenceIndex = 0
-      next.phase = "esperando_criterio"
-      next.thinking = false
-      next.thinkingLabel = ""
-      next.planDetail = false
-      next.statusLine = "tu turno"
-      next.turns = next.turns.map((turn, i) =>
-        i === next.turns.length - 1
-          ? { ...turn, titulo: artifact?.titulo, tipo: artifact?.tipo_label, phase: "esperando_criterio" }
-          : turn,
-      )
-      break
-    }
-    case "turn": {
-      const turn = event.turn as { id?: string; prompt?: string; phase?: string }
-      if (turn?.id) {
-        next.turns.push({
-          id: turn.id,
-          prompt: turn.prompt ?? "",
-          phase: turn.phase ?? next.phase,
-        })
-      }
-      break
-    }
-    case "accepted":
-      next.phase = "listo"
-      next.lastPath = String(event.path ?? "")
-      next.statusLine = `aceptado · ${shortPath(next.lastPath)}`
-      next.uiMode = "prompt"
-      next.thinking = false
-      stampPath(next, String(event.path ?? ""))
-      break
-    case "draft_saved":
-      next.phase = "listo"
-      next.lastPath = String(event.path ?? "")
-      next.statusLine = `borrador · ${shortPath(next.lastPath)} · /export`
-      next.uiMode = "prompt"
-      next.thinking = false
-      stampPath(next, String(event.path ?? ""))
-      break
-    case "discarded":
-      next.phase = "idle"
-      next.statusLine = "descartado"
-      next.uiMode = "prompt"
-      next.thinking = false
-      break
-    case "exported": {
-      next.lastExport = String(event.path ?? "")
-      const kind = event.source_kind === "borrador" ? "borrador" : "derivado"
-      const fmt = event.format ? String(event.format) : "md"
-      const base = `${fmt} (${kind}) · ${shortPath(String(event.path ?? ""))}`
-      const pdf = event.pdf ? ` · pdf ${shortPath(String(event.pdf))}` : ""
-      next.statusLine = event.feedback ? `${base}${pdf} · feedback` : `${base}${pdf}`
-      break
-    }
-    case "critique_saved":
-      next.statusLine = `Crítica guardada (${event.n}) · reescribiendo…`
-      next.thinking = true
-      next.thinkingLabel = "corrección"
       break
     case "encargo":
       if (event.encargo && typeof event.encargo === "object") {
@@ -457,22 +356,31 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       }
       break
     }
-    case "rumbo":
-      next.started = true
-      next.statusLine = `Rumbo ${event.rumbo} · escribe el encargo`
-      break
-    case "warning":
-      if (event.warning && typeof event.warning === "object") {
-        next.warnings = mergeWarnings(next.warnings, [event.warning as WarningItem])
+    case "exported": {
+      next.lastExport = String(event.path ?? "")
+      const fmt = event.format ? String(event.format) : "md"
+      const pdf = event.pdf ? ` · pdf ${shortPath(String(event.pdf))}` : ""
+      const base = `${fmt} · ${shortPath(String(event.path ?? ""))}`
+      next.statusLine = event.feedback ? `${base}${pdf} · feedback` : `${base}${pdf}`
+      if (next.lastPath) {
+        appendMessage(next, {
+          id: `e${next.seq + 1}`,
+          role: "host",
+          text: `export ${fmt}`,
+          path: String(event.path ?? ""),
+        })
       }
       break
+    }
     case "error":
+      next.streaming = ""
       next.lastError = String(event.message ?? "error")
       next.errorCode = String(event.code ?? "")
       next.retryable = Boolean(event.retryable)
       next.statusLine = next.lastError
       next.phase = "error"
       next.thinking = false
+      next.thinkingLabel = ""
       break
     default:
       break
@@ -480,12 +388,94 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
   return next
 }
 
-function pendingQuestion(plan: Plan | null): PlanQuestion | null {
-  if (!plan?.questions?.length) return null
-  return (
-    plan.questions.find((q) => q.answer == null && (q.free_text == null || q.free_text === "")) ??
-    null
-  )
+function normalizePhase(raw: unknown): Phase | null {
+  const value = String(raw ?? "")
+  if (
+    value === "idle" ||
+    value === "pensando" ||
+    value === "esperando_aprobacion" ||
+    value === "listo" ||
+    value === "error"
+  ) {
+    return value
+  }
+  return null
+}
+
+function normalizePropuesta(raw: unknown): Propuesta | null {
+  if (!raw || typeof raw !== "object") return null
+  const item = raw as Record<string, unknown>
+  const accion = String(item.accion ?? "crear")
+  return {
+    accion: (accion === "editar" || accion === "adaptar" ? accion : "crear") as PropuestaAccion,
+    tipo: String(item.tipo ?? ""),
+    tipo_label: String(item.tipo_label ?? item.tipo ?? ""),
+    titulo: String(item.titulo ?? ""),
+    resumen: String(item.resumen ?? ""),
+    vista_previa: String(item.vista_previa ?? ""),
+    origen: item.origen ? String(item.origen) : null,
+    cambios: stringList(item.cambios),
+    notas_nee: stringList(item.notas_nee),
+    evidencias: Array.isArray(item.evidencias)
+      ? item.evidencias.map((row) => normalizeEvidence(row))
+      : [],
+    warnings: Array.isArray(item.warnings) ? item.warnings.map((row) => normalizeWarning(row)) : [],
+  }
+}
+
+function normalizeEvidence(raw: unknown): Evidence {
+  const item = (raw ?? {}) as Record<string, unknown>
+  return {
+    path: String(item.path ?? ""),
+    snippet: String(item.snippet ?? ""),
+    seccion: String(item.seccion ?? ""),
+    verified: Boolean(item.verified),
+  }
+}
+
+function normalizeWarning(raw: unknown): WarningItem {
+  const item = (raw ?? {}) as Record<string, unknown>
+  return {
+    code: String(item.code ?? "warning"),
+    message: String(item.message ?? ""),
+    // Un aviso nunca bloquea la aprobación en el flujo conversacional.
+    blocking: false,
+  }
+}
+
+function stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((row) => String(row)).filter(Boolean)
+}
+
+function eventId(event: HostEvent, state: AppState): string {
+  const id = event.id ? String(event.id) : ""
+  return id || `h${state.seq + 1}`
+}
+
+function appendMessage(state: AppState, message: Mensaje) {
+  state.messages = [...state.messages, message]
+  state.seq = state.seq + 1
+  if (state.messages.length > 200) state.messages = state.messages.slice(-200)
+  state.screen = "conversacion"
+  state.started = true
+}
+
+/** Transcribe el hilo que el host manda al abrir la sesión. */
+function appendTranscript(state: AppState, raw: unknown) {
+  if (!Array.isArray(raw)) return
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue
+    const item = row as Record<string, unknown>
+    const text = String(item.texto ?? item.text ?? "")
+    if (!text) continue
+    const role = String(item.role ?? "agente")
+    appendMessage(state, {
+      id: item.id ? String(item.id) : `h${state.seq + 1}`,
+      role: (role === "persona" || role === "host" ? role : "agente") as ThreadRole,
+      text,
+    })
+  }
 }
 
 function mergeWarnings(existing: WarningItem[], incoming: WarningItem[]): WarningItem[] {
@@ -500,10 +490,9 @@ function mergeWarnings(existing: WarningItem[], incoming: WarningItem[]): Warnin
   return out.slice(-12)
 }
 
-function stampPath(state: AppState, path: string) {
-  if (!state.turns.length) return
-  const last = state.turns[state.turns.length - 1]
-  state.turns[state.turns.length - 1] = { ...last, path, phase: "listo" }
+/** Avisos de la propuesta vigente + avisos sueltos del host, sin repetir. */
+export function allWarnings(state: AppState): WarningItem[] {
+  return mergeWarnings(state.warnings, state.card?.warnings ?? [])
 }
 
 export type LocalAction =
@@ -512,12 +501,20 @@ export type LocalAction =
   | { kind: "quit" }
   | { kind: "none"; state: AppState }
 
-function enterWorkspace(state: AppState, patch: Partial<AppState> = {}): AppState {
+function enterConversation(state: AppState, patch: Partial<AppState> = {}): AppState {
   return {
     ...state,
     ...patch,
-    screen: "workspace",
+    screen: "conversacion",
     started: true,
+  }
+}
+
+function appendLocal(state: AppState, message: Omit<Mensaje, "id">): AppState {
+  return {
+    ...state,
+    messages: [...state.messages, { ...message, id: `m${state.seq + 1}` }],
+    seq: state.seq + 1,
   }
 }
 
@@ -526,69 +523,7 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
   if (!text) {
     return {
       kind: "state",
-      state: {
-        ...state,
-        statusLine: "Escribe un encargo o elige un rumbo (1–4). Enter vacío no envía.",
-      },
-    }
-  }
-  if (looksPhatic(text)) {
-    return {
-      kind: "state",
-      state: {
-        ...state,
-        lastError: "",
-        thinking: false,
-        statusLine: "Hola. Eso no es un encargo: dime el material o elige rumbo 1–4.",
-      },
-    }
-  }
-
-  if (state.uiMode === "critique") {
-    const next = {
-      ...state,
-      uiMode: "prompt" as const,
-      statusLine: "Enviando corrección…",
-      thinking: true,
-      thinkingLabel: "corrección",
-    }
-    return { kind: "send", message: { type: "gate", decision: "c", note: text }, state: next }
-  }
-
-  if (state.uiMode === "assumption") {
-    const id = state.assumptionEditId || "s1"
-    return {
-      kind: "send",
-      message: { type: "plan.edit_assumption", id, text },
-      state: {
-        ...state,
-        uiMode: "prompt",
-        assumptionEditId: "",
-        statusLine: "Supuesto actualizado",
-      },
-    }
-  }
-
-  if (state.uiMode === "clarify" || state.phase === "esperando_clarificacion") {
-    if (/^[123]$/.test(text)) {
-      return {
-        kind: "send",
-        message: {
-          type: "plan.answer",
-          option_id: text,
-          question_id: state.question?.id,
-        },
-        state: { ...state, statusLine: `Opción ${text}…`, uiMode: "clarify" },
-      }
-    }
-    return {
-      kind: "send",
-      message: {
-        type: "plan.answer",
-        text,
-        question_id: state.question?.id,
-      },
-      state: { ...state, statusLine: "Respuesta enviada…", uiMode: "clarify" },
+      state: { ...state, statusLine: "Enter vacío no envía: escribe tu mensaje." },
     }
   }
 
@@ -598,23 +533,14 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
   if (text === "/q" || text === "/salir") {
     return { kind: "quit" }
   }
-  if (text === "/home" || text === "/inicio") {
-    return {
-      kind: "state",
-      state: {
-        ...state,
-        screen: "home",
-        phase: "home",
-        statusLine: "elige rumbo o escribe",
-      },
-    }
-  }
   if (text === "/retry" || text === "/reintentar") {
     return {
       kind: "send",
       message: { type: "retry" },
-      state: enterWorkspace(state, {
+      state: enterConversation(state, {
         lastError: "",
+        errorCode: "",
+        retryable: false,
         thinking: true,
         thinkingLabel: "reintento",
         statusLine: "Reintentando…",
@@ -622,136 +548,23 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
       }),
     }
   }
-  if (text.startsWith("/rumbo ")) {
-    const rumbo = text.slice(7).trim()
-    const encargo = { ...state.encargo, rumbo }
-    return {
-      kind: "send",
-      message: { type: "rumbo", rumbo },
-      state: enterWorkspace(state, {
-        encargo,
-        statusLine: `Rumbo → ${rumbo}`,
-      }),
-    }
-  }
   if (text.startsWith("/oa ")) {
-    const oaRaw = text.slice(4).trim()
-    const match = matchOA(state.oaOptions, oaRaw)
-    const oa = match ? `${match.codigo} (${match.id})` : oaRaw
-    const encargo = { ...state.encargo, oa }
-    const plan = state.plan ? { ...state.plan, oa } : state.plan
-    const warn = match
-      ? `OA → ${oa}`
-      : state.oaOptions.length
-        ? `OA «${oaRaw}» no está en la lista cargada — se envía igual; el host valida el catálogo`
-        : `OA → ${oa}  ·  fija /curso y /asignatura para cargar opciones`
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: {
-        ...state,
-        encargo,
-        plan,
-        statusLine: `${warn}  ·  nuevo encargo para regenerar`,
-        proposal: "",
-        proposalTitle: "",
-        evidence: [],
-      },
-    }
+    return applyContext(state, "oa", text.slice(4).trim())
   }
   if (text.startsWith("/tipo ")) {
-    const tipo = text.slice(6).trim()
-    const encargo = { ...state.encargo, tipo }
-    const plan = state.plan ? { ...state.plan, tipo } : state.plan
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: {
-        ...state,
-        encargo,
-        plan,
-        statusLine: `tipo → ${tipo}  ·  envía un nuevo encargo para regenerar`,
-        proposal: "",
-        proposalTitle: "",
-        evidence: [],
-      },
-    }
+    return applyContext(state, "tipo", text.slice(6).trim())
   }
   if (text.startsWith("/curso ")) {
-    const encargo = { ...state.encargo, curso: text.slice(7).trim() }
-    const plan = state.plan
-      ? {
-          ...state.plan,
-          decisiones: { ...(state.plan.decisiones || {}), curso: encargo.curso },
-        }
-      : state.plan
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: {
-        ...state,
-        encargo,
-        plan,
-        statusLine: `curso → ${encargo.curso}`,
-      },
-    }
+    return applyContext(state, "curso", text.slice(7).trim())
   }
   if (text.startsWith("/asignatura ")) {
-    const encargo = { ...state.encargo, asignatura: text.slice(12).trim() }
-    const plan = state.plan
-      ? {
-          ...state.plan,
-          decisiones: { ...(state.plan.decisiones || {}), asignatura: encargo.asignatura },
-        }
-      : state.plan
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: {
-        ...state,
-        encargo,
-        plan,
-        statusLine: `asignatura → ${encargo.asignatura}`,
-      },
-    }
+    return applyContext(state, "asignatura", text.slice(12).trim())
   }
   if (text.startsWith("/tema ")) {
-    const tema = text.slice(6).trim()
-    const encargo = { ...state.encargo, tema }
-    const plan = state.plan
-      ? { ...state.plan, decisiones: { ...(state.plan.decisiones || {}), tema } }
-      : state.plan
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, plan, statusLine: `tema → ${tema}` },
-    }
+    return applyContext(state, "tema", text.slice(6).trim())
   }
   if (text.startsWith("/duracion ") || text.startsWith("/duración ")) {
-    const duracion = text.replace(/^\/duraci[oó]n\s+/, "").trim()
-    const encargo = { ...state.encargo, duracion }
-    const plan = state.plan ? { ...state.plan, duracion } : state.plan
-    return {
-      kind: "send",
-      message: { type: "encargo.update", encargo },
-      state: { ...state, encargo, plan, statusLine: `duración → ${duracion}` },
-    }
-  }
-  if (text.startsWith("/objetivo ")) {
-    if (!state.plan) return { kind: "none", state }
-    const plan = { ...state.plan, objetivo: text.slice(10).trim() }
-    return {
-      kind: "state",
-      state: { ...state, plan, statusLine: "plan · objetivo editado — a aprueba" },
-    }
-  }
-  if (text.startsWith("/supuesto ")) {
-    if (!state.plan) return { kind: "none", state }
-    return {
-      kind: "send",
-      message: { type: "plan.edit_assumption", id: "s1", text: text.slice(10).trim() },
-      state: { ...state, statusLine: "Supuesto actualizado" },
-    }
+    return applyContext(state, "duracion", text.replace(/^\/duraci[oó]n\s+/, "").trim())
   }
   if (text === "/export" || text.startsWith("/export ")) {
     const rest = text.slice("/export".length).trim().toLowerCase()
@@ -765,99 +578,74 @@ export function handleCommand(state: AppState, raw: string): LocalAction {
     }
   }
 
-  // Numeric rumbo shortcut from home
-  if (state.screen === "home" && /^[1234]$/.test(text)) {
-    const rumbo = RUMBOS.find((r) => r.key === text)!
-    const encargo = { ...state.encargo, rumbo: rumbo.id }
-    return {
-      kind: "send",
-      message: { type: "rumbo", rumbo: rumbo.id },
-      state: enterWorkspace(state, {
-        encargo,
-        statusLine: `${rumbo.label} · escribe qué necesitas`,
-      }),
-    }
+  // Todo lo demás es conversación: el agente infiere la intención (a/b/c).
+  const visible = appendLocal(state, { role: "persona", text })
+  const stale = state.cardStatus !== "" && state.cardStatus !== "pendiente"
+  return {
+    kind: "send",
+    message: { type: "prompt", text },
+    state: enterConversation(visible, {
+      card: stale ? null : state.card,
+      cardStatus: stale ? "" : state.cardStatus,
+      activities: [],
+      lastError: "",
+      errorCode: "",
+      retryable: false,
+      phase: "pensando",
+      statusLine: "pensando…",
+      thinking: true,
+      thinkingLabel: "leyendo fuentes",
+      streaming: "",
+    }),
   }
+}
 
-  const next = enterWorkspace(state, {
-    activities: [],
-    lastError: "",
-    errorCode: "",
-    phase: "leyendo",
-    statusLine: "leyendo fuentes…",
-    thinking: true,
-    thinkingLabel: "leyendo fuentes",
-    proposal: "",
-    proposalTitle: "",
-    evidence: [],
-  })
-  return { kind: "send", message: { type: "prompt", text }, state: next }
+const CONTEXT_LABEL: Record<string, string> = {
+  curso: "curso",
+  asignatura: "asignatura",
+  oa: "OA",
+  tipo: "tipo",
+  tema: "tema",
+  duracion: "duración",
+}
+
+/**
+ * Los comandos de contexto solo actualizan el encargo.
+ * Ya no reinician ningún flujo por pasos: el hilo y la propuesta siguen.
+ */
+function applyContext(state: AppState, field: keyof Encargo, value: string): LocalAction {
+  const label = CONTEXT_LABEL[field] ?? String(field)
+  if (!value) {
+    return { kind: "state", state: { ...state, statusLine: `/${label} necesita un valor` } }
+  }
+  let encargo: Encargo = { ...state.encargo, [field]: value }
+  let hint = `${label} → ${value}`
+  if (field === "oa") {
+    const match = matchOA(state.oaOptions, value)
+    const oa = match ? `${match.codigo} (${match.id})` : value
+    encargo = { ...state.encargo, oa }
+    hint = match
+      ? `OA → ${oa}`
+      : state.oaOptions.length
+        ? `OA «${value}» no está en la lista cargada — se envía igual; el host valida el catálogo`
+        : `OA → ${oa}  ·  fija /curso y /asignatura para cargar opciones`
+  }
+  return {
+    kind: "send",
+    message: { type: "encargo.update", encargo },
+    state: {
+      ...state,
+      encargo,
+      statusLine: `${hint}  ·  contexto del encargo`,
+    },
+  }
 }
 
 export function handleHotkey(state: AppState, key: string): LocalAction {
   if (key === "tab") {
     const idx = FOCUS_PANELS.indexOf(state.focusPanel)
-    const focusPanel = FOCUS_PANELS[(idx + 1) % FOCUS_PANELS.length]
+    const focusPanel = FOCUS_PANELS[(idx + 1) % FOCUS_PANELS.length] ?? "hilo"
     return { kind: "state", state: { ...state, focusPanel } }
-  }
-  if (key === "e" && state.phase === "esperando_plan" && state.plan) {
-    return {
-      kind: "state",
-      state: {
-        ...state,
-        uiMode: "assumption",
-        assumptionEditId: state.plan.supuestos?.[0]?.id || "s1",
-        statusLine: "Edita el supuesto y Enter. Esc cancela.",
-      },
-    }
-  }
-  if (key === "e" && state.evidence.length) {
-    return { kind: "state", state: { ...state, focusPanel: "evidence" } }
-  }
-  if (key === "p" && state.plan) {
-    return {
-      kind: "state",
-      state: {
-        ...state,
-        planDetail: !state.planDetail,
-        planPinned: true,
-        statusLine: !state.planDetail ? "plan · detalle" : "plan · resumen",
-      },
-    }
-  }
-  if (key === "[") {
-    if (state.evidence.length <= 1) {
-      return {
-        kind: "state",
-        state: {
-          ...state,
-          focusPanel: "evidence",
-          statusLine:
-            state.evidence.length === 0
-              ? "Sin evidencia aún"
-              : "1/1 evidencia · [ ] no cambia (solo un ítem)",
-        },
-      }
-    }
-    const evidenceIndex = (state.evidenceIndex - 1 + state.evidence.length) % state.evidence.length
-    return { kind: "state", state: { ...state, evidenceIndex, focusPanel: "evidence" } }
-  }
-  if (key === "]") {
-    if (state.evidence.length <= 1) {
-      return {
-        kind: "state",
-        state: {
-          ...state,
-          focusPanel: "evidence",
-          statusLine:
-            state.evidence.length === 0
-              ? "Sin evidencia aún"
-              : "1/1 evidencia · [ ] no cambia (solo un ítem)",
-        },
-      }
-    }
-    const evidenceIndex = (state.evidenceIndex + 1) % state.evidence.length
-    return { kind: "state", state: { ...state, evidenceIndex, focusPanel: "evidence" } }
   }
   if (key === "?") {
     return { kind: "state", state: { ...state, help: !state.help } }
@@ -865,23 +653,15 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
   if (state.help && (key === "escape" || key === "q")) {
     return { kind: "state", state: { ...state, help: false } }
   }
-  if (state.uiMode === "assumption" && key === "escape") {
-    return {
-      kind: "state",
-      state: {
-        ...state,
-        uiMode: "prompt",
-        assumptionEditId: "",
-        statusLine: "plan listo",
-      },
-    }
-  }
+  if (state.help) return { kind: "none", state }
   if (state.phase === "error" && state.retryable && (key === "r" || key === "enter")) {
     return {
       kind: "send",
       message: { type: "retry" },
-      state: enterWorkspace(state, {
+      state: enterConversation(state, {
         lastError: "",
+        errorCode: "",
+        retryable: false,
         thinking: true,
         thinkingLabel: "reintento",
         statusLine: "Reintentando…",
@@ -889,158 +669,90 @@ export function handleHotkey(state: AppState, key: string): LocalAction {
       }),
     }
   }
-  if (state.screen === "home" && ["1", "2", "3", "4"].includes(key)) {
-    return handleCommand(state, key)
+  if (key === "escape") {
+    return { kind: "state", state: { ...state, help: false } }
   }
-  if (state.phase === "esperando_clarificacion" && ["1", "2", "3"].includes(key)) {
-    return handleCommand(state, key)
-  }
-  if (state.phase === "esperando_plan") {
-    if (key === "a" || key === "enter") {
-      return {
-        kind: "send",
-        message: { type: "plan.decide", decision: "approve", plan: state.plan ?? undefined },
-        state: {
-          ...state,
-          statusLine: "aprobado · redactando",
-          thinking: true,
-          thinkingLabel: "escribiendo",
-        },
-      }
+  if (key === "[" || key === "]") {
+    const total = state.card?.evidencias.length ?? 0
+    if (!total) {
+      return { kind: "state", state: { ...state, statusLine: "Sin evidencia: todavía no hay propuesta" } }
     }
-    if (key === "x") {
-      return {
-        kind: "send",
-        message: { type: "plan.decide", decision: "cancel" },
-        state: {
-          ...state,
-          phase: "idle",
-          statusLine: "Plan cancelado.",
-          screen: "home",
-          plan: null,
-          question: null,
-        },
-      }
-    }
-  }
-  if (state.phase === "esperando_criterio" && state.uiMode !== "critique") {
-    if (key === "s") {
-      return { kind: "send", message: { type: "gate", decision: "s" }, state: { ...state, statusLine: "Aceptando…" } }
-    }
-    if (key === "n") {
-      return { kind: "send", message: { type: "gate", decision: "n" }, state: { ...state, statusLine: "Descartando…" } }
-    }
-    if (key === "b") {
-      return {
-        kind: "send",
-        message: { type: "gate", decision: "b" },
-        state: { ...state, statusLine: "Guardando borrador…" },
-      }
-    }
-    if (key === "c") {
+    if (total === 1) {
       return {
         kind: "state",
         state: {
           ...state,
-          uiMode: "critique",
-          statusLine: "Escribe la crítica y Enter. Esc cancela. Se persiste en .tero/criticas/",
+          focusPanel: "evidencia",
+          statusLine: "1/1 evidencia · [ ] no cambia (solo un ítem)",
         },
       }
     }
+    const step = key === "]" ? 1 : -1
+    const evidenceIndex = (state.evidenceIndex + step + total) % total
+    return { kind: "state", state: { ...state, evidenceIndex, focusPanel: "evidencia" } }
   }
-  if (state.uiMode === "critique" && key === "escape") {
-    return {
-      kind: "state",
-      state: { ...state, uiMode: "prompt", statusLine: "tu turno" },
+  // La propuesta sigue pendiente aunque el host la haya tratado como
+  // conversación (preguntar/ambiguo): y/n deciden mientras siga pendiente.
+  if (state.cardStatus === "pendiente" && state.card) {
+    if (key === "y") {
+      return {
+        kind: "send",
+        message: { type: "aprobar", decision: "aprobar" },
+        state: { ...state, statusLine: "aprobando…", thinking: true, thinkingLabel: "escribiendo" },
+      }
+    }
+    if (key === "n") {
+      return {
+        kind: "send",
+        message: { type: "aprobar", decision: "descartar" },
+        state: { ...state, statusLine: "descartando…" },
+      }
     }
   }
-  if (
-    (key === "q" || key === "ctrl+c") &&
-    state.uiMode !== "critique" &&
-    state.phase !== "esperando_criterio" &&
-    state.phase !== "esperando_clarificacion"
-  ) {
-    return { kind: "quit" }
+  if (key === "q" || key === "ctrl+c") {
+    // `q` suelto no sale: la primera letra de «qué», «cuándo» o «quién» debe
+    // llegar al hilo. Salir: ctrl+c, /q o /salir.
+    if (key === "ctrl+c") return { kind: "quit" }
+    return { kind: "none", state }
   }
   return { kind: "none", state }
 }
 
-export function gateStrip(state: AppState): string {
-  if (state.uiMode === "critique") {
-    return "crítica · Enter envía · esc vuelve"
-  }
-  if (state.uiMode === "assumption") {
-    return "supuesto · Enter guarda · esc cancela"
-  }
-  if (state.phase === "esperando_clarificacion") {
-    return "[1] [2] [3] elige · o escribe · x cancela"
-  }
-  if (state.phase === "esperando_plan") {
-    return "[a] aprobar   [e] supuesto   [x] cancelar"
-  }
-  if (state.phase === "esperando_criterio") {
-    const n = state.evidence.length
+/**
+ * Franja de decisión: y aprueba, n descarta (o se escribe en el hilo).
+ * La ayuda no usa esta franja: se queda en su propio panel.
+ */
+export function decisionStrip(state: AppState): string {
+  if (state.phase === "error" && state.retryable) return "[r] reintentar"
+  if (state.cardStatus === "pendiente" && state.card) {
+    const n = state.card.evidencias.length
     const mark = n ? `   evid ${state.evidenceIndex + 1}/${n}` : ""
-    return `[s] sí→derivados/  [n] no  [b] borrador  [c] corregir${mark}`
+    return `¿escribo el archivo?   [y] aprobar   [n] descartar   ·  o escribe tu decisión abajo${mark}`
   }
-  if (state.phase === "error" && state.retryable) {
-    return "[r] reintentar   /home inicio"
+  if (state.cardStatus === "escrito") {
+    return `escrito · ${accionLabel(state.writtenAccion)} · ${shortPath(state.writtenPath)}`
   }
+  if (state.cardStatus === "descartado") {
+    return "descartado · no se escribió nada"
+  }
+  if (state.cardStatus === "aprobado") return "aprobado · escribiendo…"
   return ""
 }
 
-export function looksPhatic(text: string): boolean {
-  const blob = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/[^\p{L}\p{N} ]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-  if (!blob) return true
-  const exact = new Set([
-    "hola",
-    "holi",
-    "holis",
-    "hello",
-    "hi",
-    "hey",
-    "buenas",
-    "buen dia",
-    "buenos dias",
-    "buenas tardes",
-    "buenas noches",
-    "ok",
-    "oka",
-    "okey",
-    "okay",
-    "vale",
-    "ya",
-    "gracias",
-    "thanks",
-    "thank you",
-    "que tal",
-  ])
-  if (exact.has(blob)) return true
-  const parts = blob.split(" ")
-  const greet = new Set(["hola", "holi", "holis", "hello", "hi", "hey", "buenas"])
-  const extra = new Set(["profe", "profesor", "profesora", "tero", "que", "tal", "como", "estas", "amigo"])
-  if (greet.has(parts[0] || "") && parts.length <= 3) {
-    return parts.slice(1).every((part) => extra.has(part))
-  }
-  return false
+/**
+ * ¿La tecla pertenece al input? Mientras la persona escribe, el teclado es
+ * suyo: solo `tab` y `escape` siguen siendo atajos. `?` abre la ayuda
+ * únicamente con el input vacío (toda pregunta en español lleva `?`), y `q`
+ * nunca sale: se comería la primera letra de «qué», «cuándo» o «quién».
+ */
+export function keyRoutesToInput(name: string, hasInput: boolean, helpOpen: boolean): boolean {
+  if (helpOpen) return false
+  if (!hasInput) return false
+  return name !== "tab" && name !== "escape"
 }
 
 export function chips(encargo: Encargo): string[] {
-  return [
-    encargo.rumbo,
-    encargo.curso,
-    encargo.asignatura,
-    encargo.tema,
-    encargo.oa,
-    encargo.duracion,
-    encargo.tipo,
-  ]
+  return [encargo.curso, encargo.asignatura, encargo.tema, encargo.oa, encargo.duracion, encargo.tipo]
     .map((item) => (item ?? "").trim())
     .filter(Boolean)
 }
@@ -1050,7 +762,10 @@ export function showChips(state: AppState): boolean {
   return chips(state.encargo).length > 0
 }
 
-/** True if text repeats HITL key legends (should not appear in footer/status). */
+/**
+ * Texto del flujo viejo (plan a/e/x, puerta s/n/b/c, rumbos, clarificación
+ * numerada). No debe aparecer en ninguna superficie de la TUI.
+ */
 export function hasKeyLegend(text: string): boolean {
   const t = text.toLowerCase()
   return (
@@ -1061,97 +776,81 @@ export function hasKeyLegend(text: string): boolean {
     /\bn\s*no\b/.test(t) ||
     /\bb\s*borrador\b/.test(t) ||
     /\bc\s*corregir\b/.test(t) ||
-    /\[\s*a\s*\]/.test(t) ||
-    /\[\s*s\s*\]/.test(t)
+    /\[\s*[asebc]\s*\]/.test(t) ||
+    /\brumbo/.test(t) ||
+    /\b1[–-]4\b/.test(t) ||
+    /\bclarificaci[oó]n\b/.test(t) ||
+    /\bpuerta\b/.test(t) ||
+    /\bplan tipado\b/.test(t)
   )
 }
 
 export function footerFor(state: AppState): string {
   if (state.help) return "PgUp/PgDn  esc cierra"
-  // Primary actions live in the gate strip — keep footer quiet (no key echo).
-  if (gateStrip(state)) return ""
-  if (state.uiMode === "critique") return "Enter envía · esc cancela"
-  if (state.uiMode === "assumption") return "Enter guarda · esc cancela"
-  if (state.screen === "home") return "1–4 rumbo  Enter  ?  q"
-  return "/export  Tab  ?  q"
+  // Las acciones de decisión viven en la franja: el pie queda callado.
+  if (decisionStrip(state)) return ""
+  if (state.screen === "home") return "Enter envía  ·  ? ayuda  ·  /salir"
+  return "/export  ·  Tab  ·  PgUp/PgDn hilo  ·  ? ayuda"
 }
 
 export function helpFor(state: AppState): string {
-  if (state.screen === "home" || state.phase === "home") {
-    return `tero — inicio
-
-Rumbos
-  1 Planificar   2 Crear   3 Evaluar   4 Adaptar
-
-Escribe abajo: «Pregunta, explora o crea…»
-Chips tras rumbo o encargo. Catálogo OA Chile (host).
-
-? cierra · q sale`
-  }
-  if (state.phase === "esperando_clarificacion") {
-    return `Clarificación del plan
-
-Elige 1 / 2 / 3 (SUGERIDA marcada)
-o escribe con tus palabras abajo.
-
-a aún no — primero responde.
-x cancela el plan y vuelve al inicio.
-
-? cierra`
-  }
-  if (state.phase === "esperando_plan") {
-    return `Plan tipado
-
-a  aprobar y redactar
-e  editar SUPUESTOS (inline)
-x  cancelar → inicio limpio
-/objetivo …  /oa LEN-4B-OA04  /supuesto …
-
-El plan queda fijado (p) mientras redacta.
-
-? cierra`
-  }
-  if (state.phase === "esperando_criterio") {
-    return `Puerta docente
-
-s  sí → derivados/
-n  no  (no escribe)
-b  borrador → borradores/  (/export md|latex)
-c  corregir (crítica se guarda en .tero/)
-
-[ ] evidencia  ·  ✓ en archivo  ·  ? parafraseo
-Tab paneles
-
-? cierra`
-  }
   if (state.phase === "error") {
     return `Error
 
 ${state.lastError}
 
-r o /retry  reintenta
-/home       vuelve al inicio
+r o /retry  reintenta el último mensaje
+Escribe abajo para seguir conversando.
 
 Offline se etiqueta tero-offline (no es Bedrock).
 
 ? cierra`
   }
+  if (state.cardStatus === "pendiente" && state.card) {
+    return `Propuesta pendiente
+
+y  aprobar → el host escribe en derivados/
+n  descartar → no se escribe nada
+También puedes escribir tu decisión o tus cambios abajo.
+
+[ ] recorre la evidencia
+✓ la cita está en el archivo
+? es parafraseo del agente
+Los avisos no bloquean la aprobación: tú decides.
+
+? cierra`
+  }
+  if (state.screen === "home") {
+    return `tero — conversación
+
+Escribe abajo: «Pregunta, explora o crea…»
+El agente entiende la intención y actúa:
+  responde · crea material · edita o adapta
+
+Cuando propone un archivo verás la vista previa.
+  y  aprobar y escribir en derivados/
+  n  descartar (no escribe nada)
+O responde con tus palabras: el host clasifica.
+
+Contexto del encargo
+  /curso  /asignatura  /oa  /tipo  /tema  /duracion
+  /export [md|latex|docx]   /retry   /salir
+
+? cierra`
+  }
   return `tero — el agente prepara, el docente decide
 
-Flujo
-  home → rumbo/encargo → plan card → clarificación
-  → borrador + evidencia → puerta s/n/b/c
+Escribe en lenguaje natural: pregunta, crea o adapta.
+El agente propone y tú apruebas (y/n) o pides cambios.
 
 Teclas
-  s/n/b/c puerta   a/x plan   1-4 rumbo/opción
-  [ ] evidencia    e supuesto o foco evidencia
-  Tab paneles      p fijar plan   ? ayuda   q salir
+  y / n decisión    [ ] evidencia    Tab paneles
+  PgUp/PgDn hilo    ? ayuda         /salir
 
 Comandos
-  /oa /tipo /curso /asignatura /tema /duracion
-  /objetivo /supuesto   /export [md|docx|latex]   /retry /home
+  /curso /asignatura /oa /tipo /tema /duracion
+  /export [md|docx|latex]   /retry
 
-OA: catálogo host (list_oa). LaTeX: JSON→plantilla, no TeX libre.
 Citas: ✓ en el archivo, ? parafraseo (aviso, no bloquea).
 tero no sobreescribe originales (hash).`
 }
@@ -1171,10 +870,12 @@ export function matchOA(options: OAOption[], raw: string): OAOption | null {
 }
 
 /** @deprecated use helpFor(state) */
-export const HELP_TEXT = helpFor(initialState({
-  curso: "",
-  asignatura: "",
-  oa: "",
-  duracion: "",
-  tipo: null,
-}))
+export const HELP_TEXT = helpFor(
+  initialState({
+    curso: "",
+    asignatura: "",
+    oa: "",
+    duracion: "",
+    tipo: null,
+  }),
+)

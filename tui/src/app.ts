@@ -6,6 +6,7 @@ import {
   handleCommand,
   handleHotkey,
   initialState,
+  keyRoutesToInput,
   type AppState,
 } from "./state.ts"
 import { mountShell } from "./shell.ts"
@@ -100,54 +101,24 @@ export async function launch(opts: LaunchOptions): Promise<void> {
       return
     }
     const name = key.name || key.sequence
-    // Scrollable help: PgUp / PgDn / Shift+↑↓
-    if (state.help && (name === "pageup" || name === "pagedown" || ((name === "up" || name === "down") && key.shift))) {
+    // Scrollable help and scrollable thread: PgUp / PgDn (+ Shift+↑↓ in help).
+    if (
+      state.help &&
+      (name === "pageup" || name === "pagedown" || ((name === "up" || name === "down") && key.shift))
+    ) {
       key.preventDefault?.()
-      const delta = name === "pageup" || name === "up" ? -5 : 5
-      shell.scrollHelp(delta)
+      shell.scrollHelp(name === "pageup" || name === "up" ? -5 : 5)
       return
     }
-    if (
-      name === "q" &&
-      !shell.input.value &&
-      state.uiMode !== "critique" &&
-      state.uiMode !== "assumption" &&
-      state.uiMode !== "clarify" &&
-      state.phase !== "esperando_criterio" &&
-      state.phase !== "esperando_plan" &&
-      state.phase !== "esperando_clarificacion"
-    ) {
-      dispatch({ kind: "quit" })
+    if (!state.help && (name === "pageup" || name === "pagedown")) {
+      key.preventDefault?.()
+      shell.scrollThread(name === "pageup" ? -5 : 5)
       return
     }
-    const typing = Boolean(shell.input.value) && state.uiMode === "prompt"
-    const globalKeys = new Set(["?", "tab", "[", "]", "escape", "pageup", "pagedown"])
-    if (typing && !globalKeys.has(name) && !key.ctrl) {
-      return
-    }
-    // Allow 1-4 on home / clarify even when not typing in special modes
-    if (
-      state.uiMode === "critique" ||
-      state.uiMode === "assumption"
-    ) {
-      if (name !== "escape" && name !== "?") return
-    }
-
-    const busyPhases =
-      state.phase === "esperando_plan" ||
-      state.phase === "esperando_criterio" ||
-      state.phase === "esperando_clarificacion" ||
-      state.phase === "error" ||
-      state.screen === "home"
-
-    const single = name.length === 1 && !key.ctrl
-    if (!busyPhases && single && !globalKeys.has(name) && state.uiMode === "prompt") {
-      return
-    }
-    if (shell.input.value && !globalKeys.has(name) && state.uiMode === "prompt" && !["1", "2", "3", "4"].includes(name)) {
-      // Let the input widget handle characters while typing an encargo
-      if (state.phase !== "esperando_plan" && state.phase !== "esperando_criterio") return
-    }
+    // While there is text in the input, the keyboard belongs to the person:
+    // `?` must land in the message (every Spanish question ends with one).
+    if (keyRoutesToInput(name, Boolean(shell.input.value), state.help) && !key.ctrl) return
+    if (state.help && name !== "?" && name !== "escape" && name !== "q") return
 
     const action = handleHotkey(state, key.ctrl ? `ctrl+${name}` : name)
     if (action.kind !== "none") {

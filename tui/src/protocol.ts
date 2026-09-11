@@ -1,15 +1,16 @@
-export type Phase =
-  | "idle"
-  | "home"
-  | "leyendo"
-  | "proponiendo_plan"
-  | "esperando_clarificacion"
-  | "esperando_plan"
-  | "escribiendo"
-  | "esperando_criterio"
-  | "exportando"
-  | "listo"
-  | "error"
+/**
+ * Protocolo host ↔ TUI: agente conversacional.
+ * Contrato congelado: docs/CONVERSACIONAL.md (PR de TUI).
+ *
+ * No hay rumbos 1–4, plan tipado (a/e/x), clarificaciones numeradas ni
+ * puerta s/n/b/c. La persona escribe; el agente infiere la intención:
+ *   a) responder/interactuar → `respuesta`
+ *   b) crear material        → `propuesta` → aprobación
+ *   c) editar/adaptar        → `propuesta` → aprobación
+ */
+
+/** `status.phase` solo toma estos cinco valores. */
+export type Phase = "idle" | "pensando" | "esperando_aprobacion" | "listo" | "error"
 
 export type Encargo = {
   curso: string
@@ -18,7 +19,6 @@ export type Encargo = {
   duracion: string
   tipo: string | null
   notas?: string
-  rumbo?: string
   tema?: string
 }
 
@@ -33,71 +33,18 @@ export type OAOption = {
   asignatura_label?: string
 }
 
-export type PlanOption = {
-  id: string
-  label: string
-  suggested?: boolean
-}
-
-export type PlanQuestion = {
-  id: string
-  prompt: string
-  options: PlanOption[]
-  answer?: string | null
-  free_text?: string | null
-}
-
-export type PlanStep = {
-  titulo: string
-  detalle?: string
-}
-
-export type PlanAssumption = {
-  id: string
-  text: string
-  editable?: boolean
-}
-
-export type PlanDeliverable = {
-  tipo: string
-  label: string
-  description?: string
-}
-
-export type PlanDecisiones = {
-  curso?: string
-  asignatura?: string
-  tema?: string
-}
-
-export type Plan = {
-  objetivo: string
-  tipo: string
-  tipo_label?: string
-  oa: string
-  duracion: string
-  notas: string
-  titulo?: string
-  meta?: string
-  resultado_previsto?: string[]
-  decisiones?: PlanDecisiones
-  como_abordare?: PlanStep[]
-  supuestos?: PlanAssumption[]
-  questions?: PlanQuestion[]
-  entregables?: PlanDeliverable[]
-  status?: string
-}
-
 export type Evidence = {
   path: string
   snippet: string
   seccion: string
+  /** `verified` lo calcula el host contra el archivo real. */
   verified?: boolean
 }
 
 export type WarningItem = {
   code: string
   message: string
+  /** Siempre false en el flujo conversacional: nunca impide aprobar. */
   blocking: boolean
 }
 
@@ -107,13 +54,36 @@ export type Activity = {
   detail?: string
 }
 
-export type TurnSummary = {
+export type PropuestaAccion = "crear" | "editar" | "adaptar"
+
+/** Objeto `propuesta` del protocolo. */
+export type Propuesta = {
+  accion: PropuestaAccion
+  tipo: string
+  tipo_label: string
+  titulo: string
+  resumen: string
+  /** Markdown que el host escribirá en derivados/. */
+  vista_previa: string
+  /** Ruta relativa del material editado/adaptado; null si es `crear`. */
+  origen: string | null
+  cambios: string[]
+  notas_nee: string[]
+  evidencias: Evidence[]
+  warnings: WarningItem[]
+}
+
+export type CardStatus = "pendiente" | "aprobado" | "escrito" | "descartado"
+
+export type ThreadRole = "persona" | "agente" | "host"
+
+/** Un mensaje del hilo. `host` son notas del sistema (aprobación, escrito). */
+export type Mensaje = {
   id: string
-  prompt: string
-  phase: string
-  tipo?: string
-  titulo?: string
+  role: ThreadRole
+  text: string
   path?: string
+  accion?: string
 }
 
 export type RecentSession = {
@@ -131,18 +101,9 @@ export type HostEvent = {
 export type ClientMessage =
   | { type: "hello"; encargo?: Encargo; carpeta?: string }
   | { type: "prompt"; text: string }
+  | { type: "aprobar"; decision: "aprobar" | "descartar"; note?: string }
   | { type: "encargo.update"; encargo: Encargo }
-  | { type: "rumbo"; rumbo: string }
-  | { type: "plan.decide"; decision: "approve" | "edit" | "cancel"; plan?: Partial<Plan> }
-  | {
-      type: "plan.answer"
-      option_id?: string
-      text?: string
-      question_id?: string
-    }
-  | { type: "plan.edit_assumption"; id: string; text: string }
-  | { type: "gate"; decision: "s" | "n" | "b" | "c"; note?: string }
-  | { type: "export"; format: "md" | "docx" | "latex" | "tex"; path?: string; pdf?: boolean }
   | { type: "curriculum.list"; curso?: string; asignatura?: string }
+  | { type: "export"; format: "md" | "docx" | "latex" | "tex"; path?: string; pdf?: boolean }
   | { type: "retry" }
   | { type: "shutdown" }

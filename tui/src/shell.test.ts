@@ -1,329 +1,304 @@
 import { describe, expect, test } from "bun:test"
 import { createTestRenderer } from "@opentui/core/testing"
-import { initialState } from "./state.ts"
+import { applyHostEvent, initialState, type AppState } from "./state.ts"
 import { mountShell } from "./shell.ts"
+import type { Propuesta } from "./protocol.ts"
 
-describe("shell frames", () => {
-  test("home shows brand and rumbos without chips", async () => {
-    const setup = await createTestRenderer({ width: 120, height: 32 })
+const encargo = {
+  curso: "4° básico",
+  asignatura: "Lenguaje",
+  oa: "OA 4",
+  duracion: "45 min",
+  tipo: "planificacion",
+}
+
+const propuesta: Propuesta = {
+  accion: "crear",
+  tipo: "evaluacion",
+  tipo_label: "evaluación",
+  titulo: "Evaluación de comprensión lectora",
+  resumen: "Prueba de 45 min con selección múltiple y verdadero/falso.",
+  vista_previa:
+    "---\ntipo: evaluacion\n---\n\n## Ítems\n1. ¿Quién ve el mar desde la cornisa?\n2. Verdadero o falso: el huemul duda.",
+  origen: null,
+  cambios: [],
+  notas_nee: [],
+  evidencias: [
+    {
+      path: "fuentes/cuento-el-condor-y-el-huemel.md",
+      snippet: "Yo veo el mar desde aquí",
+      seccion: "desarrollo",
+      verified: true,
+    },
+    {
+      path: "fuentes/bases-oa-lenguaje-4b.md",
+      snippet: "Extraer información explícita e implícita",
+      seccion: "OA 4",
+      verified: false,
+    },
+  ],
+  warnings: [
+    {
+      code: "thin_evidence",
+      message: "Menos de dos fuentes citadas.",
+      blocking: false,
+    },
+  ],
+}
+
+async function frame(state: AppState, width = 140, height = 46) {
+  const setup = await createTestRenderer({ width, height })
+  const shell = mountShell(setup.renderer, () => {})
+  shell.sync(state)
+  await setup.renderOnce()
+  const text = setup.captureCharFrame()
+  setup.renderer.destroy()
+  return text
+}
+
+describe("shell conversacional", () => {
+  test("home muestra la marca, el queltehue y el prompt — sin rumbos", async () => {
+    const state = {
+      ...initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null }),
+      ready: true,
+      carpeta: "/workspace/examples/carpeta-demo",
+      statusLine: "5 fuentes en la carpeta",
+      recentSessions: [
+        { kind: "derivado", label: "20260101-120000-prueba.md", path: "derivados/20260101-120000-prueba.md" },
+      ],
+    }
+    const text = await frame(state, 120, 32)
+    const lines = text.replace(/\n$/, "").split("\n")
+    expect(lines[0]).toContain("╭─ tero")
+    expect(lines[lines.length - 1]).toMatch(/^╰/)
+    expect(lines[lines.length - 1]).toContain("carpeta-demo")
+    expect(text).toContain("tero")
+    expect(text).toContain("tus fuentes, tu criterio")
+    expect(text).toContain("Pregunta, explora o crea")
+    expect(text).toContain("▀▀▀▀███████")
+    expect(text).toContain("▀▀▀▀▀▀▀▀▀▀")
+    expect(text).toContain("recientes")
+    expect(text).not.toContain("Planificar")
+    expect(text).not.toContain("Evaluar")
+    expect(text).not.toContain("Adaptar")
+    expect(text).not.toContain("rumbo")
+    expect(text).not.toContain("1–4")
+    expect(text).not.toContain("sin encargo")
+  })
+
+  test("el hilo muestra los turnos de la persona y del agente", async () => {
+    const state: AppState = {
+      ...initialState(encargo),
+      screen: "conversacion",
+      started: true,
+      mode: "offline",
+      model: "tero-offline",
+      carpeta: "/workspace/examples/carpeta-demo",
+      messages: [
+        { id: "m1", role: "persona", text: "Prepara una guía de fracciones" },
+        { id: "m2", role: "agente", text: "¿Para qué curso y qué OA?" },
+      ],
+      statusLine: "",
+    }
+    const text = await frame(state, 120, 32)
+    expect(text).toContain("tú")
+    expect(text).toContain("Prepara una guía de fracciones")
+    expect(text).toContain("tero")
+    expect(text).toContain("¿Para qué curso y qué OA?")
+    expect(text).not.toContain("Sin turnos")
+  })
+
+  test("el texto en streaming se pinta en el hilo antes de la respuesta", async () => {
+    const state: AppState = {
+      ...initialState(encargo),
+      screen: "conversacion",
+      started: true,
+      phase: "pensando",
+      thinking: true,
+      thinkingLabel: "escribiendo…",
+      streaming: "Necesito el curso",
+    }
+    const text = await frame(state, 120, 32)
+    expect(text).toContain("Necesito el curso")
+    expect(text).toContain("▌")
+  })
+
+  test("la tarjeta de propuesta muestra resumen, vista previa, evidencia y avisos", async () => {
+    const setup = await createTestRenderer({ width: 140, height: 46 })
     try {
       const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "",
-          asignatura: "",
-          oa: "",
-          duracion: "",
-          tipo: null,
-        }),
-        carpeta: "/workspace/examples/carpeta-demo",
-      }
+      let state: AppState = applyHostEvent(
+        { ...initialState(encargo), mode: "offline", model: "tero-offline", carpeta: "/workspace/examples/carpeta-demo" },
+        { type: "propuesta", id: "t1", propuesta },
+      )
       shell.sync(state)
       await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      const lines = frame.replace(/\n$/, "").split("\n")
-      expect(lines[0]).toContain("╭─ tero")
-      expect(lines[lines.length - 1]).toMatch(/^╰/)
-      expect(lines[lines.length - 1]).toContain("carpeta-demo")
-      expect(lines[2] ?? "").not.toMatch(/^╰/)
-      expect(frame).toContain("tero")
-      expect(frame).toContain("Planificar")
-      expect(frame).toContain("Crear")
-      expect(frame).toContain("Evaluar")
-      expect(frame).toContain("Adaptar")
-      expect(frame).toContain("Pregunta, explora o crea")
-      expect(frame).toContain("secuencia de clase")
-      expect(frame).toContain("guía o actividad")
-      expect(frame).toContain("▀▀▀▀███████")
-      expect(frame).toContain("▀▀▀▀▀▀▀▀▀▀")
-      expect(frame).not.toContain("sin encargo")
+      const text = setup.captureCharFrame()
+      expect(text).toContain("propuesta")
+      expect(text).toContain("crear · evaluación")
+      expect(text).toContain("Evaluación de comprensión")
+      expect(text).toContain("Prueba de 45 min")
+      expect(text).toContain("vista previa")
+      expect(text).toContain("tipo: evaluacion")
+      expect(text).toContain("¿Quién ve el mar")
+      // Evidencia: ✓ en archivo / ? parafraseo (como hoy).
+      expect(text).toContain("✓ en archivo")
+      expect(text).toContain("desarrollo")
+      // Avisos visibles y no bloqueantes.
+      expect(text).toContain("Menos de dos")
+      expect(text).toContain("no bloquean")
+      // Franja de aprobación con atajos y/n.
+      expect(text).toContain("[y] aprobar")
+      expect(text).toContain("[n] descartar")
+      expect(text).not.toMatch(/\[s\]|\[b\]|\[c\]|\ba aprobar\b/)
+
+      // El segundo ítem, marcado como parafraseo, se ve al recorrer con [ ].
+      state = { ...state, evidenceIndex: 1 }
+      shell.sync(state)
+      await setup.renderOnce()
+      const second = setup.captureCharFrame()
+      expect(second).toContain("? parafraseo")
+      expect(second).toContain("explícita")
     } finally {
       setup.renderer.destroy()
     }
   })
 
-  test("workspace chips and empty proposal render", async () => {
-    const setup = await createTestRenderer({ width: 120, height: 32 })
-    try {
-      const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "4° básico",
-          asignatura: "Lenguaje",
-          oa: "OA 4",
-          duracion: "45 min",
-          tipo: "planificacion",
-        }),
-        screen: "workspace" as const,
-        started: true,
-        phase: "idle" as const,
-        carpeta: "/workspace/examples/carpeta-demo",
-      }
-      shell.sync(state)
-      await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      const lines = frame.replace(/\n$/, "").split("\n")
-      expect(lines[0]).toContain("╭─ tero")
-      expect(lines[lines.length - 1]).toMatch(/^╰/)
-      expect(lines[lines.length - 1]).toContain("carpeta-demo")
-      expect(frame).toContain("tero")
-      expect(frame).toContain("básico")
-      expect(frame).toContain("OA 4")
-      expect(frame).toContain("El agente prepara")
-      expect(frame).toContain("evidencia")
-      expect(frame).toContain("sesión")
-      expect(frame).toContain("propuesta")
-    } finally {
-      setup.renderer.destroy()
-    }
-  })
-
-  test("plan card + clarification + gate strip render", async () => {
-    const setup = await createTestRenderer({ width: 140, height: 48 })
-    try {
-      const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "6° básico",
-          asignatura: "Matemática",
-          oa: "OA 4",
-          duracion: "45 min",
-          tipo: "guia",
-          tema: "fracciones",
-        }),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_clarificacion" as const,
-        uiMode: "clarify" as const,
-        planPinned: true,
-        plan: {
-          objetivo: "Guía de práctica de fracciones para 6° básico",
-          tipo: "guia",
-          tipo_label: "guía",
-          oa: "OA 4",
-          duracion: "45 min",
-          notas: "",
-          titulo: "Plan de Guía de Práctica de Fracciones",
-          meta: "Plan de trabajo · 1 entregable · Listo · 9 sept 2026",
-          resultado_previsto: ["Guía de práctica"],
-          decisiones: {
-            curso: "6° básico",
-            asignatura: "Matemática",
-            tema: "Representación, comparación y equivalencia de fracciones",
-          },
-          como_abordare: [
-            { titulo: "Selección múltiple", detalle: "Ítems de representación." },
-            { titulo: "Desarrollo", detalle: "Problemas breves." },
-          ],
-          supuestos: [
-            { id: "s1", text: "Se usará una extensión breve, pensada para una sesión." },
-          ],
-          questions: [],
-        },
-        question: {
-          id: "q1",
-          prompt: "¿Qué énfasis conviene para la práctica?",
-          options: [
-            { id: "1", label: "Representación y aplicación", suggested: true },
-            { id: "2", label: "Cálculo y equivalencia" },
-            { id: "3", label: "Resolución de problemas" },
-          ],
-        },
-        sourceCount: 4,
-      }
-      shell.sync(state)
-      await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      expect(frame).toContain("RESULTADO PREVISTO")
-      expect(frame).toContain("SUGERIDA")
-      expect(frame).toContain("énfasis")
-      expect(frame).toContain("Responde con tus palabras")
-      expect(frame).toContain("Matemática")
-      // Plan body may scroll; header + visible sections are enough at this height.
-      expect(frame).toMatch(/RESULTADO PREVISTO|DECISIONES CONFIRMADAS|guía ·/)
-    } finally {
-      setup.renderer.destroy()
-    }
-  })
-
-  test("gate strip and selected evidence render", async () => {
-    const setup = await createTestRenderer({ width: 140, height: 40 })
-    try {
-      const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "4° básico",
-          asignatura: "Lenguaje",
-          oa: "OA 4",
-          duracion: "45 min",
-          tipo: "planificacion",
-        }),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_criterio" as const,
-        proposal: "## Objetivo\nLeer con evidencia.",
-        proposalTitle: "Plan",
-        evidence: [
-          { path: "fuentes/a.md", snippet: "OA 4 extraer información", seccion: "OA", verified: true },
-          { path: "fuentes/b.md", snippet: "El huemul preguntó", seccion: "desarrollo", verified: false },
-        ],
-        evidenceIndex: 0,
-        focusPanel: "evidence" as const,
-        planPinned: true,
-        plan: {
-          objetivo: "Leer con evidencia",
+  test("adaptar muestra origen, cambios y apoyos NEE", async () => {
+    const state: AppState = applyHostEvent(
+      { ...initialState(encargo), mode: "offline", model: "tero-offline" },
+      {
+        type: "propuesta",
+        id: "t2",
+        propuesta: {
+          ...propuesta,
+          accion: "adaptar",
           tipo: "planificacion",
           tipo_label: "planificación",
-          oa: "OA 4",
-          duracion: "45 min",
-          notas: "Fuentes de la carpeta.",
-          titulo: "Plan de planificación",
-          meta: "1 entregable",
-          resultado_previsto: ["planificación"],
-          decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
-          como_abordare: [{ titulo: "Inicio", detalle: "activar" }],
-          supuestos: [{ id: "s1", text: "45 min" }],
+          origen: "derivados/20260101-120000-planificacion-cuento.md",
+          cambios: ["Agrega pauta de corrección", "Sube la exigencia del ítem 3"],
+          notas_nee: ["Tiempo extendido", "Enunciados en dos pasos"],
         },
-        warnings: [
-          {
-            code: "unverified_citation",
-            message: "El fragmento citado no aparece en fuentes/b.md.",
-            blocking: false,
-          },
-        ],
-        sourceCount: 4,
-      }
-      shell.sync(state)
-      await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      expect(frame).toContain("sí")
-      expect(frame).toContain("derivados")
-      expect(frame).toContain("evid 1/2")
-      expect(frame).toContain("4 fuentes")
-      expect(frame).toContain("aviso")
-    } finally {
-      setup.renderer.destroy()
-    }
+      },
+    )
+    const text = await frame(state, 140, 46)
+    expect(text).toContain("adaptar (NEE) · planificación")
+    expect(text).toContain("origen")
+    expect(text).toContain("derivados/20260101-120000-planificacion")
+    expect(text).toContain("cambios")
+    expect(text).toContain("Agrega pauta de corrección")
+    expect(text).toContain("apoyos y criterios NEE")
+    expect(text).toContain("Tiempo extendido")
   })
 
-  test("plan stage hides empty propuesta/evidencia and keeps footer quiet", async () => {
-    const setup = await createTestRenderer({ width: 120, height: 36 })
-    try {
-      const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "4° básico",
-          asignatura: "Lenguaje",
-          oa: "OA 4",
-          duracion: "45 min",
-          tipo: "planificacion",
-          tema: "cuento",
-          rumbo: "planificar",
-        }),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_plan" as const,
-        planPinned: true,
-        sourceCount: 5,
-        mode: "offline",
-        model: "tero-offline",
-        statusLine: "plan listo",
-        plan: {
-          objetivo: "Leer el cuento y distinguir lo explícito de lo implícito en el valle.",
-          tipo: "planificacion",
-          tipo_label: "planificación",
-          oa: "OA 4",
-          duracion: "45 min",
-          notas: "",
-          titulo: "Plan de planificación – planificación 45 min cuento carpeta",
-          meta: "Plan de trabajo · 1 entregable · Listo · 10 sep 2026",
-          resultado_previsto: ["Planificación"],
-          decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
-          como_abordare: [{ titulo: "Lectura", detalle: "cuento" }],
-          supuestos: [{ id: "s1", text: "45 min" }],
-        },
-      }
-      shell.sync(state)
-      await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      expect(frame).toContain("plan")
-      expect(frame).toContain("aprobar")
-      // Empty chrome must not dominate during plan wait.
-      expect(frame).not.toContain("El agente prepara")
-      expect(frame).not.toContain("Las citas aparecen")
-      // Footer must not echo a/e/x (strip already has them).
-      const footerLine = frame.split("\n").slice(-3).join(" ")
-      expect(footerLine).not.toMatch(/a aprobar.*e supuesto.*x cancelar/)
-      expect(frame).toContain("teclas arriba")
-    } finally {
-      setup.renderer.destroy()
-    }
+  test("escrito muestra la ruta en derivados con la acción", async () => {
+    let state: AppState = applyHostEvent(
+      { ...initialState(encargo), mode: "offline", model: "tero-offline" },
+      { type: "propuesta", id: "t3", propuesta },
+    )
+    state = applyHostEvent(state, {
+      type: "escrito",
+      id: "t3",
+      path: "derivados/20260101-120000-evaluacion-condor.md",
+      accion: "crear",
+    })
+    const text = await frame(state, 140, 46)
+    expect(text).toContain("escrito")
+    expect(text).toContain("derivados/20260101-120000-evaluacion-condor.md")
+    expect(text).toContain("crear")
+    expect(text).not.toContain("[y] aprobar")
   })
 
-  test("gate footer does not repeat s/n/b/c legend", async () => {
-    const setup = await createTestRenderer({ width: 120, height: 36 })
-    try {
-      const shell = mountShell(setup.renderer, () => {})
-      const state = {
-        ...initialState({
-          curso: "4° básico",
-          asignatura: "Lenguaje",
-          oa: "OA 4",
-          duracion: "45 min",
-          tipo: "planificacion",
-        }),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_criterio" as const,
-        proposal: "## Objetivo\nLeer con evidencia.",
-        proposalTitle: "Plan",
-        statusLine: "tu turno",
-        evidence: [
-          {
-            path: "fuentes/bases-oa-lenguaje-4b.md",
-            snippet: "Extraer información explícita e implícita",
-            seccion: 'OA "Extraer información explícita e implícita de textos literarios y no literarios"',
-            verified: true,
-          },
-          { path: "fuentes/b.md", snippet: "huemul", seccion: "desarrollo", verified: false },
-        ],
-        evidenceIndex: 0,
-        planPinned: true,
-        plan: {
-          objetivo: "Leer",
-          tipo: "planificacion",
-          tipo_label: "planificación",
-          oa: "OA 4",
-          duracion: "45 min",
-          notas: "",
-          titulo: "Plan de planificación – planificación 45 min cuento carpeta",
-          meta: "1 entregable",
-          resultado_previsto: ["Planificación"],
-          decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
-          como_abordare: [{ titulo: "Inicio", detalle: "activar" }],
-          supuestos: [{ id: "s1", text: "45 min" }],
-        },
-        sourceCount: 5,
-        mode: "offline",
-        model: "tero-offline",
-      }
-      shell.sync(state)
-      await setup.renderOnce()
-      const frame = setup.captureCharFrame()
-      expect(frame).toContain("sí")
-      expect(frame).toContain("derivados")
-      // Evidence should wrap OA rather than mid-word clip on one long line.
-      expect(frame).toMatch(/explícita/)
-      expect(frame).toContain("teclas arriba")
-      const lines = frame.split("\n")
-      const footer = lines[lines.length - 1] + lines[lines.length - 2]
-      // Must not show the legend twice on the footer line.
-      const hits = footer.match(/s sí/g) || []
-      expect(hits.length).toBeLessThan(2)
-      expect(footer).not.toMatch(/s sí · n no · b borrador · c corregir\s+s sí/)
-    } finally {
-      setup.renderer.destroy()
-    }
+  test("el panel de error es dedicado y ofrece r para reintentar", async () => {
+    const state: AppState = applyHostEvent(initialState(encargo), {
+      type: "error",
+      message: "No pude leer fuentes/cuento.md",
+      code: "read_failed",
+      retryable: true,
+    })
+    const text = await frame(state, 120, 32)
+    expect(text).toContain("error")
+    expect(text).toContain("No pude leer fuentes/cuento.md")
+    expect(text).toContain("[r] reintentar")
+    expect(text).toContain("/retry")
   })
 
+  test("la ayuda contextual abre con ? y es scrollable", async () => {
+    const state: AppState = {
+      ...initialState(encargo),
+      screen: "conversacion",
+      started: true,
+      help: true,
+    }
+    const text = await frame(state, 120, 36)
+    expect(text).toContain("ayuda")
+    expect(text).toContain("y / n decisión")
+    expect(text).toContain("/export")
+    expect(text).toContain("PgUp/PgDn")
+    expect(text).not.toContain("Rumbos")
+    expect(text).not.toContain("Puerta")
+    // La ayuda no usa la franja de aprobación.
+    expect(text).not.toContain("aprobación")
+    expect(text).not.toContain("¿escribo el archivo?")
+  })
+
+  test("la ayuda abierta con una propuesta pendiente tampoco muestra la franja", async () => {
+    const withCard = applyHostEvent(initialState(encargo), {
+      type: "propuesta",
+      id: "t6",
+      propuesta,
+    })
+    const text = await frame({ ...withCard, help: true }, 140, 46)
+    expect(text).toContain("ayuda")
+    expect(text).toContain("Propuesta pendiente")
+    expect(text).toContain("descartar")
+    expect(text).not.toContain("¿escribo el archivo?")
+  })
+
+  test("modo compacto esconde el pájaro y la columna de evidencia", async () => {
+    const wide: AppState = applyHostEvent(initialState(encargo), {
+      type: "propuesta",
+      id: "t4",
+      propuesta,
+    })
+    const compactText = await frame({ ...wide, compact: true }, 90, 30)
+    expect(compactText).toContain("crear · evaluación")
+    // La columna de evidencia se esconde en compacto; la tarjeta sigue.
+    expect(compactText).not.toContain("evidencia")
+    const homeCompact = await frame(
+      { ...initialState({ curso: "", asignatura: "", oa: "", duracion: "", tipo: null }), compact: true },
+      90,
+      30,
+    )
+    expect(homeCompact).not.toContain("▀▀▀▀███████")
+    expect(homeCompact).toContain("tero")
+    expect(homeCompact).toContain("Pregunta, explora o crea")
+  })
+
+  test("los chips de contexto y la evidencia larga se envuelven, no se cortan", async () => {
+    const state: AppState = applyHostEvent(
+      { ...initialState(encargo), mode: "offline", model: "tero-offline", sourceCount: 5 },
+      {
+        type: "propuesta",
+        id: "t5",
+        propuesta: {
+          ...propuesta,
+          evidencias: [
+            {
+              path: "fuentes/bases-oa-lenguaje-4b.md",
+              snippet: "Extraer información explícita e implícita",
+              seccion:
+                'OA "Extraer información explícita e implícita de textos literarios y no literarios"',
+              verified: true,
+            },
+          ],
+        },
+      },
+    )
+    const text = await frame(state, 140, 46)
+    expect(text).toContain("Lenguaje")
+    expect(text).toContain("OA 4")
+    expect(text).toContain("5 fuentes")
+    expect(text).toMatch(/explícita/)
+  })
 })
