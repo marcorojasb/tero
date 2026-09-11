@@ -6,7 +6,6 @@ import pytest
 
 from tero.errors import TeroError
 from tero.hashutil import sha256_file
-from tero.session import TeacherSession
 from tero.types import Encargo
 from tero.workspace import Workspace
 from tests.support import (
@@ -176,7 +175,6 @@ def test_el_contexto_no_bloquea_una_propuesta_de_otro_tipo(workspace: Workspace)
     from unittest.mock import patch
 
     from tero.types import ArtifactType
-
     from tests.fake_models import ToolModel
 
     encargo = Encargo(

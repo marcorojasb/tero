@@ -102,9 +102,9 @@ def test_read_source_no_deja_leer_derivados(workspace: Workspace):
     ),
 )
 def test_read_source_no_deja_leer_derivados_si_un_padre_se_llama_fuentes(tmp_path):
-    from tero.config import EXAMPLE_CARPETA
-
     import shutil
+
+    from tero.config import EXAMPLE_CARPETA
 
     root = tmp_path / "fuentes" / "carpeta"
     shutil.copytree(
@@ -198,9 +198,7 @@ def test_la_segunda_propuesta_del_turno_no_reemplaza_a_la_primera(workspace: Wor
     ctx = TurnContext(workspace=workspace, encargo=ENCARGO)
     ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
     tools = {tool.tool_name: tool for tool in build_tools(ctx)}
-    tools["proponer_crear"](
-        tipo="guia", titulo="Uno", resumen="r", vista_previa_markdown=GUIA
-    )
+    tools["proponer_crear"](tipo="guia", titulo="Uno", resumen="r", vista_previa_markdown=GUIA)
     segunda = json.loads(
         tools["proponer_crear"](
             tipo="pauta", titulo="Dos", resumen="r", vista_previa_markdown="# Otra\n"
@@ -239,7 +237,9 @@ def test_workspace_list_artifacts_ordena_por_fecha_y_respeta_limit(workspace: Wo
     import os
     import time
 
-    viejo = workspace.write_artifact("derivados/viejo.md", "---\ntitulo: Guía vieja\n---\n\n# Vieja\n")
+    viejo = workspace.write_artifact(
+        "derivados/viejo.md", "---\ntitulo: Guía vieja\n---\n\n# Vieja\n"
+    )
     time.sleep(0.01)
     nuevo = workspace.write_artifact("derivados/nuevo.md", "# Sin front matter\n")
     os.utime(viejo, (1_600_000_000, 1_600_000_000))

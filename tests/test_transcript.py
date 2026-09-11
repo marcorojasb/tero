@@ -33,11 +33,7 @@ def test_el_turno_completo_queda_en_la_transcripcion(workspace: Workspace):
     assert start["model"] == "tero-offline"
     assert start["offline"] is True
 
-    acciones = [
-        row.get("action")
-        for row in rows
-        if row.get("type") == "host_action"
-    ]
+    acciones = [row.get("action") for row in rows if row.get("type") == "host_action"]
     assert "start_turn" in acciones
     assert "aprobar" in acciones
     prompts = [

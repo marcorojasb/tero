@@ -126,6 +126,9 @@ def test_intencion_c_adaptar_para_nee_propone_con_origen_y_notas(workspace: Work
     assert turn.propuesta.accion == "adaptar"
     assert turn.propuesta.origen == ruta
     assert turn.propuesta.notas_nee
+    codigos = {item.code for item in turn.propuesta.draft.warnings}
+    assert "paci_no_oficial" in codigos
+    assert all(item.blocking is False for item in turn.propuesta.draft.warnings)
 
     result = session.aprobar()
     assert result.path is not None and result.path != origen
