@@ -51,6 +51,8 @@ def test_ficha_landing_is_the_github_page():
     assert "term-chrome" not in html
     assert 'id="splash"' not in html
     assert 'id="wave"' not in html
+    assert "wave.js" not in html
+    assert not (SITE / "wave.js").exists()
     assert "asistente pedagógico" in html
     assert "Vanellus chilensis" in html
     assert "queltehue" in html
@@ -189,9 +191,19 @@ def test_ficha_assets_and_pages_workflow():
     assert "stamp.py" in sitio
     assert "tui-grid.js" in sitio
     assert "capture-frames" in sitio
+    assert "compose-og" in sitio
     assert "una sola ventana" in sitio.lower() or "una ventana" in sitio.lower()
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
+    agents = _read(ROOT / "AGENTS.md")
+    assert "splash + ASCII wave" not in agents
+    assert "OpenTUI" in agents
+    arch = _read(ROOT / "ARCHITECTURE.md")
+    assert "not a splash wave" in arch.lower()
+    assert "OpenTUI of tero" in arch
+    contrib = _read(ROOT / "CONTRIBUTING.md")
+    assert "ola ASCII" not in contrib
+    assert "OpenTUI" in contrib
 
 
 def test_ficha_serve_maps_missing_path_to_extraviada_sheet():
