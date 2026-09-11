@@ -642,6 +642,7 @@
     const height = Math.max(1, Math.round(nh * scale));
     img.style.width = `${width}px`;
     img.style.height = `${height}px`;
+    img.style.imageRendering = scale >= 0.999 ? "pixelated" : "auto";
     return {
       cellW: width / cols,
       cellH: height / rows,

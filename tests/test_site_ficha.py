@@ -91,8 +91,8 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-1x" in html
-    assert "tui-grid.js?v=vte-1x" in html
+    assert "styles.css?v=vte-px" in html
+    assert "tui-grid.js?v=vte-px" in html
     assert "ficha.js?v=vte-hotkeys" in html
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
@@ -111,9 +111,13 @@ def test_ficha_landing_is_the_github_page():
     assert "viewportBudget" in grid
     assert "innerHeight - 96" not in grid
     assert "paddingLeft" in grid
+    assert 'scale >= 0.999 ? "pixelated"' in grid
     assert "html,\nbody {\n  margin: 0;\n  min-height: 100%;\n  overflow: hidden;\n}" in css
     assert "padding: 12px" in css
+    assert "justify-content: flex-start" in css
     assert ".window-chrome.sr-only" in css
+    assert "image-rendering: pixelated" in css
+    assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
     assert "plan-2" in js
