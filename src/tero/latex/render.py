@@ -9,7 +9,6 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from tero.artifacts import slugify
 from tero.config import PACKAGE_ROOT
 from tero.errors import TeroError
 from tero.latex.schemas import (
@@ -21,7 +20,6 @@ from tero.latex.schemas import (
     repair_payload,
     validate_payload,
 )
-from tero.types import ArtifactType
 
 TEMPLATES_ROOT = PACKAGE_ROOT / "templates" / "latex"
 
@@ -721,25 +719,6 @@ def export_latex(
     return dest
 
 
-def write_latex_artifact(
-    folder: Path,
-    payload: dict[str, Any],
-    *,
-    try_pdf: bool = False,
-) -> Path:
-    """Write a .tex under borradores/ or derivados/ from a schema payload."""
-    data = repair_payload(str(payload.get("tipo") or "guia"), payload)
-    titulo = str(data.get("titulo") or "artefacto")
-    tipo = str(data.get("tipo") or "guia")
-    name = f"{slugify(tipo)}-{slugify(titulo)[:40]}.tex"
-    dest = Path(folder) / name
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(render_latex(data), encoding="utf-8")
-    if try_pdf:
-        compile_pdf(dest)
-    return dest
-
-
 def compile_pdf(tex_path: Path) -> Path | None:
     """Optional PDF via latexmk without shell-escape. Returns pdf path or None."""
     tex_path = Path(tex_path)
@@ -770,10 +749,3 @@ def compile_pdf(tex_path: Path) -> Path | None:
         return None
     pdf = tex_path.with_suffix(".pdf")
     return pdf if pdf.exists() else None
-
-
-def tipo_from_artifact(tipo: ArtifactType | str | None) -> str:
-    if isinstance(tipo, ArtifactType):
-        return tipo.value
-    parsed = ArtifactType.parse(str(tipo) if tipo else None)
-    return parsed.value if parsed else "guia"

@@ -7,7 +7,6 @@ from tero.latex.render import (
     compile_pdf,
     export_latex,
     render_latex,
-    write_latex_artifact,
 )
 from tero.latex.schemas import (
     SCHEMA_TYPES,
@@ -31,5 +30,4 @@ __all__ = [
     "render_latex",
     "repair_payload",
     "validate_payload",
-    "write_latex_artifact",
 ]

@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 import json
 import re
-from pathlib import Path
 from typing import Any
 
 from tero.artifacts import REQUIRED_HEADINGS
@@ -1716,7 +1715,3 @@ def _pauta_from_section(text: str) -> list[dict[str, Any]]:
 def _guess_puntaje(text: str) -> str:
     match = re.search(r"(\d+)\s*(?:pts|puntos|ptos)?", text, flags=re.IGNORECASE)
     return match.group(1) if match else text.strip()[:40]
-
-
-def schema_path_for(tipo: str) -> Path:
-    return SCHEMAS_ROOT / f"{_schema_key(tipo)}.json"

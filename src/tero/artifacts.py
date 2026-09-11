@@ -37,10 +37,6 @@ SLUG_TYPE = {
 }
 
 
-def required_headings(tipo: ArtifactType) -> tuple[str, ...]:
-    return REQUIRED_HEADINGS[tipo]
-
-
 def missing_headings(tipo: ArtifactType, markdown: str) -> list[str]:
     lowered = markdown.lower()
     missing: list[str] = []

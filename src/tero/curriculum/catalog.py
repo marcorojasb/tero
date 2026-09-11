@@ -12,7 +12,6 @@ from typing import Any
 from tero.config import PACKAGE_ROOT
 
 CATALOG_PATH = PACKAGE_ROOT / "curriculum" / "chile" / "catalogo.json"
-LINEAMIENTOS_PATH = PACKAGE_ROOT / "curriculum" / "chile" / "evaluacion" / "lineamientos.md"
 
 
 @dataclass(frozen=True)
@@ -239,12 +238,6 @@ def resolve_oa(
         if filtered:
             return filtered[0]
     return hits[0] if hits else None
-
-
-def lineamientos_text() -> str:
-    if LINEAMIENTOS_PATH.exists():
-        return LINEAMIENTOS_PATH.read_text(encoding="utf-8")
-    return ""
 
 
 def catalog_summary() -> dict[str, Any]:

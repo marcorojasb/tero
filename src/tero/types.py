@@ -101,24 +101,6 @@ class Encargo:
     rumbo: str = ""
     tema: str = ""
 
-    def chips(self) -> list[str]:
-        chips: list[str] = []
-        if self.rumbo:
-            chips.append(self.rumbo.capitalize())
-        if self.curso:
-            chips.append(self.curso)
-        if self.asignatura:
-            chips.append(self.asignatura)
-        if self.tema:
-            chips.append(self.tema if len(self.tema) <= 36 else self.tema[:33] + "…")
-        if self.oa:
-            chips.append(self.oa)
-        if self.duracion:
-            chips.append(self.duracion)
-        if self.tipo:
-            chips.append(self.tipo.label)
-        return chips
-
     def as_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["tipo"] = self.tipo.value if self.tipo else None
@@ -137,19 +119,6 @@ class Encargo:
             notas=str(data.get("notas") or ""),
             rumbo=str(data.get("rumbo") or ""),
             tema=str(data.get("tema") or ""),
-        )
-
-    def merge(self, other: Encargo) -> Encargo:
-        """Prefer non-empty fields from *other*."""
-        return Encargo(
-            curso=other.curso or self.curso,
-            asignatura=other.asignatura or self.asignatura,
-            oa=other.oa or self.oa,
-            duracion=other.duracion or self.duracion,
-            tipo=other.tipo or self.tipo,
-            notas=other.notas or self.notas,
-            rumbo=other.rumbo or self.rumbo,
-            tema=other.tema or self.tema,
         )
 
     def context_line(self) -> str:
@@ -216,10 +185,6 @@ class ArtifactDraft:
         if self.banco_snapshot:
             data["banco_snapshot"] = self.banco_snapshot
         return data
-
-    @property
-    def usa_banco(self) -> bool:
-        return any(is_banco_path(item.path) for item in self.evidencias)
 
 
 @dataclass

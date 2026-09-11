@@ -15,24 +15,6 @@ class Rumbo(StrEnum):
     ADAPTAR = "adaptar"
 
     @property
-    def label(self) -> str:
-        return {
-            Rumbo.PLANIFICAR: "Planificar",
-            Rumbo.CREAR: "Crear",
-            Rumbo.EVALUAR: "Evaluar",
-            Rumbo.ADAPTAR: "Adaptar",
-        }[self]
-
-    @property
-    def hint(self) -> str:
-        return {
-            Rumbo.PLANIFICAR: "secuencia de clase con inicio, desarrollo y cierre",
-            Rumbo.CREAR: "guía, ficha o actividad lista para el aula",
-            Rumbo.EVALUAR: "evaluación, ítems o pauta/rúbrica",
-            Rumbo.ADAPTAR: "ajustar un material a otro curso, OA o formato",
-        }[self]
-
-    @property
     def default_tipo(self) -> ArtifactType:
         return {
             Rumbo.PLANIFICAR: ArtifactType.PLANIFICACION,
@@ -64,13 +46,6 @@ class Rumbo(StrEnum):
         }
         return aliases.get(raw)
 
-
-RUMBO_ORDER: tuple[Rumbo, ...] = (
-    Rumbo.PLANIFICAR,
-    Rumbo.CREAR,
-    Rumbo.EVALUAR,
-    Rumbo.ADAPTAR,
-)
 
 # Require °/º or an explicit level word. Bare "45" in "45 min" must NOT become "45° básico".
 _CURSO_RE = re.compile(
