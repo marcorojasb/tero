@@ -2,6 +2,9 @@
 
 Search / list / read only inside the folder. Originals are never overwritten.
 Accepted artifacts land in derivados/; teacher drafts in borradores/.
+
+Los archivos con datos personales o de salud no se indexan ni se leen: ver
+`tero.privacy`. La carpeta no se toca: nada se borra, se mueve ni se modifica.
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from tero import privacy
 from tero.errors import HashMismatchError, WorkspaceError, WriteGuardError
 from tero.hashutil import sha256_file
 from tero.types import SourceRecord
@@ -35,7 +39,7 @@ PDF_SUFFIX = ".pdf"
 
 
 class Workspace:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, datos_sensibles: str | None = None) -> None:
         self.root = root.expanduser().resolve()
         if not self.root.exists():
             raise WorkspaceError(f"La carpeta de trabajo no existe: {self.root}")
@@ -45,6 +49,14 @@ class Workspace:
         (self.root / "borradores").mkdir(exist_ok=True)
         (self.root / ".tero").mkdir(exist_ok=True)
         (self.root / ".tero" / "transcripciones").mkdir(exist_ok=True)
+        self._datos_sensibles = datos_sensibles
+        # Caché por ruta y (mtime, tamaño): list_sources corre varias veces por turno.
+        self._sensitive_cache: dict[str, tuple[tuple[int, int], str | None]] = {}
+
+    @property
+    def datos_sensibles(self) -> str:
+        """`excluir` (default) o `incluir`. Lo decide la persona, no el modelo."""
+        return self._datos_sensibles or privacy.mode_from_env()
 
     @property
     def index_path(self) -> Path:
@@ -63,6 +75,8 @@ class Workspace:
             rel = self._relative(target).as_posix()
             if rel.startswith(("derivados/", "borradores/", ".tero/")):
                 raise WorkspaceError(f"Eso no es una fuente original: {relative}")
+        if self._sensitive_reason(target):
+            raise WorkspaceError(privacy.BLOCKED_MESSAGE, code=privacy.WARNING_CODE)
         return target
 
     def list_sources(self) -> list[SourceRecord]:
@@ -143,6 +157,8 @@ class Workspace:
         path = self._safe_join(relative)
         if not path.exists() or not path.is_file():
             raise WorkspaceError(f"No existe en la carpeta: {relative}")
+        if self._sensitive_reason(path):
+            raise WorkspaceError(privacy.BLOCKED_MESSAGE, code=privacy.WARNING_CODE)
         text = _read_file_text(path)
         if len(text) > max_chars:
             text = text[:max_chars] + "\n…[truncado]"
@@ -233,6 +249,12 @@ class Workspace:
         return hits
 
     def _iter_source_files(self) -> Iterable[Path]:
+        """Fuentes admitidas. Las sensibles quedan fuera: no se leen ni se envían."""
+        for path in self._iter_candidate_files():
+            if self._sensitive_reason(path) is None:
+                yield path
+
+    def _iter_candidate_files(self) -> Iterable[Path]:
         for path in sorted(self.root.rglob("*")):
             if not path.is_file():
                 continue
@@ -244,6 +266,58 @@ class Workspace:
             if path.suffix.lower() not in TEXT_SUFFIXES and path.suffix.lower() != PDF_SUFFIX:
                 continue
             yield path
+
+    def excluded_sources(self) -> list[privacy.ExcludedSource]:
+        """Archivos que quedaron fuera por datos personales o de salud.
+
+        Solo se nombran para el aviso a la persona; nunca se leen ni se citan ante
+        el modelo, y jamás se modifican.
+        """
+        if not privacy.is_excluding(self.datos_sensibles):
+            return []
+        excluded: list[privacy.ExcludedSource] = []
+        for path in self._iter_candidate_files():
+            motivo = self._sensitive_reason(path)
+            if motivo:
+                excluded.append(
+                    privacy.ExcludedSource(
+                        path=self._relative(path).as_posix(),
+                        name=path.name,
+                        motivo=motivo,
+                    )
+                )
+        excluded.sort(key=lambda item: item.path)
+        return excluded
+
+    def _sensitive_reason(self, path: Path) -> str | None:
+        """Motivo por el que el archivo no se admite; None si se admite. Solo lee."""
+        if not privacy.is_excluding(self.datos_sensibles):
+            return None
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        key = self._relative(path).as_posix()
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        cached = self._sensitive_cache.get(key)
+        if cached is not None and cached[0] == stamp:
+            return cached[1]
+        motivo = self._detect_sensitive(path)
+        self._sensitive_cache[key] = (stamp, motivo)
+        return motivo
+
+    def _detect_sensitive(self, path: Path) -> str | None:
+        motivo = privacy.motivo_por_nombre(self._relative(path).as_posix())
+        if motivo:
+            return motivo
+        if path.suffix.lower() == PDF_SUFFIX:
+            # El nombre decide en PDF: no se extrae texto para no encarecer el listado.
+            return None
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+        return privacy.motivo_por_contenido(text)
 
     def _safe_join(self, relative: str) -> Path:
         if not relative or relative.startswith("/") or "\\" in relative:

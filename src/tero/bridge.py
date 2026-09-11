@@ -115,6 +115,7 @@ class Bridge:
                     emit=self._client_emit,
                 )
             self.session.record({"type": "inbound", "command": public_inbound(message)})
+            self.session.avisar_datos_sensibles()
             sources = self.workspace.list_sources()
             self.emit(
                 {
@@ -123,6 +124,7 @@ class Bridge:
                     "encargo": self.session.encargo.as_dict(),
                     "fuentes": len(sources),
                     "changed": sum(1 for item in sources if item.changed),
+                    "datos_sensibles": self.session.datos_sensibles_resumen(),
                     "sessions": _recent_sessions(self.workspace),
                     "curriculum": catalog_summary(),
                     "transcript": str(self.session.transcript.path),

@@ -14,6 +14,7 @@ from typing import Any
 
 from strands import Agent
 
+from tero import privacy
 from tero.begonia import BegoniaClient
 from tero.config import Settings
 from tero.encargo_sync import source_domain_warning, sync_encargo_from_prompt
@@ -92,6 +93,7 @@ class TeacherSession:
         self._stream_buf: list[str] = []
         self._delta_buf: str = ""
         self._last_tool_activity: tuple[str, str] | None = None
+        self._privacy_aviso: str = ""
 
     # ------------------------------------------------------------------ plumbing
 
@@ -188,6 +190,7 @@ class TeacherSession:
         self.ctx.pending_propuesta = None
         self.ctx.evidence = []
         self.ctx.reset_banco()
+        self.avisar_datos_sensibles()
         self.workspace.ensure_index()
         try:
             self._run_turn(turn, self._user_payload(cleaned))
@@ -432,6 +435,25 @@ class TeacherSession:
                 "warning": {"code": code, "message": message, "blocking": False},
             }
         )
+
+    def avisar_datos_sensibles(self) -> None:
+        """Un solo aviso, no bloqueante, si hay archivos fuera por datos personales.
+
+        Se llama en el camino normal (inicio de turno) y en el saludo del host. El
+        mismo aviso no se repite; si cambia el conjunto excluido, se avisa de nuevo.
+        """
+        excluidos = self.workspace.excluded_sources()
+        if not excluidos:
+            return
+        message = privacy.aviso(excluidos)
+        if not message or message == self._privacy_aviso:
+            return
+        self._privacy_aviso = message
+        self._warn(privacy.WARNING_CODE, message)
+
+    def datos_sensibles_resumen(self) -> dict[str, Any]:
+        """Payload del host: cuántos quedaron fuera y por qué, sin nombres al modelo."""
+        return privacy.resumen(self.workspace.excluded_sources(), self.workspace.datos_sensibles)
 
     def _fail(self, exc: BaseException) -> None:
         code, message = humanize_exception(exc)
