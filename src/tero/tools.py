@@ -10,6 +10,7 @@ from typing import Any
 
 from strands import tool
 
+from tero import privacy
 from tero.begonia import (
     INSTRUCCION_ERROR,
     BegoniaClient,
@@ -23,6 +24,7 @@ from tero.curriculum.catalog import catalog_covers_curso, normalize_curso
 from tero.curriculum.catalog import get_oa as catalog_get_oa
 from tero.curriculum.catalog import list_oa as catalog_list_oa
 from tero.curriculum.catalog import search_oa as catalog_search_oa
+from tero.errors import WorkspaceError
 from tero.evidence import parse_evidence_blob, snippet_in_text, verify_evidence
 from tero.latex.schemas import enrich_payload_from_markdown, parse_payload_json
 from tero.sanitize import strip_tool_traces_value
@@ -151,6 +153,26 @@ class TurnContext:
         return None
 
 
+def _refusal(ctx: TurnContext, name: str, exc: WorkspaceError) -> str | None:
+    """Respuesta honesta cuando la fuente pedida quedó fuera por datos personales."""
+    if exc.code != privacy.WARNING_CODE:
+        return None
+    ctx._emit(
+        {"type": "activity", "tool": name, "state": "end", "detail": "fuera por datos personales"}
+    )
+    return json.dumps(
+        {
+            "ok": False,
+            "error": privacy.WARNING_CODE,
+            "hint": (
+                "Esa fuente no está disponible: protección de datos personales o de salud. "
+                "No la nombres ni la cites; trabaja con las fuentes que sí aparecen."
+            ),
+        },
+        ensure_ascii=False,
+    )
+
+
 def _blocked(ctx: TurnContext, name: str, *, allow_last_chance: bool = True) -> str | None:
     err = ctx.consume_tool(name, allow_last_chance=allow_last_chance)
     if err:
@@ -198,7 +220,13 @@ def _list_sources(ctx: TurnContext):
                 "detail": f"{len(payload)} fuentes",
             }
         )
-        return json.dumps({"fuentes": payload}, ensure_ascii=False)
+        # Sin nombres: el modelo solo necesita saber que hay material omitido, no cuál.
+        omitidos = len(ctx.workspace.excluded_sources())
+        result: dict[str, Any] = {"fuentes": payload}
+        if omitidos:
+            result["omitidos_por_proteccion_de_datos"] = omitidos
+            result["aviso"] = privacy.aviso_para_modelo(omitidos)
+        return json.dumps(result, ensure_ascii=False)
 
     return list_sources
 
@@ -236,7 +264,10 @@ def _read_artifact(ctx: TurnContext):
         ctx._emit({"type": "activity", "tool": "read_artifact", "state": "start", "detail": path})
         try:
             text = ctx.workspace.read_document(path)
-        except Exception as exc:  # noqa: BLE001 — ruta inválida o fuera de la carpeta
+        except WorkspaceError as exc:
+            refusal = _refusal(ctx, "read_artifact", exc)
+            if refusal is not None:
+                return refusal
             return json.dumps(
                 {"ok": False, "error": "no_encontrado", "hint": str(exc)},
                 ensure_ascii=False,
@@ -279,7 +310,13 @@ def _read_source(ctx: TurnContext):
         if blocked:
             return blocked
         ctx._emit({"type": "activity", "tool": "read_source", "state": "start", "detail": path})
-        payload = ctx.workspace.read_source(path)
+        try:
+            payload = ctx.workspace.read_source(path)
+        except WorkspaceError as exc:
+            refusal = _refusal(ctx, "read_source", exc)
+            if refusal is None:
+                raise
+            return refusal
         ctx._emit({"type": "activity", "tool": "read_source", "state": "end", "detail": path})
         return json.dumps(payload, ensure_ascii=False)
 
