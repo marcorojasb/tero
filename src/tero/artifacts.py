@@ -51,6 +51,25 @@ def missing_headings(tipo: ArtifactType, markdown: str) -> list[str]:
     return missing
 
 
+def missing_section_headings(tipo: ArtifactType, markdown: str) -> list[str]:
+    """Como `missing_headings`, pero solo mira titulares markdown.
+
+    `missing_headings` busca substrings en todo el texto, así que una respuesta
+    conversacional que *menciona* "inicio, desarrollo y cierre" parecería una ficha.
+    Aquí solo cuentan los titulares reales.
+    """
+    heads = [
+        match.group(1).strip().lower()
+        for match in re.finditer(r"^#{1,6}\s+(.+)$", markdown, flags=re.MULTILINE)
+    ]
+    blob = " | ".join(heads)
+    missing: list[str] = []
+    for heading in REQUIRED_HEADINGS[tipo]:
+        if not any(variant in blob for variant in _heading_variants(heading)):
+            missing.append(heading)
+    return missing
+
+
 def _heading_variants(heading: str) -> tuple[str, ...]:
     aliases = {
         "objetivo": ("objetivo", "objetivos"),

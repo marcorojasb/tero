@@ -161,7 +161,11 @@ def _draft_from_markdown_prose(
     fallback_tipo: ArtifactType | None,
     evidencias: list[Evidence] | None,
 ) -> ArtifactDraft | None:
-    """Last resort: the model wrote the ficha as markdown and never called the tool."""
+    """Last resort: the model wrote the ficha as markdown and never called the tool.
+
+    Ojo: una respuesta conversacional larga también trae headings. Solo se rescata
+    si el cuerpo cumple la estructura de algún tipo de material; si no, es charla.
+    """
     cuerpo = _extract_ficha_markdown(blob)
     if not cuerpo:
         return None
@@ -172,6 +176,11 @@ def _draft_from_markdown_prose(
         src = blob[match.start() :]
         tipo_raw = _kw_string(src, "tipo") or ""
         titulo = _unescape(_kw_string(src, "titulo") or "")
+    if not tipo_raw:
+        inferido = _tipo_for_ficha(cuerpo, fallback_tipo)
+        if inferido is None:
+            return None
+        tipo_raw = inferido.value
     return _finish_draft(
         tipo_raw=tipo_raw,
         titulo=titulo,
@@ -180,6 +189,20 @@ def _draft_from_markdown_prose(
         fallback_tipo=fallback_tipo,
         evidencias=evidencias,
     )
+
+
+def _tipo_for_ficha(cuerpo: str, fallback: ArtifactType | None) -> ArtifactType | None:
+    """Tipo cuyos titulares calzan con el cuerpo. None = es una respuesta, no una ficha."""
+    from tero.artifacts import missing_section_headings
+
+    candidatos: list[ArtifactType] = []
+    if fallback is not None:
+        candidatos.append(fallback)
+    candidatos.extend(tipo for tipo in ArtifactType if tipo is not fallback)
+    for tipo in candidatos:
+        if len(missing_section_headings(tipo, cuerpo)) <= 1:
+            return tipo
+    return None
 
 
 def _finish_draft(
