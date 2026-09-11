@@ -623,10 +623,9 @@
   function fitShot(host, img, cols, rows) {
     const nw = img.naturalWidth || cols * 10;
     const nh = img.naturalHeight || rows * 24;
-    const box = host.getBoundingClientRect();
-    const pad = 4;
-    let scale = Math.min((box.width - pad) / nw, (box.height - pad) / nh);
-    if (scale >= 1) scale = Math.floor(scale) || 1;
+    const maxW = Math.max(280, window.innerWidth - 48);
+    const maxH = Math.max(240, window.innerHeight - 96);
+    let scale = Math.min(maxW / nw, maxH / nh, 1);
     const width = Math.max(1, Math.round(nw * scale));
     const height = Math.max(1, Math.round(nh * scale));
     img.style.width = `${width}px`;
@@ -645,7 +644,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=jb-shot`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=vte-shot`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;
