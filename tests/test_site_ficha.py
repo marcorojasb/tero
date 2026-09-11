@@ -500,3 +500,33 @@ def test_tero_txt_no_menciona_el_flujo_retirado():
     assert "s / n / b / c" not in marca
     assert "apruebas" in marca
     assert "Vanellus chilensis" in marca
+
+
+def test_los_textos_son_chilenos_y_del_flujo_actual():
+    """Los documentos de producto no usan voseo ni el flujo retirado.
+
+    Los registros históricos y los de investigación quedan fuera: ahí el flujo
+    anterior se describe a propósito.
+    """
+    import re
+
+    voseo = re.compile(
+        r"\b(proponé|citá|decilo|armá|listá|inventás|emitís|pedís|fingís|agregá|usá|hacé|"
+        r"tenés|podés|querés|andá|mirá|decime|pasame)\b",
+        re.IGNORECASE,
+    )
+    retirado = ("s / n / b / c", "propose_plan", "draft_artifact")
+    producto = [
+        ROOT / "README.md",
+        ROOT / "ARCHITECTURE.md",
+        DOCS / "README.md",
+        DOCS / "NORMAS.md",
+        DOCS / "SITIO.md",
+        DOCS / "AWS-GRATIS.md",
+        *(DOCS / "hackathon").glob("*.md"),
+    ]
+    for path in producto:
+        body = path.read_text(encoding="utf-8")
+        assert not voseo.search(body), f"voseo rioplatense en {path.name}"
+        for token in retirado:
+            assert token not in body, f"{token!r} en {path.name}"
