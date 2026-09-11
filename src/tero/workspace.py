@@ -7,6 +7,7 @@ Accepted artifacts land in derivados/; teacher drafts in borradores/.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -108,16 +109,34 @@ class Workspace:
             payload["warning"] = HashMismatchError(payload["path"]).message
         return payload
 
-    def list_artifacts(self) -> list[str]:
-        """Material ya escrito (derivados/ y borradores/) que se puede editar o adaptar."""
-        items: list[str] = []
+    def list_artifacts(self, *, limit: int = 20) -> list[dict[str, str]]:
+        """Material ya escrito (derivados/ y borradores/), el más reciente primero.
+
+        El título del front matter importa: el agente elige con eso qué editar,
+        no con el nombre del archivo.
+        """
+        found: list[tuple[float, dict[str, str]]] = []
         for folder in ("derivados", "borradores"):
             root = self.root / folder
             if not root.is_dir():
                 continue
-            for path in sorted(root.glob("*.md")):
-                items.append(self._relative(path).as_posix())
-        return items
+            for path in root.glob("*.md"):
+                try:
+                    stamp = path.stat().st_mtime
+                except OSError:
+                    continue
+                found.append(
+                    (
+                        stamp,
+                        {
+                            "path": self._relative(path).as_posix(),
+                            "titulo": _front_matter_title(path) or path.stem,
+                            "carpeta": folder,
+                        },
+                    )
+                )
+        found.sort(key=lambda item: item[0], reverse=True)
+        return [item[1] for item in found[:limit]]
 
     def read_document(self, relative: str, *, max_chars: int = 20_000) -> str:
         """Lee cualquier documento de la carpeta (fuentes, derivados, borradores). Solo lectura."""
@@ -238,6 +257,16 @@ class Workspace:
 
     def _relative(self, path: Path) -> Path:
         return path.resolve().relative_to(self.root)
+
+
+def _front_matter_title(path: Path) -> str:
+    """Título declarado en el front matter, si lo hay."""
+    try:
+        head = path.read_text(encoding="utf-8")[:800]
+    except OSError:
+        return ""
+    match = re.search(r"^titulo:\s*(.+)$", head, flags=re.MULTILINE)
+    return match.group(1).strip().strip('"') if match else ""
 
 
 def _read_file_text(path: Path) -> str:

@@ -274,7 +274,10 @@ def _artifact_from_messages(messages: Messages) -> str:
     for payload in _tool_result_payloads(messages):
         materiales = payload.get("materiales")
         if isinstance(materiales, list) and materiales:
-            return str(materiales[-1])
+            first = materiales[0]
+            if isinstance(first, dict) and first.get("path"):
+                return str(first["path"])
+            return str(first)
         path = str(payload.get("path") or "")
         if path.startswith(("derivados/", "borradores/")):
             return path
