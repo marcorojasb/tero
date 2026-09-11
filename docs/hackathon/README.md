@@ -28,7 +28,7 @@ Cómo no gastar de más: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 | [VIDEO.md](VIDEO.md) | Guion ≤ 5 min |
 | [BUILDER-POST.md](BUILDER-POST.md) | Artículo Builder Center |
 | [harness-playground.md](harness-playground.md) | Qué pegar en AgentCore (sketch, no el producto) |
-| [architecture.svg](architecture.svg) | Diagrama de submission |
+| [architecture.svg](architecture.svg) / [architecture.png](architecture.png) | Diagrama de submission |
 | [iam-bedrock-minimo.json](iam-bedrock-minimo.json) | IAM lean |
 | [budget-tero.json](budget-tero.json) | Alerta de gasto |
 
