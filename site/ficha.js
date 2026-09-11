@@ -1,4 +1,4 @@
-/* Terminal consulta. Warnings never block s.
+/* OpenTUI session in one window. Warnings never block s.
    Consultation timings are compressed; corrida real is the measured run.
    Photocopied pages appear only after s / b (#archivo). */
 (function () {
@@ -8,106 +8,63 @@
   const $ = (id) => document.getElementById(id);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const scale = reduceMotion ? 0.05 : 1;
+  const Tui = window.teroTui;
 
   const state = {
     phase: "home",
+    view: "home",
     rumbo: null,
     filename: null,
     warnings: [],
-    activity: "rumbos 1–4 · puerta s n b c · ? ayuda",
     token: 0,
     pages: [],
     page: 0,
     clockMs: 0,
     clockTimer: null,
     startedAt: 0,
+    help: false,
+    spinner: 0,
+    spinnerTimer: null,
+    promptValue: "",
+    stamp: "REVISAR",
+    cols: 120,
+    rows: 36,
+    cellW: 8,
+    cellH: 15.6,
+    hits: [],
+    promptBox: null,
+    model: null,
   };
-
-  const GRAPH_A = `
-    <figure class="plano">
-      <figcaption>Lectura gráfica · x + y = 4 y x = 1 se cortan en (1, 3)</figcaption>
-      <svg viewBox="0 0 240 180" role="img" aria-label="Rectas x+y=4 y x=1, punto (1,3)">
-        <g stroke="#2c333c" stroke-width="0.4" fill="none">
-          <path d="M40 15 V155 M60 15 V155 M80 15 V155 M100 15 V155 M120 15 V155 M140 15 V155 M160 15 V155 M180 15 V155 M200 15 V155"/>
-          <path d="M20 35 H220 M20 55 H220 M20 75 H220 M20 95 H220 M20 115 H220 M20 135 H220"/>
-        </g>
-        <line x1="20" y1="155" x2="228" y2="155" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="20" y1="155" x2="20" y2="12" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="20" y1="75" x2="100" y2="155" stroke="#22d3ee" stroke-width="2.2"/>
-        <line x1="40" y1="12" x2="40" y2="155" stroke="#e06c75" stroke-width="2.2"/>
-        <circle cx="40" cy="95" r="3.4" fill="#86efac"/>
-        <text x="48" y="92" font-size="11" fill="#e8eee6">(1,3)</text>
-        <text x="104" y="150" font-size="11" fill="#22d3ee">x+y=4</text>
-        <text x="46" y="22" font-size="11" fill="#e06c75">x=1</text>
-        <text x="222" y="168" font-size="10" fill="#7a8490">x</text>
-        <text x="8" y="16" font-size="10" fill="#7a8490">y</text>
-      </svg>
-    </figure>`;
-
-  const GRAPH_B = `
-    <figure class="plano">
-      <figcaption>x + y = 10 y x − y = 4 se cortan en (7, 3)</figcaption>
-      <svg viewBox="0 0 280 210" role="img" aria-label="Rectas x+y=10 y x-y=4, punto (7,3)">
-        <g stroke="#2c333c" stroke-width="0.4" fill="none">
-          <path d="M41 20 V178 M54 20 V178 M67 20 V178 M80 20 V178 M93 20 V178 M106 20 V178 M119 20 V178 M132 20 V178 M145 20 V178 M158 20 V178 M171 20 V178 M184 20 V178"/>
-          <path d="M28 35 H250 M28 48 H250 M28 61 H250 M28 74 H250 M28 87 H250 M28 100 H250 M28 113 H250 M28 126 H250 M28 139 H250 M28 152 H250 M28 165 H250"/>
-        </g>
-        <line x1="28" y1="178" x2="255" y2="178" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="28" y1="178" x2="28" y2="18" stroke="#d8dee9" stroke-width="1.2"/>
-        <line x1="28" y1="48" x2="158" y2="178" stroke="#22d3ee" stroke-width="2.2"/>
-        <line x1="80" y1="178" x2="184" y2="74" stroke="#e06c75" stroke-width="2.2"/>
-        <circle cx="119" cy="139" r="3.4" fill="#86efac"/>
-        <text x="126" y="136" font-size="11" fill="#e8eee6">(7,3)</text>
-        <text x="162" y="174" font-size="11" fill="#22d3ee">x+y=10</text>
-        <text x="188" y="72" font-size="11" fill="#e06c75">x−y=4</text>
-        <text x="250" y="192" font-size="10" fill="#7a8490">x</text>
-        <text x="10" y="22" font-size="10" fill="#7a8490">y</text>
-      </svg>
-    </figure>`;
 
   const rumbos = {
     1: {
-      chips: "4° básico · Lenguaje · 45 min · LEN-4B-OA04",
+      chips: ["planificar", "4° básico", "Lenguaje", "cuento", "OA 4", "45 min", "planificacion"],
       tipo: "planificacion",
       filename: "planificacion-condor-y-huemul.pdf",
       fuentes: ["cuento-el-condor-y-el-huemul.md", "bases-oa-lenguaje-4b.md", "pauta-lectura.md"],
       corrida: "bakeoff LaTeX · GLM 4.7 Flash · planificación 4° básico",
       elapsed: null,
-      tui: "plan",
       pages: [
         "./assets/hojas/plan/p1.png",
         "./assets/hojas/plan/p2.png",
         "./assets/hojas/plan/p3.png",
       ],
       steps: [
-        { tool: "list_sources", ms: 700, tui: "encargo" },
-        { tool: "list_oa", ms: 550, tui: "encargo" },
-        { tool: "read_source", ms: 800, detail: "cuento-el-condor-y-el-huemul.md", tui: "encargo" },
+        { tool: "list_sources", ms: 700 },
+        { tool: "list_oa", ms: 550 },
+        { tool: "read_source", ms: 800, detail: "cuento-el-condor-y-el-huemul.md" },
         { tool: "read_source", ms: 650, detail: "bases-oa-lenguaje-4b.md" },
-        { tool: "propose_plan", ms: 2400, tui: "plan", plan: true },
-        { tool: "cite_evidence", ms: 500, tui: "clarificacion" },
-        { tool: "draft_artifact", ms: 3200, tui: "export", draft: true },
+        { tool: "propose_plan", ms: 2400, plan: true },
+        { tool: "cite_evidence", ms: 500 },
+        { tool: "draft_artifact", ms: 3200, draft: true },
       ],
-      plan: "45 min · extraer explícito e implícito del cuento, con cita. Inicio pregunta, desarrollo lectura guiada + parejas, cierre ticket.",
-      html: `
-        <h1>Planificación — El cóndor y el huemul</h1>
-        <p>tero · planificación · el docente decide</p>
-        <h2>Objetivo</h2>
-        <p>Extraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).</p>
-        <h2>Inicio</h2>
-        <ul>
-          <li>Pregunta: ¿qué significa que un texto nos diga algo y que nosotros podamos agregar algo más?</li>
-          <li>Ancla: la niña anota dos cosas en el cuaderno de tapa azul — una escrita, otra inferida.</li>
-        </ul>
-        <h2>Desarrollo</h2>
-        <ul>
-          <li>Lectura en voz alta del cuento de la carpeta.</li>
-          <li>Parejas: tres ítems (explícito / implícito / cita).</li>
-        </ul>
-        <h2>Cierre</h2>
-        <p>Ticket: una oración con evidencia. El JSON del modelo no se imprime crudo: el host arma la ficha.</p>
-        <p class="muted">Al pulsar <kbd>s</kbd> se muestran las páginas reales del bakeoff LaTeX (GLM).</p>
-      `,
+      planTitle: "planificación · cuento",
+      plan:
+        "planificación · cuento\nPlan de trabajo · 1 entregable · Listo\n\nExtraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.\n\nRESULTADO PREVISTO\n  · Planificación\n\nCÓMO LO ABORDARÉ\n  1. Inicio — pregunta ancla\n  2. Desarrollo — lectura guiada + parejas\n  3. Cierre — ticket de salida\n\nSUPUESTOS  (e)\n  · 45 min, fuentes de la carpeta",
+      draft:
+        "# Planificación — El cóndor y el huemul\n\ntero · planificación · el docente decide\n\n## Objetivo\nExtraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).\n\n## Inicio\n- ¿Qué significa que un texto nos diga algo y que nosotros podamos agregar algo más?\n- Ancla: la niña anota dos cosas en el cuaderno de tapa azul.\n\n## Desarrollo\n- Lectura en voz alta del cuento de la carpeta.\n- Parejas: tres ítems (explícito / implícito / cita).\n\n## Cierre\nTicket: una oración con evidencia. El JSON del modelo no se imprime crudo.",
+      evidence:
+        "▸ 1/2  ✓ en archivo\n  fuentes/cuento-el-condor-y-el-huemul.md\n  desarrollo\n\n  2/2  ?  fuentes/bases-oa-lenguaje-4b.md\n    OA 4",
       warnings: [
         {
           code: "unverified_citation",
@@ -117,7 +74,7 @@
       ],
     },
     2: {
-      chips: "1° medio · Matemática · 90 min · sistemas 2×2",
+      chips: ["crear", "1° medio", "Matemática", "sistemas 2×2", "90 min", "guia"],
       tipo: "guia",
       filename: "guia-sistemas-ecuaciones-lineales-2x2.pdf",
       fuentes: [
@@ -128,52 +85,28 @@
       corrida: "MiniMax M2.5 · guía 1° medio · 94.9 s",
       elapsed: 94.9,
       tools: 13,
-      tui: "puerta_sm",
       pages: [
         "./assets/hojas/guia-sistemas/p1.png",
         "./assets/hojas/guia-sistemas/p2.png",
         "./assets/hojas/guia-sistemas/p3.png",
       ],
       steps: [
-        { tool: "list_sources", ms: 720, tui: "encargo" },
-        { tool: "list_oa", ms: 580, tui: "encargo" },
-        { tool: "read_source", ms: 820, detail: "vocabulario-algebra.md", tui: "encargo" },
+        { tool: "list_sources", ms: 720 },
+        { tool: "list_oa", ms: 580 },
+        { tool: "read_source", ms: 820, detail: "vocabulario-algebra.md" },
         { tool: "read_source", ms: 780, detail: "ejemplos-sistemas-resueltos.md" },
         { tool: "read_source", ms: 700, detail: "bases-oa-matematica-1m.md" },
-        { tool: "propose_plan", ms: 2600, tui: "plan", plan: true },
-        { tool: "cite_evidence", ms: 520, tui: "clarificacion" },
-        { tool: "draft_artifact", ms: 4200, tui: "puerta_sm", draft: true },
+        { tool: "propose_plan", ms: 2600, plan: true },
+        { tool: "cite_evidence", ms: 520 },
+        { tool: "draft_artifact", ms: 4200, draft: true },
       ],
-      plan: "Guía de autoaprendizaje: sistema 2×2 como dos rectas, un punto. Sustitución + verificación. SM, V/F, desarrollo y un problema de ruedas.",
-      html: `
-        <h1>Guía — sistemas de ecuaciones lineales 2×2</h1>
-        <p>tero · guía · 1° medio · el docente decide</p>
-        <h2>Propósito</h2>
-        <p>Reconocer un sistema 2×2 como <strong>dos condiciones a la vez</strong>. La solución es el <strong>punto donde se cortan dos rectas</strong>. Sustitución y verificar en ambas ecuaciones.</p>
-        ${GRAPH_A}
-        ${GRAPH_B}
-        <h2>I. Selección múltiple</h2>
-        <ol>
-          <li>¿Qué es un sistema 2×2?
-            <ul>
-              <li>A) Una ecuación con dos incógnitas</li>
-              <li>B) Dos ecuaciones lineales con las mismas dos incógnitas</li>
-              <li>C) Dos ecuaciones con cuatro incógnitas</li>
-              <li>D) Una ecuación de segundo grado</li>
-            </ul>
-          </li>
-          <li>¿Cuál par es solución de x + y = 5, x − y = 1?
-            <ul><li>A) (3, 2)</li><li>B) (2, 3)</li><li>C) (4, 1)</li><li>D) (5, 0)</li></ul>
-          </li>
-        </ol>
-        <h2>II. Verdadero o falso</h2>
-        <p>El par (2, 4) verifica x + y = 6. _____ · Las rectas x = 2 e y = 3 se cortan en (2, 3). _____</p>
-        <h2>III. Desarrollo</h2>
-        <p>Resuelve por sustitución, con despeje, ambos valores y verificación: 2x + y = 8, x − y = 1.</p>
-        <h2>Aplicación</h2>
-        <p>12 vehículos y 34 ruedas (moto 2, auto 4). Plantea, resuelve, verifica.</p>
-        <p class="muted">Al pulsar <kbd>s</kbd> se muestran las tres páginas LaTeX (tablas + gráficos, sin pipes ni fences).</p>
-      `,
+      planTitle: "guía · sistemas",
+      plan:
+        "guía · sistemas de ecuaciones lineales 2×2\nPlan de trabajo · 1 entregable · Listo\n\nIntroducir el sistema 2×2 como dos rectas, un punto. Sustitución + verificación.\n\nRESULTADO PREVISTO\n  · Guía de autoaprendizaje\n\nCÓMO LO ABORDARÉ\n  1. Selección múltiple\n  2. Verdadero o falso\n  3. Desarrollo y ruedas\n\nSUPUESTOS  (e)\n  · 90 min, fuentes de la carpeta",
+      draft:
+        "# Guía — sistemas de ecuaciones lineales 2×2\n\ntero · guía · 1° medio · el docente decide\n\n## Propósito\nReconocer un sistema 2×2 como dos condiciones a la vez. La solución es el punto donde se cortan dos rectas.\n\n## I. Selección múltiple\n1. ¿Qué es un sistema 2×2?\n   A) Una ecuación con dos incógnitas\n   B) Dos ecuaciones lineales con las mismas dos incógnitas\n   C) Dos ecuaciones con cuatro incógnitas\n   D) Una ecuación de segundo grado\n2. ¿Cuál par es solución de x + y = 5, x − y = 1?\n   A) (3, 2)  B) (2, 3)  C) (4, 1)  D) (5, 0)\n\n## II. Verdadero o falso\nEl par (2, 4) verifica x + y = 6. _____ · Las rectas x = 2 e y = 3 se cortan en (2, 3). _____\n\n## III. Desarrollo\nResuelve por sustitución: 2x + y = 8, x − y = 1.\n\nAl pulsar s se muestran las tres páginas LaTeX (tablas + gráficos, sin pipes ni fences).",
+      evidence:
+        "▸ 1/2  ? parafraseo\n  fuentes/vocabulario-algebra.md\n  Vocabulario\n  “sistema 2×2: dos ecuaciones lineales…”\n\n  2/2  ?  fuentes/ejemplos-sistemas-resueltos.md\n    Ejemplo A",
       warnings: [
         {
           code: "unverified_citation",
@@ -187,53 +120,34 @@
       ],
     },
     3: {
-      chips: "1° medio · Matemática · 45 min · sistemas 2×2",
+      chips: ["evaluar", "1° medio", "Matemática", "sistemas 2×2", "45 min", "evaluacion"],
       tipo: "evaluacion",
       filename: "evaluacion-sistemas-ecuaciones-2x2.pdf",
       fuentes: ["vocabulario-algebra.md", "ejemplos-sistemas-resueltos.md", "bases-oa-matematica-1m.md"],
       corrida: "MiniMax M2.5 · loop09 · 92.5 s · 39 tools",
       elapsed: 92.5,
       tools: 39,
-      tui: "puerta",
       pages: [
         "./assets/hojas/eval-sistemas/p1.png",
         "./assets/hojas/eval-sistemas/p2.png",
         "./assets/hojas/eval-sistemas/p3.png",
       ],
       steps: [
-        { tool: "list_sources", ms: 680, tui: "encargo" },
-        { tool: "list_oa", ms: 540, tui: "encargo" },
+        { tool: "list_sources", ms: 680 },
+        { tool: "list_oa", ms: 540 },
         { tool: "read_source", ms: 760, detail: "vocabulario-algebra.md" },
         { tool: "read_source", ms: 740, detail: "ejemplos-sistemas-resueltos.md" },
-        { tool: "propose_plan", ms: 2300, tui: "plan", plan: true },
-        { tool: "cite_evidence", ms: 480, tui: "clarificacion" },
-        { tool: "draft_artifact", ms: 4000, tui: "puerta_vf", draft: true },
+        { tool: "propose_plan", ms: 2300, plan: true },
+        { tool: "cite_evidence", ms: 480 },
+        { tool: "draft_artifact", ms: 4000, draft: true },
       ],
-      plan: "Evaluación corta 50 pts: SM, V/F y desarrollo (sustitución y reducción). Sin calculadora.",
-      html: `
-        <h1>Evaluación corta: sistemas de ecuaciones lineales 2×2</h1>
-        <p>tero · prueba / evaluación · el docente decide · 50 puntos</p>
-        <h2>Ítems de selección múltiple</h2>
-        <ol>
-          <li>¿Qué es un sistema 2×2?
-            <ul>
-              <li>A) Dos ecuaciones con una sola incógnita</li>
-              <li>B) Dos ecuaciones lineales con dos incógnitas que deben cumplirse a la vez</li>
-              <li>C) Un par de rectas que nunca se cortan</li>
-              <li>D) Una ecuación con dos soluciones</li>
-            </ul>
-          </li>
-          <li>Al resolver x + y = 10, x − y = 4, ¿cuál es la solución?
-            <ul><li>A) (7, 3)</li><li>B) (3, 7)</li><li>C) (6, 4)</li><li>D) (14, −4)</li></ul>
-          </li>
-        </ol>
-        ${GRAPH_B}
-        <h2>Verdadero o falso</h2>
-        <p>(2, 5) es solución de x + y = 7 y 2x − y = −1. _____ · Un sistema lineal siempre tiene exactamente una solución. _____</p>
-        <h2>Desarrollo</h2>
-        <p>Sustitución: 2x + y = 12, x − y = 3. Muestra pasos y verifica en ambas.</p>
-        <p class="muted">Al pulsar <kbd>s</kbd> se muestran las páginas de la corrida loop09 (MiniMax, 92.5 s).</p>
-      `,
+      planTitle: "evaluación · sistemas",
+      plan:
+        "evaluación · sistemas 2×2\nPlan de trabajo · 1 entregable · Listo\n\nEvaluación corta 50 pts: SM, V/F y desarrollo (sustitución y reducción). Sin calculadora.\n\nRESULTADO PREVISTO\n  · Evaluación\n\nCÓMO LO ABORDARÉ\n  1. Selección múltiple\n  2. Verdadero o falso\n  3. Desarrollo\n\nSUPUESTOS  (e)\n  · 45 min",
+      draft:
+        "# Evaluación corta: sistemas de ecuaciones lineales 2×2\n\ntero · prueba / evaluación · el docente decide · 50 puntos\n\n## Ítems de selección múltiple\n1. ¿Qué es un sistema 2×2?\n   B) Dos ecuaciones lineales con dos incógnitas que deben cumplirse a la vez\n2. Al resolver x + y = 10, x − y = 4, ¿cuál es la solución?\n   A) (7, 3)\n\n## Verdadero o falso\n(2, 5) es solución de x + y = 7 y 2x − y = −1. _____ · Un sistema lineal siempre tiene exactamente una solución. _____\n\n## Desarrollo\nSustitución: 2x + y = 12, x − y = 3. Muestra pasos y verifica en ambas.\n\nAl pulsar s se muestran las páginas de la corrida loop09 (MiniMax, 92.5 s).",
+      evidence:
+        "▸ 1/1  ? parafraseo\n  fuentes/vocabulario-algebra.md\n  Vocabulario",
       warnings: [
         {
           code: "unverified_citation",
@@ -243,53 +157,33 @@
       ],
     },
     4: {
-      chips: "4° básico · Lenguaje · 45 min · LEN-4B-OA04",
+      chips: ["adaptar", "4° básico", "Lenguaje", "cuento", "OA 4", "45 min", "evaluacion"],
       tipo: "evaluacion",
       filename: "evaluacion-el-condor-y-el-huemul.pdf",
       fuentes: ["cuento-el-condor-y-el-huemul.md", "bases-oa-lenguaje-4b.md"],
       corrida: "GLM 4.7 Flash · loop10 · 29.1 s · 33 tools",
       elapsed: 29.1,
       tools: 33,
-      tui: "puerta_desarrollo",
       pages: [
         "./assets/hojas/eval-cuento/p1.png",
         "./assets/hojas/eval-cuento/p2.png",
         "./assets/hojas/eval-cuento/p3.png",
       ],
       steps: [
-        { tool: "list_sources", ms: 640, tui: "encargo" },
-        { tool: "read_source", ms: 820, detail: "cuento-el-condor-y-el-huemul.md", tui: "encargo" },
+        { tool: "list_sources", ms: 640 },
+        { tool: "read_source", ms: 820, detail: "cuento-el-condor-y-el-huemul.md" },
         { tool: "read_source", ms: 600, detail: "bases-oa-lenguaje-4b.md" },
-        { tool: "propose_plan", ms: 2000, tui: "plan", plan: true },
-        { tool: "cite_evidence", ms: 450, tui: "clarificacion" },
-        { tool: "draft_artifact", ms: 2800, tui: "puerta_desarrollo", draft: true },
+        { tool: "propose_plan", ms: 2000, plan: true },
+        { tool: "cite_evidence", ms: 450 },
+        { tool: "draft_artifact", ms: 2800, draft: true },
       ],
-      plan: "Prueba corta 10 pts: SM 1–4, V/F 5–6, desarrollo con cita (ítem 7). Misma carpeta del rumbo 1, otro tipo.",
-      html: `
-        <h1>Prueba corta — El cóndor y el huemul</h1>
-        <p>tero · evaluación · 4° básico · LEN-4B-OA04 · 10 puntos</p>
-        <p>Lee el cuento de la carpeta. Responde en silencio. Misma carpeta que el rumbo 1; otro tipo de artefacto.</p>
-        <h2>Selección múltiple</h2>
-        <ol>
-          <li>¿Quién observa el mar desde la cornisa?
-            <ul><li>A) El huemul</li><li>B) El cóndor</li><li>C) La niña del pueblo</li><li>D) El río</li></ul>
-          </li>
-          <li>¿Qué le pregunta el huemul al cóndor?
-            <ul>
-              <li>A) Por qué el valle se acaba</li>
-              <li>B) Por qué el cóndor se ríe</li>
-              <li>C) Por qué el agua se fue</li>
-              <li>D) Por qué hay ramas en la vertiente</li>
-            </ul>
-          </li>
-        </ol>
-        <h2>Verdadero o falso</h2>
-        <p>El cóndor responde al huemul sobre la causa del agua que se fue. _____</p>
-        <p>La niña escribe que el huemul tenía menos miedo que el que vuela. _____</p>
-        <h2>Desarrollo</h2>
-        <p>El cóndor afirma: «Yo veo el mar desde aquí». Explica, infiere y cita el cuento.</p>
-        <p class="muted">Al pulsar <kbd>s</kbd> se muestran las páginas loop10 (GLM, 29.1 s).</p>
-      `,
+      planTitle: "evaluación · cuento",
+      plan:
+        "evaluación · El cóndor y el huemul\nPlan de trabajo · 1 entregable · Listo\n\nPrueba corta 10 pts: SM 1–4, V/F 5–6, desarrollo con cita (ítem 7). Misma carpeta del rumbo 1, otro tipo.\n\nRESULTADO PREVISTO\n  · Evaluación\n\nCÓMO LO ABORDARÉ\n  1. Selección múltiple\n  2. Verdadero o falso\n  3. Desarrollo con cita\n\nSUPUESTOS  (e)\n  · 45 min",
+      draft:
+        "# Prueba corta — El cóndor y el huemul\n\ntero · evaluación · 4° básico · LEN-4B-OA04 · 10 puntos\n\nLee el cuento de la carpeta. Responde en silencio. Misma carpeta que el rumbo 1; otro tipo de artefacto.\n\n## Selección múltiple\n1. ¿Quién observa el mar desde la cornisa?\n   B) El cóndor\n2. ¿Qué le pregunta el huemul al cóndor?\n   A) Por qué el valle se acaba\n\n## Verdadero o falso\nEl cóndor responde al huemul sobre la causa del agua que se fue. _____\n\n## Desarrollo\nEl cóndor afirma: «Yo veo el mar desde aquí». Explica, infiere y cita el cuento.\n\nAl pulsar s se muestran las páginas loop10 (GLM, 29.1 s).",
+      evidence:
+        "▸ 1/2  ✓ en archivo\n  fuentes/cuento-el-condor-y-el-huemul.md\n\n  2/2  ?  fuentes/bases-oa-lenguaje-4b.md",
       warnings: [
         {
           code: "thin_evidence",
@@ -303,51 +197,218 @@
     },
   };
 
+  const TOOL_LABEL = {
+    list_sources: "fuentes",
+    list_oa: "OA lista",
+    read_source: "leer",
+    propose_plan: "plan",
+    cite_evidence: "cita",
+    draft_artifact: "borrador",
+  };
+
+  const HELP = `tero — inicio
+
+Rumbos
+  1 Planificar   2 Crear   3 Evaluar   4 Adaptar
+
+Escribe abajo: «Pregunta, explora o crea…»
+Chips tras rumbo o encargo. Catálogo OA Chile (host).
+
+El tero avisa. Tú decides. Vanellus chilensis · queltehue.
+tero-offline (Strands Model scripted). AgentCore no es el producto.
+Default README: amazon.nova-lite-v1:0.
+python -m tero demo --offline --yes
+
+? cierra · 1–4 rumbo · s / n / b / c en la puerta`;
+
   function canAccept(_warnings) {
     return true;
+  }
+
+  function looksPhatic(text) {
+    const blob = (text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .replace(/[^\p{L}\p{N} ]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!blob) return true;
+    const exact = new Set(["hola", "holi", "hello", "hi", "hey", "buenas", "ok", "ya", "gracias"]);
+    return exact.has(blob);
+  }
+
+  function sessionListing(rumbo, extra) {
+    const src = (rumbo && rumbo.fuentes) || [];
+    const lines = ["fuentes/"];
+    for (const name of src) lines.push(`  ${name}`);
+    lines.push("", "derivados/");
+    const der = $("derivados").querySelector("[data-file]");
+    lines.push(der ? `  ${der.textContent}` : "  (vacío hasta que pulses s)");
+    lines.push("", "borradores/");
+    const bor = $("borradores").querySelector("[data-file]");
+    lines.push(bor ? `  ${bor.textContent}` : "  (vacío hasta que pulses b)");
+    if (extra) lines.push("", extra);
+    return lines.join("\n");
+  }
+
+  function warnText(warnings) {
+    if (!warnings || !warnings.length) return "sin avisos";
+    return warnings.map((item) => `! ${item.message}`).join("\n");
+  }
+
+  function measure() {
+    const host = $("tui-host");
+    const probe = document.createElement("span");
+    probe.textContent = "M";
+    probe.style.cssText =
+      'position:absolute;visibility:hidden;font:13px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre';
+    host.appendChild(probe);
+    const r = probe.getBoundingClientRect();
+    probe.remove();
+    const cellW = r.width || 8;
+    const cellH = r.height || 15.6;
+    const box = host.getBoundingClientRect();
+    const cols = Math.max(80, Math.min(140, Math.floor(box.width / cellW)));
+    const rows = Math.max(28, Math.min(42, Math.floor(box.height / cellH)));
+    state.cellW = cellW;
+    state.cellH = cellH;
+    state.cols = cols;
+    state.rows = rows;
+  }
+
+  function placePrompt(box) {
+    const input = $("prompt");
+    const host = $("tui-host").getBoundingClientRect();
+    const grid = $("tui-grid").getBoundingClientRect();
+    input.style.left = `${grid.left - host.left + box.x * state.cellW}px`;
+    input.style.top = `${grid.top - host.top + box.y * state.cellH}px`;
+    input.style.width = `${box.w * state.cellW}px`;
+    input.style.height = `${state.cellH}px`;
+  }
+
+  function currentModel() {
+    const rumbo = state.rumbo ? rumbos[state.rumbo] : null;
+    const clock = $("reloj").textContent;
+    let header = "offline · inicio";
+    let footer = "elige rumbo o escribe     1–4 rumbo  Enter  ?  q";
+    let promptTitle = "pregunta";
+    let placeholder = "Pregunta, explora o crea…";
+    let view = state.view;
+    let proposal = "";
+    let activity = "en espera";
+    let evidence = "Citas al redactar.\n[ ] recorre · ✓ archivo · ? parafraseo";
+    let plan = "";
+    let gate = "";
+    let gateTitle = " plan ";
+    let session = "Sin turnos aún.\n\nHistorial:\nrumbo → plan → borrador → criterio.";
+
+    if (state.phase === "home") {
+      view = "home";
+    } else if (state.phase === "esperando_plan" || state.phase === "plan") {
+      view = "plan";
+      header = `offline · plan · ${rumbo ? rumbo.fuentes.length : 0} fuentes`;
+      promptTitle = "encargo";
+      placeholder = "teclas arriba · /objetivo /oa";
+      footer = "plan listo";
+      plan = rumbo ? rumbo.plan : "";
+      gate = "[a] aprobar   [e] supuesto   [x] cancelar";
+      session = sessionListing(rumbo);
+      activity = `${Tui.spinner(state.spinner)} plan`;
+      proposal = rumbo ? rumbo.plan : "";
+    } else if (state.phase === "esperando_criterio") {
+      view = "puerta";
+      header = `offline · puerta · ${rumbo ? rumbo.fuentes.length : 0} fuentes`;
+      promptTitle = "encargo";
+      placeholder = "teclas arriba · o crítica con c";
+      footer = "tu turno";
+      plan = rumbo ? `${rumbo.planTitle}\n\n${rumbo.plan.split("\n").slice(2, 6).join("\n")}` : "";
+      gate = `[s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/2`;
+      gateTitle = " puerta ";
+      proposal = rumbo ? rumbo.draft : "";
+      evidence = rumbo ? rumbo.evidence : evidence;
+      session = sessionListing(rumbo, `reloj ${clock}`);
+      activity = "1 activity start por tool · espera s/n/b/c";
+    } else if (state.phase === "listo") {
+      view = "puerta";
+      header = `offline · listo · ${rumbo ? rumbo.fuentes.length : 0} fuentes`;
+      promptTitle = "encargo";
+      placeholder = "1–4 otro rumbo · o escribe";
+      footer = state.stamp === "ACEPTADO" ? "s → derivados/" : state.stamp === "BORRADOR" ? "b → borradores/" : "listo";
+      plan = rumbo ? rumbo.planTitle : "";
+      gate = "";
+      proposal = rumbo ? rumbo.draft : "";
+      evidence = rumbo ? rumbo.evidence : evidence;
+      session = sessionListing(rumbo);
+      activity = footer;
+    } else {
+      view = "workspace";
+      header = `offline · leyendo · ${rumbo ? rumbo.fuentes.length : 0} fuentes · ${Tui.spinner(state.spinner)}`;
+      promptTitle = "encargo";
+      placeholder = "Describe el material…  Enter envía";
+      footer = `${clock}     /export  Tab  ?  q`;
+      session = sessionListing(rumbo);
+      activity = state.activity || "leyendo";
+      proposal = `# ${Tui.spinner(state.spinner)} trabajando\n\n${state.activity || "leyendo la carpeta"}`;
+    }
+
+    return {
+      view,
+      cols: state.cols,
+      rows: state.rows,
+      header,
+      chips: rumbo ? rumbo.chips : [],
+      path: "~/carpeta-tui",
+      promptTitle,
+      placeholder,
+      promptValue: "",
+      footer,
+      session,
+      activity,
+      proposal,
+      evidence,
+      warnings: warnText(state.warnings),
+      plan,
+      planTitle: rumbo ? ` ${rumbo.planTitle || "plan"} ` : " plan ",
+      gate,
+      gateTitle,
+      help: state.help ? HELP : "",
+      focus: view === "puerta" ? "proposal" : "proposal",
+      tagline: "tus fuentes, tu criterio",
+    };
+  }
+
+  function paint() {
+    measure();
+    const model = currentModel();
+    state.model = model;
+    const painted = Tui.paint($("tui-grid"), model);
+    state.hits = painted.hits;
+    state.promptBox = painted.prompt;
+    placePrompt(painted.prompt);
+    document.body.dataset.view = model.view === "home" ? "home" : "session";
+    $("window-path").textContent = model.path;
+    $("prompt").placeholder = model.placeholder;
+    $("prompt").readOnly = model.view === "puerta" || model.view === "plan";
   }
 
   function setPhase(phase, activity) {
     state.phase = phase;
     if (activity) state.activity = activity;
-    $("tui-phase").textContent = phase;
-    $("tui-activity").textContent = state.activity;
-    $("tui-model").textContent = "tero-offline";
+    paint();
   }
 
   function setStamp(label) {
+    state.stamp = label;
     $("stamp-label").textContent = label;
-    $("ficha").dataset.stamp = label;
-  }
-
-  function setTuiShot(name) {
-    $("tui-shot").src = `./assets/tui/${name}.webp`;
   }
 
   function renderAvisos(warnings) {
     state.warnings = warnings;
-    const box = $("avisos");
-    const list = $("aviso-list");
-    list.innerHTML = "";
-    if (!warnings.length) {
-      box.hidden = true;
-      return;
-    }
-    box.hidden = false;
-    for (const item of warnings) {
-      const li = document.createElement("li");
-      const code = document.createElement("code");
-      code.textContent = item.code;
-      li.appendChild(code);
-      li.appendChild(document.createTextNode(" — " + item.message));
-      list.appendChild(li);
-    }
   }
 
-  function setGateEnabled(on) {
-    for (const btn of document.querySelectorAll("[data-gate]")) {
-      btn.disabled = !on;
-    }
+  function setGateEnabled(_on) {
+    /* keys are always parsed; decide() guards on phase */
   }
 
   function resetFolders() {
@@ -391,13 +452,31 @@
     state.clockTimer = window.setInterval(() => {
       const s = (performance.now() - state.startedAt) / 1000;
       $("reloj").textContent = `${s.toFixed(1)} s`;
-    }, 100);
+      if (state.phase !== "home" && state.phase !== "esperando_criterio" && state.phase !== "listo") {
+        paint();
+      }
+    }, 120);
+    stopSpinner();
+    state.spinnerTimer = window.setInterval(() => {
+      state.spinner += 1;
+      if (state.phase !== "esperando_criterio" && state.phase !== "listo" && state.phase !== "home") {
+        paint();
+      }
+    }, 80);
   }
 
   function stopClock() {
     if (state.clockTimer) {
       window.clearInterval(state.clockTimer);
       state.clockTimer = null;
+    }
+    stopSpinner();
+  }
+
+  function stopSpinner() {
+    if (state.spinnerTimer) {
+      window.clearInterval(state.spinnerTimer);
+      state.spinnerTimer = null;
     }
   }
 
@@ -407,19 +486,16 @@
     const t = (performance.now() - state.startedAt) / 1000;
     li.textContent = `${t.toFixed(1)}s  $ ${text}`;
     $("bitacora").appendChild(li);
-    $("bitacora").scrollTop = $("bitacora").scrollHeight;
   }
 
   function showPages() {
     if (!state.pages.length) return;
     $("archivo").hidden = false;
-    $("cuerpo").hidden = true;
     showPage(0);
   }
 
   function hidePages() {
     $("archivo").hidden = true;
-    $("cuerpo").hidden = false;
   }
 
   function showPage(i) {
@@ -429,8 +505,6 @@
     $("hoja-img").src = state.pages[state.page];
     $("hoja-pos").textContent = `${state.page + 1} / ${n}`;
     $("hoja-cap").textContent = `${state.filename} · página ${state.page + 1}`;
-    $("hoja-prev").disabled = n < 2;
-    $("hoja-next").disabled = n < 2;
   }
 
   function wait(ms) {
@@ -444,10 +518,8 @@
     state.rumbo = key;
     state.filename = rumbo.filename;
     state.pages = rumbo.pages.slice();
-    document.querySelectorAll("[data-rumbo]").forEach((btn) => {
-      btn.setAttribute("aria-pressed", btn.dataset.rumbo === String(key) ? "true" : "false");
-    });
-    $("chips").textContent = rumbo.chips;
+    state.help = false;
+    $("chips").textContent = rumbo.chips.join(" · ");
     setStamp("REVISAR");
     resetFolders();
     hidePages();
@@ -457,31 +529,36 @@
     $("consulta").hidden = false;
     $("bitacora").innerHTML = "";
     $("corrida-real").textContent = rumbo.corrida;
-    $("cuerpo").innerHTML = "<p class='home-copy'>Leyendo la carpeta…</p>";
     $("gate-note").textContent = "Consulta en curso. La puerta espera el borrador.";
+    document.querySelectorAll("[data-rumbo]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.dataset.rumbo === String(key) ? "true" : "false");
+    });
     startClock();
+    const acts = [];
     setPhase("leyendo", rumbo.steps[0].tool);
-    setTuiShot(rumbo.steps[0].tui || "encargo");
 
     for (const step of rumbo.steps) {
       if (token !== state.token) return;
-      if (step.tui) setTuiShot(step.tui);
       const label = step.detail ? `${step.tool} · ${step.detail}` : step.tool;
-      setPhase(step.draft ? "escribiendo" : step.plan ? "plan" : "leyendo", label);
-      logLine(label, step.tool);
+      const nice = TOOL_LABEL[step.tool] || step.tool;
+      acts.push(`✓ ${nice}${step.detail ? `  ${step.detail}` : ""}`);
+      state.activity = acts.slice(-8).join("\n") + `\n${Tui.spinner(state.spinner)} ${nice}`;
       if (step.plan) {
-        $("cuerpo").innerHTML = `<h1>Plan</h1><p>${rumbo.plan}</p><p class="muted">Aún no hay archivo. Eso viene con draft_artifact.</p>`;
+        stopSpinner();
+        setPhase("esperando_plan", label);
+      } else if (step.draft) {
+        setPhase("escribiendo", label);
+      } else {
+        setPhase(step.plan ? "plan" : "leyendo", label);
       }
+      logLine(label, step.tool);
       await wait(step.ms * scale);
       if (token !== state.token) return;
       if (step.draft) {
-        $("cuerpo").innerHTML = rumbo.html;
         renderAvisos(rumbo.warnings);
         setGateEnabled(true);
         $("gate-note").textContent =
           "Avisos a la vista. s escribe en derivados/ y muestra las páginas reales. n descarta. b deja borrador. c pide crítica.";
-        setPhase("esperando_criterio", "1 activity start por tool · espera s/n/b/c");
-        setTuiShot("puerta");
         stopClock();
         const s = (performance.now() - state.startedAt) / 1000;
         $("reloj").textContent = `${s.toFixed(1)} s`;
@@ -491,14 +568,19 @@
             : `listo · reloj ${s.toFixed(1)} s · ${rumbo.corrida}`,
           "ok",
         );
+        setPhase("esperando_criterio", "1 activity start por tool · espera s/n/b/c");
       }
     }
   }
 
   function decide(letter) {
+    if (state.phase === "esperando_plan" && letter === "a") {
+      return;
+    }
     if (state.phase !== "esperando_criterio" && letter !== "c") {
       if (state.phase === "home") {
         $("gate-note").textContent = "Primero un rumbo (1–4).";
+        paint();
         return;
       }
     }
@@ -513,7 +595,6 @@
       setStamp("ACEPTADO");
       $("archivo-lead").textContent = "Archivo en derivados/ — páginas de la corrida real";
       showPages();
-      setTuiShot("export");
       $("gate-note").textContent =
         "Aceptado. El original no se tocó. Hash de fuentes intacto. Estas son las hojas, no el mock.";
       setGateEnabled(false);
@@ -548,55 +629,34 @@
   function applyCritique() {
     const note = $("critica-text").value.trim() || "Más evidencia, menos adorno.";
     hidePages();
-    setPhase("escribiendo", "draft_artifact (corrección)");
-    window.setTimeout(() => {
-      const extra = document.createElement("p");
-      extra.appendChild(document.createElement("em")).textContent = "Crítica docente: ";
-      extra.appendChild(document.createTextNode(note));
-      $("cuerpo").appendChild(extra);
-      renderAvisos([
-        {
-          code: "unverified_citation",
-          message: "Sigue habiendo parafraseo. Sigue sin bloquear s.",
-        },
-      ]);
-      setStamp("REVISAR");
-      setGateEnabled(true);
-      $("gate-note").textContent = "Reescrito. La crítica quedó; vuelve a la puerta.";
-      setPhase("esperando_criterio", "c persistida · s/n/b/c");
-    }, 400 * scale);
+    const rumbo = rumbos[state.rumbo];
+    if (rumbo) {
+      rumbo.draft = `${rumbo.draft}\n\n> Crítica docente: ${note}`;
+    }
+    renderAvisos([
+      {
+        code: "unverified_citation",
+        message: "Sigue habiendo parafraseo. Sigue sin bloquear s.",
+      },
+    ]);
+    setStamp("REVISAR");
+    setGateEnabled(true);
+    $("gate-note").textContent = "Reescrito. La crítica quedó; vuelve a la puerta.";
+    setPhase("esperando_criterio", "c persistida · s/n/b/c");
   }
 
   function help() {
-    $("gate-note").textContent =
-      "1–4 rumbos · s sí · n no · b borrador · c corregir · avisos nunca bloquean s · modelo tero-offline";
+    state.help = !state.help;
+    paint();
   }
 
-  function inSplash() {
-    return $("splash") && !$("splash").hidden;
+  function hitFromEvent(ev) {
+    const grid = $("tui-grid").getBoundingClientRect();
+    const x = Math.floor((ev.clientX - grid.left) / state.cellW);
+    const y = Math.floor((ev.clientY - grid.top) / state.cellH);
+    return state.hits.find((h) => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
   }
 
-  function enterSession() {
-    const splash = $("splash");
-    const session = $("session");
-    if (!splash || splash.hidden) return;
-    splash.hidden = true;
-    session.hidden = false;
-    document.body.dataset.view = "session";
-    $("ficha").focus();
-    setPhase("home", "rumbos 1–4 · puerta s n b c · ? ayuda");
-    const mini = $("wave-mini");
-    if (mini && window.teroWave) window.teroWave.mount(mini, { compact: true });
-  }
-
-  $("comenzar").addEventListener("click", enterSession);
-  $("skip-session").addEventListener("click", (ev) => {
-    if (inSplash()) {
-      ev.preventDefault();
-      enterSession();
-      $("ficha").focus();
-    }
-  });
   document.querySelectorAll("[data-rumbo]").forEach((btn) => {
     btn.addEventListener("click", () => prepare(btn.dataset.rumbo));
   });
@@ -610,21 +670,45 @@
   });
   $("hoja-prev").addEventListener("click", () => showPage(state.page - 1));
   $("hoja-next").addEventListener("click", () => showPage(state.page + 1));
+  $("tui-grid").addEventListener("click", (ev) => {
+    const hit = hitFromEvent(ev);
+    if (!hit) {
+      $("prompt").focus();
+      return;
+    }
+    if (hit.action === "rumbo") prepare(hit.key);
+    if (hit.action === "gate") decide(hit.key);
+  });
+  $("prompt").addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    const text = $("prompt").value.trim();
+    $("prompt").value = "";
+    if (!text) return;
+    if (looksPhatic(text)) {
+      $("gate-note").textContent = "hola no es un encargo. 1–4 rumbo, o describe el material.";
+      paint();
+      return;
+    }
+    prepare("1");
+  });
 
   document.addEventListener("keydown", (ev) => {
-    if (ev.target && (ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA")) return;
-    if (inSplash()) {
-      if (ev.key === "Enter") {
+    if (ev.target && ev.target.tagName === "TEXTAREA") return;
+    const inPrompt = ev.target && ev.target.id === "prompt";
+    if (inPrompt && !$("prompt").readOnly) {
+      if (["1", "2", "3", "4"].includes(ev.key) && !$("prompt").value) {
         ev.preventDefault();
-        enterSession();
-        return;
-      }
-      if (["1", "2", "3", "4"].includes(ev.key)) {
-        enterSession();
         prepare(ev.key);
-        return;
+      }
+      if ((ev.key === "?" || (ev.shiftKey && ev.key === "/")) && !$("prompt").value) {
+        ev.preventDefault();
+        help();
       }
       return;
+    }
+    if (inPrompt && $("prompt").readOnly) {
+      $("prompt").blur();
     }
     if (ev.key === "?" || (ev.shiftKey && ev.key === "/")) {
       ev.preventDefault();
@@ -650,9 +734,19 @@
     }
   });
 
-  const now = new Date();
-  $("fecha").textContent = `Fecha: ${now.toLocaleDateString("es-CL")}`;
+  window.addEventListener("resize", () => paint());
+
+  fetch("./build-info.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((info) => {
+      if (info && info.short) {
+        $("window-path").dataset.sha = info.short;
+        $("window-path").textContent = `~/carpeta-tui · ${info.short}`;
+      }
+    })
+    .catch(() => {});
+
   setGateEnabled(false);
-  setPhase("splash", "Enter comienza · 1–4 rumbos · s n b c");
-  if ($("wave") && window.teroWave) window.teroWave.mount($("wave"));
+  paint();
+  $("prompt").focus();
 })();

@@ -8,7 +8,7 @@
       name="description"
       content="tero es el queltehue del aula: avisa, no decide. Prepara material en tu carpeta. Tú eliges s / n / b / c. Offline honesto (tero-offline)."
     />
-    <meta name="theme-color" content="#070B0C" />
+    <meta name="theme-color" content="#0b0d10" />
     <link rel="icon" href="./assets/tero-mark.svg" type="image/svg+xml" />
     <link rel="icon" href="./assets/tero-stamp.png" type="image/png" />
     <meta property="og:title" content="tero — tus fuentes, tu criterio" />
@@ -28,257 +28,101 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-warnings-block-s="false" data-offline-model="tero-offline" data-view="splash">
-    <a class="skip" href="#ficha" id="skip-session">Saltar a la sesión</a>
+  <body
+    data-warnings-block-s="false"
+    data-offline-model="tero-offline"
+    data-view="home"
+  >
+    <a class="skip" href="#prompt">Saltar al prompt</a>
 
-    <section class="splash" id="splash" aria-label="Splash tero">
-      <div class="window">
-        <header class="window-chrome">
-          <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="window-title">tero</span>
-          <span class="window-path">~/tero</span>
-        </header>
-        <div class="splash-stage">
-          <canvas id="wave" class="wave" aria-hidden="true"></canvas>
-          <p class="splash-verse">
-            preguntas<br />
-            mejores<br />
-            aprendizajes<br />
-            reales
-            <span class="splash-rule" aria-hidden="true"></span>
-          </p>
-          <p class="splash-aside">
-            Curiosidad<br />
-            hoy.<br />
-            Mundos<br />
-            mañana.
-          </p>
-          <div class="splash-mark">
-            <img
-              class="wordmark"
-              src="./assets/tero-wordmark.svg"
-              alt="tero"
-              width="230"
-              height="48"
-            />
-            <p class="role">asistente pedagógico</p>
-            <p class="enter-hint">
-              <span class="chevron" aria-hidden="true">&gt;</span>
-              Presiona Enter para comenzar
-            </p>
-            <button type="button" id="comenzar" class="enter-btn">comenzar</button>
-            <p class="axis">APRENDER · PENSAR · AVANZAR</p>
-          </div>
-          <p class="deploy" id="deploy-sha"></p>
-        </div>
-      </div>
-    </section>
-
-    <div class="term" id="session" hidden>
-      <header class="term-chrome">
-        <span class="term-mark" aria-hidden="true">+</span>
-        <span class="term-title">tero@carpeta:~</span>
-        <span class="term-tty">tty1 · Vanellus chilensis</span>
+    <div class="window" id="app">
+      <header class="window-chrome">
+        <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="window-title">tero</span>
+        <span class="window-path" id="window-path">~/carpeta-tui</span>
       </header>
 
-      <section class="banner" aria-label="Marca tero">
-        <canvas id="wave-mini" class="wave-mini" aria-hidden="true"></canvas>
-        <div class="banner-id">
-          <p class="brand">tero</p>
-          <p class="species">Vanellus chilensis · queltehue</p>
-          <p class="tag">tus fuentes, tu criterio</p>
-          <p class="motto">El tero avisa. Tú decides.</p>
-          <p class="meta" id="chips">elige un rumbo · tero prepara · tú decides</p>
-        </div>
-      </section>
+      <div class="tui-host" id="tui-host">
+        <div
+          id="tui-grid"
+          class="tui-grid"
+          role="application"
+          aria-label="TUI de tero"
+        ></div>
+        <label class="sr-only" for="prompt">Prompt tero</label>
+        <input
+          id="prompt"
+          class="tui-prompt"
+          maxlength="8000"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Pregunta, explora o crea…"
+          aria-label="Pregunta, explora o crea"
+        />
 
-      <div class="desk">
-        <aside class="pane carpeta" aria-label="Carpeta de trabajo">
-          <p class="pane-title">~/carpeta</p>
-          <p class="carpeta-lead">
-            Sistema de registro. Los originales no se pisan.
-          </p>
-          <ul id="fuentes" class="files">
-            <li data-kind="dir">fuentes/</li>
-            <li>01-oa-curriculo.md</li>
-            <li>02-apuntes-docente.md</li>
-            <li>03-contexto-chile.md</li>
-          </ul>
-          <ul id="derivados" class="files">
-            <li data-kind="dir">derivados/</li>
-            <li data-empty="true" class="empty">(vacío hasta que pulses s)</li>
-          </ul>
-          <ul id="borradores" class="files">
-            <li data-kind="dir">borradores/</li>
-            <li data-empty="true" class="empty">(vacío hasta que pulses b)</li>
-          </ul>
-          <p class="hash">SHA-256 de las fuentes: intacto</p>
-        </aside>
-
-        <div class="stage">
-          <section class="consulta" id="consulta" hidden>
-            <p class="consulta-reloj">
-              <span class="prompt-ps">$</span>
-              <span id="reloj">0.0 s</span>
-              <span class="consulta-real" id="corrida-real"></span>
-            </p>
-            <ol id="bitacora" class="bitacora" aria-live="polite"></ol>
-          </section>
-
-          <main class="pane sheet" id="ficha" tabindex="-1">
-            <p class="pane-title">
-              ~/sesión
-              <span class="stamp-label" id="stamp-label">REVISAR</span>
-            </p>
-
-            <label class="nombre-row">
-              docente@sala:
-              <input
-                id="nombre"
-                name="nombre"
-                maxlength="40"
-                placeholder="_"
-                autocomplete="name"
-                aria-label="Nombre en la sesión"
-              />
-              <span class="fecha" id="fecha"></span>
-            </label>
-
-            <nav class="rumbos" aria-label="Rumbos">
-              <p class="rumbo-lead">
-                Elige un rumbo (teclas 1–4). tero prepara; tú decides.
-              </p>
-              <ol>
-                <li>
-                  <button type="button" data-rumbo="1" aria-keyshortcuts="1">
-                    1 Planificar
-                  </button>
-                </li>
-                <li>
-                  <button type="button" data-rumbo="2" aria-keyshortcuts="2">
-                    2 Crear
-                  </button>
-                </li>
-                <li>
-                  <button type="button" data-rumbo="3" aria-keyshortcuts="3">
-                    3 Evaluar
-                  </button>
-                </li>
-                <li>
-                  <button type="button" data-rumbo="4" aria-keyshortcuts="4">
-                    4 Adaptar
-                  </button>
-                </li>
-              </ol>
-            </nav>
-
-            <section class="cuerpo" id="cuerpo" aria-live="polite">
-              <p class="home-copy">
-                tero toma el nombre del <strong>queltehue</strong>: el ave
-                chilena que se planta en el potrero y grita cuando alguien se
-                acerca al nido. No resuelve el problema. <em>Avisa.</em> El
-                agente hace lo mismo con tu carpeta.
-              </p>
-              <p class="home-copy">
-                Lee <code>fuentes/</code>, propone un plan y deja un borrador
-                en la puerta. No escribe originales. El modelo de esta sesión
-                es <code>tero-offline</code>: un Strands <code>Model</code>
-                scripted, no un Bedrock disfrazado. AgentCore no es el producto.
-              </p>
-              <p class="home-copy">
-                Un rumbo dispara una <strong>consulta con reloj</strong>
-                (tools reales, tiempos de corrida). Las páginas que tero
-                crea —fichas LaTeX, el papel de la fotocopiadora— aparecen
-                <strong>al final</strong>, cuando hay archivo en
-                <code>derivados/</code> o <code>borradores/</code>.
-              </p>
-              <p class="home-copy">
-                Avisos a la vista — parafraseo, evidencia flaca, OA raro — y
-                <strong>s sigue abierto</strong>. Eso no es un bug. Es la tesis.
-              </p>
-            </section>
-
-            <section class="archivo" id="archivo" hidden>
-              <p class="archivo-lead" id="archivo-lead">Archivo creado</p>
-              <figure class="hoja-frame">
-                <img id="hoja-img" alt="Página de la ficha generada" />
-                <figcaption id="hoja-cap"></figcaption>
-              </figure>
-              <p class="hoja-nav">
-                <button type="button" id="hoja-prev">página anterior</button>
-                <span id="hoja-pos">1 / 1</span>
-                <button type="button" id="hoja-next">página siguiente</button>
-              </p>
-            </section>
-
-            <aside class="avisos" id="avisos" hidden>
-              <p class="avisos-title">Avisos (no bloquean s)</p>
-              <ul id="aviso-list"></ul>
-            </aside>
-
-            <footer class="gate" id="gate">
-              <p class="gate-lead">Puerta docente</p>
-              <div class="keys">
-                <button type="button" data-gate="s" title="aceptar → derivados/">
-                  <kbd>s</kbd> sí → derivados/
-                </button>
-                <button type="button" data-gate="n" title="descartar">
-                  <kbd>n</kbd> no
-                </button>
-                <button type="button" data-gate="b" title="guardar borrador">
-                  <kbd>b</kbd> borrador
-                </button>
-                <button type="button" data-gate="c" title="corregir">
-                  <kbd>c</kbd> corregir
-                </button>
-              </div>
-              <p class="gate-note" id="gate-note">
-                Espera un rumbo. Después la puerta se enciende.
-              </p>
-            </footer>
-          </main>
-        </div>
-
-        <aside class="pane leyenda" aria-label="Cómo correrlo">
-          <p class="pane-title">~/tui</p>
-          <figure class="tui-shot">
-            <img
-              id="tui-shot"
-              src="./assets/tui/home.webp"
-              alt="TUI de tero en home, rumbos y puerta s n b c."
-              width="960"
-              height="540"
-            />
+        <section class="archivo" id="archivo" hidden>
+          <p class="archivo-lead" id="archivo-lead">Archivo creado</p>
+          <figure class="hoja-frame">
+            <img id="hoja-img" alt="Página de la ficha generada" />
+            <figcaption id="hoja-cap"></figcaption>
           </figure>
-          <p class="leyenda-kicker">20 minutos, juez o docente</p>
-          <pre class="cmd">python -m tero demo --offline --yes</pre>
-          <p>
-            Loop completo: tools, plan, evidencia, puerta,
-            <code>derivados/</code>. Sin AWS. Con Bedrock, Nova Lite
-            (<code>amazon.nova-lite-v1:0</code>) es el default de README, no el
-            techo de calidad.
+          <p class="hoja-nav">
+            <button type="button" id="hoja-prev">página anterior</button>
+            <span id="hoja-pos">1 / 1</span>
+            <button type="button" id="hoja-next">página siguiente</button>
           </p>
-          <p>
-            Código:
-            <a href="https://github.com/marcorojasb/tero">github.com/marcorojasb/tero</a>
-          </p>
-          <p class="fine">
-            MIT. Inspirado en la tesis de Pteron, sin copiar Electron / Solid /
-            Meridian. UI en español de aula, no de marketing.
-          </p>
-        </aside>
+        </section>
       </div>
     </div>
 
-    <div class="tui" role="status" aria-live="polite">
-      <span class="tui-brand">tero</span>
-      <span class="tui-sep">·</span>
-      <span id="tui-model">tero-offline</span>
-      <span class="tui-sep">·</span>
-      <span id="tui-phase">splash</span>
-      <span class="tui-sep">·</span>
-      <span id="tui-activity">Enter comienza · 1–4 rumbos · s n b c</span>
-    </div>
+    <nav class="sr-only" aria-label="Rumbos y puerta">
+      <p>Elige un rumbo (teclas 1–4). tero prepara; tú decides.</p>
+      <button type="button" data-rumbo="1" aria-keyshortcuts="1">1 Planificar</button>
+      <button type="button" data-rumbo="2" aria-keyshortcuts="2">2 Crear</button>
+      <button type="button" data-rumbo="3" aria-keyshortcuts="3">3 Evaluar</button>
+      <button type="button" data-rumbo="4" aria-keyshortcuts="4">4 Adaptar</button>
+      <button type="button" data-gate="s" title="aceptar → derivados/"><kbd>s</kbd> sí → derivados/</button>
+      <button type="button" data-gate="n" title="descartar"><kbd>n</kbd> no</button>
+      <button type="button" data-gate="b" title="guardar borrador"><kbd>b</kbd> borrador</button>
+      <button type="button" data-gate="c" title="corregir"><kbd>c</kbd> corregir</button>
+    </nav>
+
+    <section id="consulta" hidden>
+      <p>
+        <span id="reloj">0.0 s</span>
+        <span id="corrida-real"></span>
+      </p>
+      <ol id="bitacora"></ol>
+    </section>
+
+    <p id="chips" hidden>elige un rumbo · tero prepara · tú decides</p>
+    <p id="stamp-label" hidden>REVISAR</p>
+    <p id="gate-note" hidden>Espera un rumbo. Después la puerta se enciende.</p>
+    <ul id="fuentes" hidden>
+      <li data-kind="dir">fuentes/</li>
+    </ul>
+    <ul id="derivados" hidden>
+      <li data-kind="dir">derivados/</li>
+      <li data-empty="true" class="empty">(vacío hasta que pulses s)</li>
+    </ul>
+    <ul id="borradores" hidden>
+      <li data-kind="dir">borradores/</li>
+      <li data-empty="true" class="empty">(vacío hasta que pulses b)</li>
+    </ul>
+
+    <section id="help-copy" hidden>
+      <p>El tero avisa. Tú decides. Vanellus chilensis · queltehue. asistente pedagógico.</p>
+      <p>
+        Lee fuentes/, propone un plan y deja un borrador en la puerta. No escribe
+        originales. El modelo de esta sesión es tero-offline: un Strands Model
+        scripted, no un Bedrock disfrazado. AgentCore no es el producto.
+        Default README: amazon.nova-lite-v1:0.
+      </p>
+      <p>python -m tero demo --offline --yes</p>
+      <p>
+        Código: <a href="https://github.com/marcorojasb/tero">github.com/marcorojasb/tero</a>
+      </p>
+    </section>
 
     <dialog id="critica" aria-labelledby="critica-title">
       <form method="dialog">
@@ -296,7 +140,7 @@
       </form>
     </dialog>
 
-    <script src="./wave.js"></script>
+    <script src="./tui-grid.js"></script>
     <script src="./ficha.js"></script>
   </body>
 </html>

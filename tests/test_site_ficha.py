@@ -1,4 +1,4 @@
-"""The public GitHub page is a TUI session, not an AgentCore hero."""
+"""The public GitHub page is one OpenTUI window, not an AgentCore hero."""
 
 from __future__ import annotations
 
@@ -43,10 +43,14 @@ def test_ficha_landing_is_the_github_page():
     assert "hojas/guia-sistemas" in js or "guia-sistemas/p1.png" in js
 
     assert "--tui-bg: #0b0d10" in css
-    assert "--tui-accent: #22d3ee" in css
-    assert 'id="splash"' in html
-    assert 'id="wave"' in html
-    assert "Presiona Enter para comenzar" in html
+    assert "--tui-accent: #82aaff" in css
+    assert "--accent: #82aaff" in css
+    assert 'id="tui-grid"' in html
+    assert 'id="app"' in html
+    assert "window-chrome" in html
+    assert "term-chrome" not in html
+    assert 'id="splash"' not in html
+    assert 'id="wave"' not in html
     assert "asistente pedagógico" in html
     assert "Vanellus chilensis" in html
     assert "queltehue" in html
@@ -54,8 +58,13 @@ def test_ficha_landing_is_the_github_page():
     assert "IBM Plex Mono" in css
     assert ".hoja-frame" in css
     assert "photocopied" in css.lower()
-    header = "\n".join(css.splitlines()[:6]).lower()
-    assert "brand" in header or "terminal" in header or "tui" in header
+    header = "\n".join(css.splitlines()[:8]).lower()
+    assert "opentui" in header or "tui" in header
+    assert html.count("window-chrome") == 1
+    grid = _read(SITE / "tui-grid.js")
+    assert "#82aaff" in grid
+    assert "╭" in grid
+    assert "Planificar" in grid
 
     assert "WARNINGS_BLOCK_S = false" in js
     assert "function canAccept" in js
@@ -76,6 +85,9 @@ def test_ficha_landing_is_the_github_page():
     assert "vos decidís" not in js
     assert "Get started" not in html
     assert "Sign up" not in html
+    assert "enterSession" not in js
+    assert 'id="session"' not in html
+    assert "tui-grid.js" in html
 
 
 def test_ficha_assets_and_pages_workflow():
@@ -85,14 +97,24 @@ def test_ficha_assets_and_pages_workflow():
     assert (SITE / "assets" / "tero-wordmark.svg").is_file()
     assert (SITE / "assets" / "tero.txt").is_file()
     assert (SITE / "brand.json").is_file()
-    assert (SITE / "wave.js").is_file()
+    assert (SITE / "tui-grid.js").is_file()
     assert (SITE / "stamp.py").is_file()
     brand = _read(SITE / "brand.json")
-    assert "22D3EE" in brand
+    assert "82AAFF" in brand
     assert "Vanellus chilensis" in brand
     mark = _read(SITE / "assets" / "tero.txt")
     assert "Vanellus chilensis" in mark
     assert "queltehue" in mark
+    home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
+    assert "╭─ tero" in home_frame
+    assert "[1] Planificar" in home_frame
+    assert "tus fuentes, tu criterio" in home_frame
+    assert "secuencia de clase" in home_frame
+    puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
+    assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
+    theme = _read(SITE / "assets" / "tui" / "frames" / "theme.json")
+    assert "#82aaff" in theme
+    assert "#0b0d10" in theme
     for folder, n in (
         ("plan", 3),
         ("guia-sistemas", 3),
@@ -122,7 +144,9 @@ def test_ficha_assets_and_pages_workflow():
     assert "marcorojasb.github.io/tero" in sitio
     assert "queltehue" in sitio.lower()
     assert "stamp.py" in sitio
-    assert "wave.js" in sitio
+    assert "tui-grid.js" in sitio
+    assert "capture-frames" in sitio
+    assert "una sola ventana" in sitio.lower() or "una ventana" in sitio.lower()
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
 

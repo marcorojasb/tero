@@ -1,19 +1,19 @@
 {
   "name": "tero",
-  "tagline": "asistente pedagógico",
+  "tagline": "tus fuentes, tu criterio",
   "thesis": "tus fuentes, tu criterio",
   "motto": "El tero avisa. Tú decides.",
   "species": "Vanellus chilensis",
-  "system": "TERMINAL UI BRAND SYSTEM V1.0",
+  "system": "OpenTUI",
   "seed": 77,
   "palette": {
-    "crema": "#F4F1DE",
-    "cian": "#22D3EE",
-    "aqua": "#20D4BF",
-    "teal": "#14B8A6",
-    "menta": "#86EFAC",
-    "lima": "#A3E635",
-    "fondo": "#070B0C",
-    "panel": "#0C1214"
+    "bg": "#0b0d10",
+    "panel": "#12151a",
+    "text": "#d8dee9",
+    "accent": "#82AAFF",
+    "ok": "#9ece6a",
+    "warn": "#c9a227",
+    "err": "#e06c75",
+    "fondo": "#0b0d10"
   }
 }
