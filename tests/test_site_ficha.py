@@ -91,9 +91,9 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-blit" in html
-    assert "tui-grid.js?v=vte-blit" in html
-    assert "ficha.js?v=vte-blit" in html
+    assert "styles.css?v=vte-win" in html
+    assert "tui-grid.js?v=vte-win" in html
+    assert "ficha.js?v=vte-win" in html
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
     assert "border-radius: 10px" not in css
@@ -120,6 +120,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
+    assert "?v=vte-win" in js or "vte-win" in js
     assert "plan-2" in js
     assert "puerta-2" in js
     assert "leyendo-2" in js
@@ -177,6 +178,10 @@ def test_ficha_assets_and_pages_workflow():
     theme = _read(SITE / "assets" / "tui" / "frames" / "theme.json")
     assert "#82aaff" in theme
     assert "#0b0d10" in theme
+    assert "#4c566a" in theme
+    css = _read(SITE / "styles.css")
+    assert "--border: #4c566a" in css
+    assert '"border": "#4c566a"' in _read(SITE / "tui-grid.js") or "border: \"#4c566a\"" in _read(SITE / "tui-grid.js")
     for folder, n in (
         ("plan", 3),
         ("guia-sistemas", 3),

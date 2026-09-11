@@ -7,7 +7,7 @@
     bg: "#0b0d10",
     panel: "#12151a",
     panelAlt: "#161a20",
-    border: "#2c333c",
+    border: "#4c566a",
     borderFocus: "#6cb6ff",
     borderSoft: "#3d4450",
     text: "#d8dee9",
@@ -683,7 +683,7 @@
 
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
-    const url = `./assets/tui/frames/${frame.name}.png?v=vte-hotkeys`;
+    const url = `./assets/tui/frames/${frame.name}.png?v=vte-win`;
     if (img.getAttribute("src") !== url) {
       img.alt = `OpenTUI · ${frame.name}`;
       img.src = url;

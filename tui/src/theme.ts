@@ -4,7 +4,7 @@ export const theme = {
   bg: "#0b0d10",
   panel: "#12151a",
   panelAlt: "#161a20",
-  border: "#2c333c",
+  border: "#4c566a",
   borderFocus: "#6cb6ff",
   borderSoft: "#3d4450",
   text: "#d8dee9",
