@@ -1,6 +1,6 @@
 /**
  * Protocolo host ↔ TUI: agente conversacional.
- * Contrato congelado: /tmp/tero-protocolo.md (PR de TUI).
+ * Contrato congelado: docs/CONVERSACIONAL.md (PR de TUI).
  *
  * No hay rumbos 1–4, plan tipado (a/e/x), clarificaciones numeradas ni
  * puerta s/n/b/c. La persona escribe; el agente infiere la intención:
