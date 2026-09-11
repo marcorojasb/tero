@@ -1,19 +1,17 @@
 # Sitio — la TUI real, en una ventana
 
-El chrome de [`site/`](../site/) es **la OpenTUI de tero**, virtualizada
-en el navegador. Una sola ventana (`traffic` + título `tero`) envuelve
-el mismo layout que `tui/src/shell.ts`: header `╭─ tero ─╮`, home con
-queltehue y rumbos, workspace `sesión` / `propuesta` / `evidencia`,
-puerta `s` / `n` / `b` / `c`, prompt y footer. Los colores salen de
-`tui/src/theme.ts` (`#0b0d10`, accent `#82aaff`).
+El chrome de [`site/`](../site/) **es la OpenTUI de tero**: el PNG
+capturado de `xfce4-terminal` 140×40 (JetBrains Mono 13). No hay un
+segundo titlebar alrededor. El header `╭─ tero ─╮` del shell es la
+ventana, igual en home, rumbo y puerta. Colores de `tui/src/theme.ts`
+(`#0b0d10`, accent `#82aaff`).
 
 La primera vista **es** el home de la TUI. Un rumbo no cambia de ventana:
-solo pinta el cuerpo. Capturas auténticas (test renderer de OpenTUI) viven
-en [`site/assets/tui/frames/`](../site/assets/tui/frames/). Se regeneran
+solo pinta el frame. Capturas auténticas viven en
+[`site/assets/tui/frames/`](../site/assets/tui/frames/). Se regeneran
 con `cd tui && bun run capture` (JSON + PNG raster) y, con display,
 `bun run capture:live` (captura xfce4-terminal 140×40, JetBrains Mono 13).
-El landing blitea esos PNG a 1× dentro de **una** ventana
-(`traffic` + `tero` + `~/tero`).
+El landing blitea esos PNG a 1×.
 
 El papel hiperrealista —grano de tóner, ficha fotocopiada— queda
 **solo** en las páginas que tero crea (`#archivo` / `.hoja-frame`),

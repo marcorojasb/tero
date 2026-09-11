@@ -48,6 +48,7 @@ def test_ficha_landing_is_the_github_page():
     assert 'id="tui-grid"' in html
     assert 'id="app"' in html
     assert "window-chrome" in html
+    assert "window-chrome sr-only" in html
     assert "term-chrome" not in html
     assert 'id="splash"' not in html
     assert 'id="wave"' not in html
@@ -90,7 +91,7 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-nord" in html
+    assert "styles.css?v=vte-tui" in html
     assert "tui-grid.js?v=vte-hotkeys" in html
     assert "ficha.js?v=vte-hotkeys" in html
     assert "min-height: calc(100vh" not in css
