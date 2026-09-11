@@ -88,6 +88,8 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
+    assert "tui-grid.js?v=rumbo-frames" in html
+    assert "ficha.js?v=rumbo-frames" in html
     assert "paintFrame" in grid
     assert "promptBoxFromFrame" in grid
     assert "loadFrames" in js

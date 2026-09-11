@@ -326,8 +326,8 @@ python -m tero demo --offline --yes
     state.promptBox = painted.prompt;
     placePrompt(painted.prompt);
     document.body.dataset.view = model.view === "home" ? "home" : "session";
-    const sha = $("window-path").dataset.sha;
-    $("window-path").textContent = sha || "";
+    document.body.dataset.frame = captured && captured.name ? captured.name : "live";
+    $("window-path").textContent = "";
     const typing = Boolean($("prompt").value);
     $("prompt").placeholder = captured && !typing ? "" : model.placeholder;
     $("prompt").style.background = typing ? Tui.theme.inputBg : "transparent";
@@ -787,7 +787,6 @@ python -m tero demo --offline --yes
     .then((info) => {
       if (info && info.short) {
         $("window-path").dataset.sha = info.short;
-        $("window-path").textContent = info.short;
       }
     })
     .catch(() => {});

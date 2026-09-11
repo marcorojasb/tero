@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parent
 
 
 class FichaHandler(SimpleHTTPRequestHandler):
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
         if code != 404:
             super().send_error(code, message, explain)
