@@ -35,7 +35,7 @@
   --paper: #f3ead4;
   --paper-edge: #e6d8b8;
   --ink: #1c1712;
-  --font: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 *,
@@ -159,7 +159,29 @@ body {
   min-height: 28rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--tui-bg);
+}
+
+.tui-stage {
+  position: relative;
+  flex: 0 0 auto;
+  background: var(--tui-bg);
+}
+
+.tui-shot {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  image-rendering: auto;
+  position: relative;
+  z-index: 0;
+}
+
+.tui-shot[hidden] {
+  display: none;
 }
 
 .tui-grid {
@@ -171,13 +193,34 @@ body {
   overflow: hidden;
   user-select: none;
   font-variant-ligatures: none;
-  font-feature-settings: "liga" 0;
+  font-feature-settings: "liga" 0, "calt" 0;
   width: max-content;
-  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(var(--tui-cols, 140), var(--cell-w, 1ch));
+}
+
+.tui-grid.is-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  background: transparent;
+  display: block;
+  z-index: 1;
+}
+
+.tui-cell {
+  width: var(--cell-w, 1ch);
+  height: var(--cell-h, 1.2em);
+  overflow: hidden;
+  text-align: center;
+  white-space: pre;
+  line-height: var(--cell-h, 1.2em);
 }
 
 .tui-row {
-  height: 1.2em;
+  height: var(--cell-h, 1.2em);
   display: block;
   white-space: pre;
   overflow: hidden;
@@ -197,12 +240,22 @@ body {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--text);
+  color: transparent;
   font: 13px/1.2 var(--font);
+  caret-color: transparent;
+}
+
+.tui-prompt.is-typing {
+  color: var(--text);
   caret-color: var(--cursor);
+  background: var(--input-bg);
 }
 
 .tui-prompt::placeholder {
+  color: transparent;
+}
+
+.tui-prompt.is-typing::placeholder {
   color: var(--faint);
 }
 

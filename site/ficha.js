@@ -13,6 +13,7 @@
   const GRID_ROWS = 40;
   const FRAME_NAMES = [
     "home",
+    "help",
     "encargo",
     "plan",
     "puerta",
@@ -34,7 +35,7 @@
   function loadFrames() {
     return Promise.all(
       FRAME_NAMES.map((name) =>
-        fetch(`./assets/tui/frames/${name}.json?v=ready-home`)
+        fetch(`./assets/tui/frames/${name}.json?v=jb-shot`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
             frames[name] = data;
@@ -302,7 +303,7 @@ python -m tero demo --offline --yes
   }
 
   function frameForPhase() {
-    if (state.help) return null;
+    if (state.help) return frames.help;
     if (state.phase === "home") return frames.home;
     const rumbo = state.rumbo || "1";
     if (state.phase === "esperando_plan" || state.phase === "plan") {
@@ -314,38 +315,80 @@ python -m tero demo --offline --yes
     return frames[`leyendo-${rumbo}`] || frames.encargo;
   }
 
-  function paint() {
+  function syncPromptOverlay() {
+    const input = $("prompt");
+    const typing = Boolean(input.value);
+    input.classList.toggle("is-typing", typing);
+    input.placeholder = typing ? "Pregunta, explora o crea…" : "";
+    input.style.background = typing ? Tui.theme.inputBg : "transparent";
+  }
+
+  function applyPainted(painted, frameName, view) {
+    state.cellW = painted.cellW || state.cellW;
+    state.cellH = painted.cellH || state.cellH;
+    state.fontSize = painted.fontSize || state.fontSize;
+    state.cols = GRID_COLS;
+    state.rows = GRID_ROWS;
+    state.hits = painted.hits;
+    state.promptBox = painted.prompt;
+    placePrompt(painted.prompt);
+    document.body.dataset.view = view;
+    document.body.dataset.frame = frameName || "live";
+    $("window-path").textContent = "~/tero";
+    syncPromptOverlay();
+    $("prompt").readOnly = view === "puerta" || view === "plan";
+  }
+
+  function paintLive(captured) {
     measure();
     const model = currentModel();
     model.cols = GRID_COLS;
     model.rows = GRID_ROWS;
     state.model = model;
-    const captured = frameForPhase();
+    const shot = $("tui-shot");
+    shot.hidden = true;
+    $("tui-grid").classList.remove("is-shot");
     const painted = captured
       ? Tui.paintFrame($("tui-grid"), captured)
       : Tui.paint($("tui-grid"), model);
-    state.hits = painted.hits;
-    state.promptBox = painted.prompt;
-    placePrompt(painted.prompt);
-    document.body.dataset.view = model.view === "home" ? "home" : "session";
-    document.body.dataset.frame = captured && captured.name ? captured.name : "live";
-    $("window-path").textContent = "~/tero";
-    const typing = Boolean($("prompt").value);
-    $("prompt").placeholder = captured && !typing ? "" : model.placeholder;
-    $("prompt").style.background = typing ? Tui.theme.inputBg : "transparent";
-    $("prompt").readOnly = model.view === "puerta" || model.view === "plan";
+    applyPainted(
+      { ...painted, cellW: state.cellW, cellH: state.cellH, fontSize: state.fontSize },
+      captured && captured.name ? captured.name : "live",
+      model.view === "home" ? "home" : "session",
+    );
+  }
+
+  function paint() {
+    const captured = frameForPhase();
+    const host = $("tui-host");
+    const grid = $("tui-grid");
+    const shot = $("tui-shot");
+    const stage = $("tui-stage");
+    if (captured && Tui.paintShot) {
+      const painted = Tui.paintShot(host, stage, shot, grid, captured);
+      if (painted) {
+        applyPainted(
+          painted,
+          captured.name,
+          state.phase === "home" && !state.help ? "home" : "session",
+        );
+        return;
+      }
+      return;
+    }
+    paintLive(captured);
   }
 
   function placePrompt(box) {
     const input = $("prompt");
     const host = $("tui-host").getBoundingClientRect();
-    const grid = $("tui-grid").getBoundingClientRect();
-    input.style.left = `${grid.left - host.left + box.x * state.cellW}px`;
-    input.style.top = `${grid.top - host.top + box.y * state.cellH}px`;
+    const stage = ($("tui-stage") || $("tui-grid")).getBoundingClientRect();
+    input.style.left = `${stage.left - host.left + box.x * state.cellW}px`;
+    input.style.top = `${stage.top - host.top + box.y * state.cellH}px`;
     input.style.width = `${box.w * state.cellW}px`;
     input.style.height = `${state.cellH}px`;
     input.style.fontSize = `${state.fontSize || 13}px`;
-    input.style.lineHeight = "1.2";
+    input.style.lineHeight = `${state.cellH}px`;
   }
 
   function currentModel() {
@@ -698,7 +741,8 @@ python -m tero demo --offline --yes
   }
 
   function hitFromEvent(ev) {
-    const grid = $("tui-grid").getBoundingClientRect();
+    const target = $("tui-stage") || $("tui-grid");
+    const grid = target.getBoundingClientRect();
     const x = Math.floor((ev.clientX - grid.left) / state.cellW);
     const y = Math.floor((ev.clientY - grid.top) / state.cellH);
     return state.hits.find((h) => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
@@ -717,7 +761,7 @@ python -m tero demo --offline --yes
   });
   $("hoja-prev").addEventListener("click", () => showPage(state.page - 1));
   $("hoja-next").addEventListener("click", () => showPage(state.page + 1));
-  $("tui-grid").addEventListener("click", (ev) => {
+  $("tui-stage").addEventListener("click", (ev) => {
     const hit = hitFromEvent(ev);
     if (!hit) {
       $("prompt").focus();
@@ -727,7 +771,7 @@ python -m tero demo --offline --yes
     if (hit.action === "gate") decide(hit.key);
   });
   $("prompt").addEventListener("input", () => {
-    $("prompt").style.background = $("prompt").value ? Tui.theme.inputBg : "transparent";
+    syncPromptOverlay();
   });
   $("prompt").addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter") return;
@@ -798,8 +842,9 @@ python -m tero demo --offline --yes
   setGateEnabled(false);
   const start = () => {
     paint();
-    $("prompt").focus();
   };
+  $("tui-shot").addEventListener("load", () => paint());
+  $("tui-shot").addEventListener("error", () => paintLive(frameForPhase()));
   loadFrames().finally(() => {
     start();
     if (document.fonts && document.fonts.ready) {

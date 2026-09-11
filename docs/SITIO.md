@@ -10,7 +10,9 @@ puerta `s` / `n` / `b` / `c`, prompt y footer. Los colores salen de
 La primera vista **es** el home de la TUI. Un rumbo no cambia de ventana:
 solo pinta el cuerpo. Capturas auténticas (test renderer de OpenTUI) viven
 en [`site/assets/tui/frames/`](../site/assets/tui/frames/). Se regeneran
-con `cd tui && bun run capture`.
+con `cd tui && bun run capture` (JSON + PNG a 10×24 px, JetBrains Mono 13,
+el mismo tipo que `xfce4-terminal --font='JetBrains Mono 13'`). El landing
+blitea esos PNG dentro de **una** ventana (`traffic` + `tero` + `~/tero`).
 
 El papel hiperrealista —grano de tóner, ficha fotocopiada— queda
 **solo** en las páginas que tero crea (`#archivo` / `.hoja-frame`),
@@ -33,10 +35,11 @@ de la demo es `tero-offline`. AgentCore no es el producto.
 
 | Pieza | Qué hace |
 | --- | --- |
-| `site/tui-grid.js` | Pinta cajas `╭╮` y tokens de la TUI real. |
+| `site/tui-grid.js` | Encaja el PNG de la captura (o pinta celdas si falta). |
 | `site/ficha.js` | Consulta (rumbos, reloj, puerta) sobre esa grilla. |
 | `tui/scripts/capture-frames.ts` | Vuelca frames OpenTUI (`createTestRenderer` + `captureSpans`). |
-| `site/assets/tui/frames/` | Home, leyendo, plan y puerta por rumbo 1–4, capturados del renderer OpenTUI. |
+| `tui/scripts/rasterize-frames.py` | PNG JetBrains Mono, misma métrica que la TUI real. |
+| `site/assets/tui/frames/` | Home, help, leyendo, plan y puerta por rumbo 1–4. |
 | `site/stamp.py` | En cada Pages deploy escribe el SHA en `build-info.json`. |
 | `.github/workflows/pages.yml` | Publica `site/` desde `main`. |
 

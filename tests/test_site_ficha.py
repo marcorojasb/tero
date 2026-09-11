@@ -55,7 +55,7 @@ def test_ficha_landing_is_the_github_page():
     assert "Vanellus chilensis" in html
     assert "queltehue" in html
     assert "El tero avisa" in html
-    assert "IBM Plex Mono" in css
+    assert "JetBrains Mono" in css
     assert ".hoja-frame" in css
     assert "photocopied" in css.lower()
     header = "\n".join(css.splitlines()[:8]).lower()
@@ -88,17 +88,20 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "tui-grid.js?v=ready-home" in html
-    assert "ficha.js?v=ready-home" in html
+    assert "tui-grid.js?v=jb-shot" in html
+    assert "ficha.js?v=jb-shot" in html
     assert "paintFrame" in grid
+    assert "paintShot" in grid
     assert "promptBoxFromFrame" in grid
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
     assert "plan-2" in js
     assert "puerta-2" in js
     assert "leyendo-2" in js
+    assert "frames.help" in js
     assert "~/carpeta-tui" not in html
     assert 'id="window-path"' in html
+    assert 'id="tui-shot"' in html
     assert "~/tero" in html
     assert '$("window-path").textContent = "~/tero"' in js or 'textContent = "~/tero"' in js
 
@@ -129,6 +132,10 @@ def test_ficha_assets_and_pages_workflow():
     assert "secuencia de clase" in home_frame
     assert "5 fuentes" in home_frame
     assert "recientes" in home_frame
+    assert "examples/carpeta-demo" in home_frame
+    help_frame = _read(SITE / "assets" / "tui" / "frames" / "help.txt")
+    assert "Rumbos" in help_frame
+    assert "tero-offline" in help_frame or "cierra" in help_frame.lower()
     puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
     assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
     guia_puerta = _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt")
@@ -149,6 +156,10 @@ def test_ficha_assets_and_pages_workflow():
             path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
             assert path.is_file(), path
             assert path.stat().st_size > 10_000
+    for shot in ("home", "help", "puerta-2", "plan-2", "leyendo-2"):
+        png = SITE / "assets" / "tui" / "frames" / f"{shot}.png"
+        assert png.is_file(), png
+        assert png.stat().st_size > 8_000
     assert (SITE / "assets" / "tui" / "puerta.webp").is_file()
     assert (SITE / "404.html").is_file()
     not_found = _read(SITE / "404.html")

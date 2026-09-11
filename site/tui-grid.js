@@ -157,34 +157,24 @@
     return `${t.slice(0, Math.max(1, max - 1))}…`;
   }
 
+  function escapeHtml(ch) {
+    if (ch === "&") return "&amp;";
+    if (ch === "<") return "&lt;";
+    if (ch === ">") return "&gt;";
+    return ch == null ? " " : String(ch);
+  }
+
   function paintTo(el, screen) {
+    el.classList.remove("is-shot");
+    el.style.setProperty("--tui-cols", String(screen.cols));
     const parts = [];
     for (let y = 0; y < screen.rows; y++) {
-      parts.push('<div class="tui-row">');
-      let run = "";
-      let fg = "";
-      let bg = "";
-      const flush = () => {
-        if (!run) return;
-        parts.push(
-          `<span style="color:${fg};background:${bg}">${run
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")}</span>`,
-        );
-        run = "";
-      };
       for (let x = 0; x < screen.cols; x++) {
         const c = screen.cells[screen.idx(x, y)];
-        if (c.fg !== fg || c.bg !== bg) {
-          flush();
-          fg = c.fg;
-          bg = c.bg;
-        }
-        run += c.ch;
+        parts.push(
+          `<span class="tui-cell" style="color:${c.fg};background:${c.bg}">${escapeHtml(c.ch)}</span>`,
+        );
       }
-      flush();
-      parts.push("</div>");
     }
     el.innerHTML = parts.join("");
   }
@@ -539,25 +529,45 @@
   }
 
   function paintFrame(el, frame) {
+    const cols = frame.cols || 140;
+    const rows = frame.lines || [];
+    el.classList.remove("is-shot");
+    el.style.setProperty("--tui-cols", String(cols));
     const parts = [];
-    for (const line of frame.lines) {
-      parts.push('<div class="tui-row">');
-      for (const span of line.spans) {
+    for (const line of rows) {
+      let filled = 0;
+      for (const span of line.spans || []) {
         const fg = cssRgba(span.fg);
         const bg = cssRgba(span.bg);
         const bold = span.attributes & 1 ? "font-weight:600;" : "";
-        const text = String(span.text || "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        parts.push(`<span style="color:${fg};background:${bg};${bold}">${text}</span>`);
+        const chars = Array.from(String(span.text || ""));
+        const width = span.width == null ? chars.length : span.width;
+        if (chars.length === width) {
+          for (const ch of chars) {
+            parts.push(
+              `<span class="tui-cell" style="color:${fg};background:${bg};${bold}">${escapeHtml(ch)}</span>`,
+            );
+            filled += 1;
+          }
+        } else {
+          for (let i = 0; i < width; i++) {
+            const ch = chars[i] || " ";
+            parts.push(
+              `<span class="tui-cell" style="color:${fg};background:${bg};${bold}">${escapeHtml(ch)}</span>`,
+            );
+            filled += 1;
+          }
+        }
       }
-      parts.push("</div>");
+      while (filled < cols) {
+        parts.push(`<span class="tui-cell"> </span>`);
+        filled += 1;
+      }
     }
     el.innerHTML = parts.join("");
-    const hits = hitsFromText(frame.text || "", frame.cols);
+    const hits = hitsFromText(frame.text || "", cols);
     return {
-      cols: frame.cols,
+      cols,
       rows: frame.rows,
       hits,
       prompt: promptBoxFromFrame(frame),
@@ -587,7 +597,7 @@
     const probe = document.createElement("span");
     probe.textContent = "00000000";
     probe.style.cssText =
-      'position:absolute;visibility:hidden;font:10px/1.2 "IBM Plex Mono", ui-monospace, monospace;white-space:pre;font-variant-ligatures:none';
+      'position:absolute;visibility:hidden;font:10px/1.2 "JetBrains Mono", ui-monospace, monospace;white-space:pre;font-variant-ligatures:none';
     host.appendChild(probe);
     const box = probe.getBoundingClientRect();
     probe.remove();
@@ -596,11 +606,72 @@
     const hostBox = host.getBoundingClientRect();
     const fs = Math.max(
       8,
-      Math.min(hostBox.width / (cols * ratioW), hostBox.height / (rows * ratioH)) * 0.992,
+      Math.floor(
+        Math.min(hostBox.width / (cols * ratioW), hostBox.height / (rows * ratioH)) * 0.992,
+      ),
     );
+    const cellW = fs * ratioW;
+    const cellH = fs * ratioH;
     el.style.fontSize = `${fs}px`;
     el.style.lineHeight = "1.2";
-    return { cellW: fs * ratioW, cellH: fs * ratioH, fontSize: fs, cols, rows };
+    el.style.setProperty("--tui-cols", String(cols));
+    el.style.setProperty("--cell-w", `${cellW}px`);
+    el.style.setProperty("--cell-h", `${cellH}px`);
+    return { cellW, cellH, fontSize: fs, cols, rows };
+  }
+
+  function fitShot(host, img, cols, rows) {
+    const nw = img.naturalWidth || cols * 10;
+    const nh = img.naturalHeight || rows * 24;
+    const box = host.getBoundingClientRect();
+    const pad = 4;
+    let scale = Math.min((box.width - pad) / nw, (box.height - pad) / nh);
+    if (scale >= 1) scale = Math.floor(scale) || 1;
+    const width = Math.max(1, Math.round(nw * scale));
+    const height = Math.max(1, Math.round(nh * scale));
+    img.style.width = `${width}px`;
+    img.style.height = `${height}px`;
+    return {
+      cellW: width / cols,
+      cellH: height / rows,
+      fontSize: (height / rows) * 0.7,
+      cols,
+      rows,
+      width,
+      height,
+      scale,
+    };
+  }
+
+  function paintShot(host, stage, img, overlay, frame) {
+    if (!frame || !frame.name) return null;
+    const url = `./assets/tui/frames/${frame.name}.png?v=jb-shot`;
+    if (img.getAttribute("src") !== url) {
+      img.alt = `OpenTUI · ${frame.name}`;
+      img.src = url;
+    }
+    if (!img.complete || img.naturalWidth < 8) return null;
+    img.hidden = false;
+    const fitted = fitShot(host, img, frame.cols || 140, frame.rows || 40);
+    stage.style.width = `${fitted.width}px`;
+    stage.style.height = `${fitted.height}px`;
+    overlay.classList.add("is-shot");
+    overlay.innerHTML = "";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.setProperty("--cell-w", `${fitted.cellW}px`);
+    overlay.style.setProperty("--cell-h", `${fitted.cellH}px`);
+    return {
+      cols: frame.cols,
+      rows: frame.rows,
+      hits: hitsFromText(frame.text || "", frame.cols),
+      prompt: promptBoxFromFrame(frame),
+      capture: true,
+      shot: true,
+      cellW: fitted.cellW,
+      cellH: fitted.cellH,
+      fontSize: fitted.fontSize,
+    };
   }
 
   window.teroTui = {
@@ -610,9 +681,11 @@
     spinner: (n) => SPINNER[n % SPINNER.length],
     paint,
     paintFrame,
+    paintShot,
     promptBoxFromFrame,
     hitsFromText,
     fitHost,
+    fitShot,
     clip,
   };
 })();
