@@ -17,7 +17,7 @@ from strands import Agent
 from tero.config import Settings
 from tero.encargo_sync import source_domain_warning, sync_encargo_from_prompt
 from tero.errors import TeroError, humanize_exception
-from tero.evidence import collect_warnings
+from tero.evidence import collect_warnings, propuesta_warnings
 from tero.gate import WriteResult, write_approved
 from tero.offline import OfflineModel
 from tero.prompts import system_prompt
@@ -260,7 +260,7 @@ class TeacherSession:
             encargo=self.encargo,
             draft=propuesta.draft,
             prompt=turn.prompt,
-        )
+        ) + propuesta_warnings(propuesta)
         if self.ctx.budget_exhausted:
             self._warn(
                 "tool_budget_exhausted",

@@ -398,7 +398,8 @@ def _search_oa(ctx: TurnContext):
 def _split_items(value: str) -> list[str]:
     """Separa una lista escrita en una línea (o varias) en ítems limpios."""
     out: list[str] = []
-    for chunk in re.split(r"[\n;]+|\s+[•·]\s+|^\s*[-*]\s+", value, flags=re.MULTILINE):
+    # Ojo: NO se parte por "·" — es el separador del criterio Decreto 83.
+    for chunk in re.split(r"[\n;]+|^\s*[-*•]\s+", value, flags=re.MULTILINE):
         item = chunk.strip().strip("-*•·").strip()
         if item:
             out.append(item)

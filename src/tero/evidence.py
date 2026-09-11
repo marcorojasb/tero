@@ -8,7 +8,7 @@ from typing import Any
 
 from tero.artifacts import missing_headings
 from tero.coerce import as_text
-from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, WarningItem
+from tero.types import ArtifactDraft, ArtifactType, Encargo, Evidence, Propuesta, WarningItem
 from tero.workspace import Workspace
 
 THIN_CHARS = 700
@@ -263,3 +263,62 @@ def _has_rubric_hint(markdown: str) -> bool:
     return any(
         token in lowered for token in ("rúbrica", "rubrica", "pauta", "criterios de evaluación")
     )
+
+
+# Decreto 83/2015 (Chile): adecuaciones de acceso y adecuaciones en los objetivos.
+NEE_CRITERIOS_ACCESO = (
+    "presentación de la información",
+    "formas de respuesta",
+    "entorno",
+    "tiempo",
+)
+NEE_CRITERIOS_OBJETIVOS = (
+    "graduación",
+    "priorización",
+    "temporalización",
+    "enriquecimiento",
+    "eliminación",
+)
+# El decreto es taxativo: la eliminación nunca toca estos aprendizajes.
+NEE_ELIMINACION_PROHIBIDA = ("lectoescritura", "operaciones matemáticas", "vida cotidiana")
+
+
+def propuesta_warnings(propuesta: Propuesta) -> list[WarningItem]:
+    """Avisos propios de una propuesta de adaptación. Nunca bloquean: informan."""
+    if propuesta.accion != "adaptar":
+        return []
+    notas = [str(nota).strip().lower() for nota in propuesta.notas_nee]
+    warnings = [
+        WarningItem(
+            code="paci_no_oficial",
+            message=(
+                "Estos son apoyos para la clase, no una adecuación curricular formal ni un "
+                "PACI. El PACI es un documento oficial ante el MINEDUC: si lo necesitas, "
+                "revísalo con tu equipo PIE."
+            ),
+        )
+    ]
+    hay_objetivos = any(nota.startswith("objetivos") for nota in notas)
+    hay_acceso = any(nota.startswith("acceso") for nota in notas)
+    if hay_objetivos and not hay_acceso:
+        warnings.append(
+            WarningItem(
+                code="nee_sin_apoyos_de_acceso",
+                message=(
+                    "Ajustaste objetivos y no dejaste adecuaciones de acceso. El Decreto 83 "
+                    "pide considerar primero las adecuaciones de acceso."
+                ),
+            )
+        )
+    if any("eliminación" in nota or "eliminacion" in nota for nota in notas):
+        warnings.append(
+            WarningItem(
+                code="nee_eliminacion",
+                message=(
+                    "Hay un criterio de eliminación. El Decreto 83 no permite eliminar "
+                    "aprendizajes de lectoescritura, de operaciones matemáticas ni los que "
+                    "permiten desenvolverse en la vida cotidiana."
+                ),
+            )
+        )
+    return warnings

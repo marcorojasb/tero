@@ -95,7 +95,7 @@ def _proposal_meta_from_text(text: str) -> tuple[Any, str, str, list[str], list[
 
 def _split_kw_items(value: str) -> list[str]:
     items: list[str] = []
-    for chunk in re.split(r"[\n;]+|\s+[•·]\s+", value or ""):
+    for chunk in re.split(r"[\n;]+|^\s*[-*•]\s+", value or "", flags=re.MULTILINE):
         item = chunk.strip().strip("-*•·").strip()
         if item:
             items.append(item)

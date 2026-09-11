@@ -154,12 +154,13 @@ class OfflineModel(Model):
                         sources=listed or list(reads),
                     ),
                     "cambios": (
-                        "Tiempos por momento de clase\n"
-                        "Enunciados más cortos y una instrucción por paso"
+                        "Inicio: tiempos por momento de clase\n"
+                        "Desarrollo: enunciados más cortos y una instrucción por paso"
                     ),
                     "notas_nee": (
-                        "Adecuación de acceso: enunciados leídos en voz alta y tiempo extra\n"
-                        "Apoyos visuales para la secuencia de la clase"
+                        "acceso · presentación de la información: enunciados leídos en voz "
+                        "alta y apoyos visuales de la secuencia\n"
+                        "acceso · tiempo: tiempo extra para completar la guía"
                     ),
                 },
             }
