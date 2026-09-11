@@ -64,22 +64,23 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     flexDirection: "column",
     backgroundColor: theme.bg,
     padding: 0,
-  })
-
-  // ── Header ──────────────────────────────────────────────
-  const header = new BoxRenderable(renderer, {
-    id: "header",
-    height: 4,
-    flexDirection: "column",
-    backgroundColor: theme.panel,
     border: true,
     borderStyle: "rounded",
     borderColor: theme.border,
-    paddingLeft: 1,
-    paddingRight: 1,
     title: " tero ",
     titleColor: theme.brand,
     bottomTitle: "",
+  })
+
+  // ── Header (status strip inside the window, not its own box) ──
+  const header = new BoxRenderable(renderer, {
+    id: "header",
+    height: 1,
+    flexDirection: "column",
+    backgroundColor: theme.panel,
+    border: false,
+    paddingLeft: 1,
+    paddingRight: 1,
   })
   const headerLine = new TextRenderable(renderer, {
     id: "header-line",
@@ -438,8 +439,10 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     } else {
       chipLine.content = state.screen === "home" ? "" : "[ sin encargo — 1–4 o escribe ]"
     }
-    header.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
-    header.height = showChips(state) || state.screen !== "home" ? 4 : 3
+    root.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
+    const chipsVisible = showChips(state) || state.screen !== "home"
+    chipLine.visible = chipsVisible
+    header.height = chipsVisible ? 2 : 1
 
     const isHome = state.screen === "home" && !state.thinking && !state.plan && !state.proposal
     const awaitingPlan =

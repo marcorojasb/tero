@@ -8,16 +8,24 @@ describe("shell frames", () => {
     const setup = await createTestRenderer({ width: 120, height: 32 })
     try {
       const shell = mountShell(setup.renderer, () => {})
-      const state = initialState({
-        curso: "",
-        asignatura: "",
-        oa: "",
-        duracion: "",
-        tipo: null,
-      })
+      const state = {
+        ...initialState({
+          curso: "",
+          asignatura: "",
+          oa: "",
+          duracion: "",
+          tipo: null,
+        }),
+        carpeta: "/workspace/examples/carpeta-demo",
+      }
       shell.sync(state)
       await setup.renderOnce()
       const frame = setup.captureCharFrame()
+      const lines = frame.replace(/\n$/, "").split("\n")
+      expect(lines[0]).toContain("╭─ tero")
+      expect(lines[lines.length - 1]).toMatch(/^╰/)
+      expect(lines[lines.length - 1]).toContain("carpeta-demo")
+      expect(lines[2] ?? "").not.toMatch(/^╰/)
       expect(frame).toContain("tero")
       expect(frame).toContain("Planificar")
       expect(frame).toContain("Crear")
@@ -48,10 +56,15 @@ describe("shell frames", () => {
         screen: "workspace" as const,
         started: true,
         phase: "idle" as const,
+        carpeta: "/workspace/examples/carpeta-demo",
       }
       shell.sync(state)
       await setup.renderOnce()
       const frame = setup.captureCharFrame()
+      const lines = frame.replace(/\n$/, "").split("\n")
+      expect(lines[0]).toContain("╭─ tero")
+      expect(lines[lines.length - 1]).toMatch(/^╰/)
+      expect(lines[lines.length - 1]).toContain("carpeta-demo")
       expect(frame).toContain("tero")
       expect(frame).toContain("básico")
       expect(frame).toContain("OA 4")
