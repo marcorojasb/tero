@@ -88,8 +88,8 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "tui-grid.js?v=window-tero" in html
-    assert "ficha.js?v=window-tero" in html
+    assert "tui-grid.js?v=ready-home" in html
+    assert "ficha.js?v=ready-home" in html
     assert "paintFrame" in grid
     assert "promptBoxFromFrame" in grid
     assert "loadFrames" in js
@@ -127,6 +127,8 @@ def test_ficha_assets_and_pages_workflow():
     assert "[1] Planificar" in home_frame
     assert "tus fuentes, tu criterio" in home_frame
     assert "secuencia de clase" in home_frame
+    assert "5 fuentes" in home_frame
+    assert "recientes" in home_frame
     puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
     assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
     guia_puerta = _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt")

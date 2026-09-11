@@ -332,9 +332,16 @@ const shots: { name: string; width: number; height: number; state: () => AppStat
         duracion: "",
         tipo: null,
       }),
+      ready: true,
       mode: "offline",
       model: "tero-offline",
-      statusLine: "elige rumbo o escribe",
+      carpeta: "~/tero",
+      sourceCount: 5,
+      statusLine: "5 fuentes",
+      recentSessions: [
+        { kind: "derivado", label: "planificacion-cuento", path: "derivados/planificacion.pdf" },
+        { kind: "derivado", label: "guia-sistemas", path: "derivados/guia.pdf" },
+      ],
     }),
   },
   {
@@ -456,7 +463,7 @@ function frameToHtml(frame: FrameDump): string {
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../../../styles.css?v=window-tero"/>
+  <link rel="stylesheet" href="../../../styles.css?v=ready-home"/>
 </head>
 <body data-offline-model="tero-offline">
   <div class="window" id="app">
@@ -469,7 +476,7 @@ function frameToHtml(frame: FrameDump): string {
       <div id="tui-grid" class="tui-grid">${rows}</div>
     </div>
   </div>
-  <script src="../../../tui-grid.js?v=window-tero"></script>
+  <script src="../../../tui-grid.js?v=ready-home"></script>
   <script>
     (function () {
       const host = document.getElementById("tui-host");
