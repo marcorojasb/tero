@@ -91,9 +91,9 @@ def test_ficha_landing_is_the_github_page():
     assert "enterSession" not in js
     assert 'id="session"' not in html
     assert "tui-grid.js" in html
-    assert "styles.css?v=vte-px" in html
-    assert "tui-grid.js?v=vte-px" in html
-    assert "ficha.js?v=vte-hotkeys" in html
+    assert "styles.css?v=vte-blit" in html
+    assert "tui-grid.js?v=vte-blit" in html
+    assert "ficha.js?v=vte-blit" in html
     assert "min-height: calc(100vh" not in css
     assert "0 24px 70px" not in css
     assert "border-radius: 10px" not in css
@@ -126,7 +126,12 @@ def test_ficha_landing_is_the_github_page():
     assert "frames.help" in js
     assert "~/carpeta-tui" not in html
     assert 'id="window-path"' in html
+    assert "blitCanvas" in grid
+    assert "createImageBitmap" in grid
+    assert "colorSpaceConversion" in grid
     assert 'id="tui-shot"' in html
+    assert ".tui-shot-src" in css
+    assert '$("tui-canvas")' in js
     assert "~/tero" in html
     assert '$("window-path").textContent = "~/tero"' in js or 'textContent = "~/tero"' in js
 

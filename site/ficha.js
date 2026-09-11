@@ -350,6 +350,8 @@ python -m tero demo --offline --yes
     state.model = model;
     const shot = $("tui-shot");
     shot.hidden = true;
+    const canvas = $("tui-canvas");
+    if (canvas) canvas.hidden = true;
     $("tui-grid").classList.remove("is-shot");
     const painted = captured
       ? Tui.paintFrame($("tui-grid"), captured)

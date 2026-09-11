@@ -655,6 +655,32 @@
     };
   }
 
+  function blitCanvas(img, canvas, fitted) {
+    if (!canvas || !img || img.naturalWidth < 8) return;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (canvas.width !== nw) canvas.width = nw;
+    if (canvas.height !== nh) canvas.height = nh;
+    canvas.style.width = `${fitted.width}px`;
+    canvas.style.height = `${fitted.height}px`;
+    canvas.style.imageRendering = fitted.scale >= 0.999 ? "pixelated" : "auto";
+    canvas.hidden = false;
+    img.hidden = true;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = fitted.scale < 0.999;
+    ctx.drawImage(img, 0, 0, nw, nh);
+    if (typeof createImageBitmap !== "function") return;
+    createImageBitmap(img, { colorSpaceConversion: "none", premultiplyAlpha: "none" })
+      .then((bmp) => {
+        if (canvas.width !== nw || canvas.height !== nh) return;
+        ctx.imageSmoothingEnabled = fitted.scale < 0.999;
+        ctx.drawImage(bmp, 0, 0, nw, nh);
+        if (bmp.close) bmp.close();
+      })
+      .catch(() => {});
+  }
+
   function paintShot(host, stage, img, overlay, frame) {
     if (!frame || !frame.name) return null;
     const url = `./assets/tui/frames/${frame.name}.png?v=vte-hotkeys`;
@@ -663,8 +689,10 @@
       img.src = url;
     }
     if (!img.complete || img.naturalWidth < 8) return null;
-    img.hidden = false;
     const fitted = fitShot(host, img, frame.cols || 140, frame.rows || 40);
+    const canvas = document.getElementById("tui-canvas");
+    if (canvas) blitCanvas(img, canvas, fitted);
+    else img.hidden = false;
     stage.style.width = `${fitted.width}px`;
     stage.style.height = `${fitted.height}px`;
     overlay.classList.add("is-shot");
@@ -694,6 +722,7 @@
     paint,
     paintFrame,
     paintShot,
+    blitCanvas,
     promptBoxFromFrame,
     hitsFromText,
     fitHost,

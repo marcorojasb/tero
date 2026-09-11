@@ -199,6 +199,14 @@ body {
   background: var(--tui-bg);
 }
 
+.tui-shot-src {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .tui-shot {
   display: block;
   width: auto;
