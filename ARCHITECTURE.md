@@ -1,8 +1,17 @@
 # Architecture — tero
 
-tero is a **Strands agent** plus an **OpenTUI** shell. The agent prepares;
-the teacher decides. The only artifact writes are `derivados/` (accepted)
-and `borradores/` (draft). Originals are hashed and never overwritten.
+tero is a **conversational Strands agent** plus an **OpenTUI** shell. The
+agent understands the first message and acts on the intent: **a)**
+answer or interact, **b)** create new material, **c)** edit or adapt
+existing material (including NEE adaptation). It only writes when the
+person approves. The only artifact write is `derivados/`, after approval;
+there is no write without approval. Originals are hashed and never
+overwritten. `borradores/` is legacy: existing files can still be read,
+edited or adapted, but tero writes nothing new there.
+
+> Target contract (this doc). Code migration follows in later PRs
+> (session, TUI, CLI, tests); until then, code may still show the
+> previous step-by-step flow.
 
 The public face of the repo is the **OpenTUI of tero**, virtualized in
 one window — not a splash wave, not a SaaS page. Photocopied paper is
@@ -11,21 +20,26 @@ only for pages tero creates:
 
 ## Thesis
 
-> your sources, your judgment / agent prepares, teacher decides
+> your sources, your judgment / agent converses, person approves
 
-The teacher’s folder is the system of record. Tools only read. The host
-applies `s` / `n` / `b` / `c`. Warnings never block `s`. See
-[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md).
+The teacher's folder is the system of record. Tools only read. There is
+no step-by-step flow: no home rumbos 1–4, no typed plan with approve /
+edit / cancel keys, no numbered clarifications, no `s` / `n` / `b` / `c`
+gate. If information is missing, the agent **asks in natural language**.
+Before writing, it shows **what it will do + a preview** and asks for
+approval. Warnings never block approval. See
+[docs/PUERTA-Y-PR8.md](docs/PUERTA-Y-PR8.md) for why the old blocking
+gate was rejected — the same reasoning now applies to conversational
+approval.
 
 ## Components
 
 ```mermaid
 flowchart TB
   subgraph TUI["OpenTUI (Bun / @opentui/core)"]
-    Chips[Encargo chips]
-    Session[Sesión + actividad]
-    Proposal[Propuesta + evidencia]
-    Gate[s / n / b / c]
+    Chat[Conversación]
+    Proposal[Propuesta: qué hará + vista previa]
+    Approval[Aprobación en lenguaje natural]
   end
 
   subgraph Host["python -m tero bridge"]
@@ -33,16 +47,16 @@ flowchart TB
     Agent[Strands Agent]
     Offline[OfflineModel tero-offline]
     Bedrock[BedrockModel]
-    Tools[list_sources / read_source / propose_plan / cite_evidence / draft_artifact]
+    Tools["list_sources / read_source (sandbox)"]
     Salvage[salvage prose or JSON]
     Coerce[payload contracts]
-    GateHost[tero.gate]
+    Approve[host writes only after approval]
   end
 
   subgraph Disk["Carpeta de trabajo"]
     Fuentes[Originales .md .txt .pdf]
     Derivados[derivados/]
-    Borradores[borradores/]
+    Borradores["borradores/ (legado)"]
   end
 
   TUI --> JSONL
@@ -53,40 +67,51 @@ flowchart TB
   Tools --> Fuentes
   Agent --> Salvage
   Salvage --> Coerce
-  Gate --> GateHost
-  GateHost --> Derivados
-  GateHost --> Borradores
+  Approval --> Approve
+  Approve --> Derivados
 ```
 
 ## Loop
 
-1. Encargo chips (curso / asignatura / OA / duración / tipo).
-2. Agent **lists and reads** only inside the carpeta (path sandbox + hash index).
-3. Optional **typed plan** — teacher approves / edits / cancels.
-4. **Draft** + evidence citations. If the model writes prose instead of a
-   tool call, the host **salvages** a typed draft. Payload JSON (or
-   markdown fallback) fills the LaTeX template. Tool use is capped
-   (`DRAFT_TOOL_BUDGET`). Activity emits **one start per tool call**, not
-   per stream delta.
-5. Warnings (OA mismatch, thin skeleton, missing rubric, paraphrase,
+1. The teacher writes a first message in natural language. The agent
+   understands the intent: **a)** answer / interact, **b)** create new
+   material (planificación, guía, evaluación, pauta, actividad),
+   **c)** edit or adapt existing material (versions, NEE adaptation).
+2. If information is missing (course, subject, OA, length, which file to
+   edit), the agent **asks in natural language** — no numbered options,
+   no typed plan to approve.
+3. The agent **reads** only inside the carpeta (path sandbox + hash index)
+   and prepares the answer or material **in memory**, with evidence
+   citations. Payload JSON (or markdown fallback) fills the LaTeX
+   template. Tool use is capped (`DRAFT_TOOL_BUDGET`). Activity emits
+   **one start per tool call**, not per stream delta.
+4. Warnings (OA mismatch, thin skeleton, missing rubric, paraphrase,
    unknown path) are **visible and non-blocking**.
-6. Gate: `s` write `derivados/`, `n` discard, `b` write `borradores/`,
-   `c` another agent pass (crítica under `.tero/criticas/`).
-7. Re-hash originals after write. A change is a warning, never a rewrite
+5. Before writing, the agent shows **what it will do + a preview** and
+   asks for approval in natural language. On explicit approval the
+   **host** writes `derivados/`; a change the teacher asks for triggers
+   another pass. The model never writes files.
+6. Re-hash originals after write. A change is a warning, never a rewrite
    of the source.
 
-## Why this HITL shape
+## Why this conversational shape
 
-The first MVP on `main` used Strands `HumanInTheLoop` around a
-`write_derived` tool. This tree keeps Strands for the **agent loop** and
-moves the write to the **host** so the TUI can show plan, evidence, and
-`c` (correct) without the model being able to dump a file mid-stream.
-Both are real HITL; the host gate is the one OpenTUI drives.
+The previous tree used Strands `HumanInTheLoop` around a `write_derived`
+tool, then a host gate with `s` / `n` / `b` / `c`, typed plans and
+numbered clarifications. That flow is retired: it forced every teacher
+through the same steps whether she wanted a quick answer, a new
+evaluación, or a small edit.
+
+What stays from that history: the agent loop is Strands, the write is
+the **host** so the TUI can show the proposal, the evidence, and the
+correction pass without the model being able to dump a file mid-stream.
+Approval is now conversational, but it is still structural: only an
+explicit user approval after a clear preview lets the host write.
 
 A draft that blocked `s` on `thin_evidence` / `unknown_source` (PR #8)
 was rejected: it made the host the teacher. Quality loops with Nova Lite,
 MiniMax, GLM and Qwen showed usable fichas that almost always carry a
-paraphrase warning. Those must still be acceptable with `s`.
+paraphrase warning. Those must still be approvable.
 
 ## Trust boundaries
 
@@ -94,10 +119,10 @@ paraphrase warning. Those must still be acceptable with `s`.
 | --- | --- |
 | Read files outside the work folder | No |
 | Overwrite originals | No (`WriteGuardError`) |
-| Write `derivados/` itself | No — only `tero.gate` after `s`/`b` |
+| Write `derivados/` itself | No — only the host, after explicit user approval of a clear preview |
 | Invent a live Bedrock call in `--offline` | No — `tero-offline` is a scripted Strands `Model` |
 | Cite a snippet that is not in the file | Allowed, but host marks it `verified: false` and warns |
-| Block `s` because citations are thin | No — that is the teacher’s call |
+| Block approval because citations are thin | No — that is the teacher’s call |
 
 Package layout: `src/tero` (canonical). The older `tero/` layout from
 PR #1 is not used.
