@@ -1,17 +1,16 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ offline · puerta · 3 fuentes                                                                                                             │
-│ [ planificar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ planificacion ]                                         │
+│ offline · puerta · 2 fuentes                                                                                                             │
+│ [ adaptar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                                               │
 ╰─ ~/tero ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ ▸ propuesta ────────────────────────────────────────────────────────────────────────────────────────╮╭─ evidencia ──────────────────────╮
-│ # Planificación                                                                                      ││ ▸ 1/2  ✓ en archivo              │
+│ # Evaluación                                                                                         ││ ▸ 1/2  ✓ en archivo              │
 │                                                                                                      ││   fuentes/cuento-el-condor-y-el- │
-│ ## Objetivo                                                                                          ││ huemul.md                        │
-│ Extraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que   ││   desarrollo                     │
-│ el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).                               ││   “El cóndor afirma ver el mar   │
-│                                                                                                      ││   desde la cornisa”              │
-│ Inicio pregunta. Desarrollo lectura. Cierre ticket.                                                  ││                                  │
-│                                                                                                      ││   2/2  ?  fuentes/bases-oa-      │
-│                                                                                                      ││ lenguaje-4b.md                   │
+│ ## Selección múltiple                                                                                ││ huemul.md                        │
+│ ¿Quién observa el mar desde la cornisa?                                                              ││   desarrollo                     │
+│                                                                                                      ││   “Yo veo el mar desde aquí”     │
+│ ## Verdadero o falso                                                                                 ││                                  │
+│ ## Desarrollo                                                                                        ││   2/2  ?  fuentes/bases-oa-      │
+│ El cóndor afirma: «Yo veo el mar desde aquí».                                                        ││ lenguaje-4b.md                   │
 │                                                                                                      ││     OA 4                         │
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
@@ -20,16 +19,17 @@
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
+│                                                                                                      ││                                  │
 │                                                                                                      ││ avisos (no bloquean)             │
-│                                                                                                      ││ ! Hay parafraseo del cuento. No  │
-│                                                                                                      ││ lo trates como cita literal.     │
-│                                                                                                      ││                                  │
-│                                                                                                      ││                                  │
+│                                                                                                      ││ pobre.                           │
+│                                                                                                      ││ ! La cita del ítem de desarroll  │
+│                                                                                                      ││ es parafraseo. Marcada ?, no ✓.█ │
+│                                                                                                      ││                                █ │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────╯
 ╭─ plan · p detalle ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ planificación · cuento                                                                                                                   │
+│ evaluación · cuento                                                                                                                      │
 │                                                                                                                                          │
-│ Extraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.                                                  │
+│ Prueba corta 10 pts: SM 1–4, V/F 5–6, desarrollo con cita (ítem 7). Misma carpeta del rumbo 1, otro tipo.                                │
 ╰─4° básico · OA 4 · 45 min                                                                                                               ─╯
 ╭─ puerta ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ [s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/2                                                                         │

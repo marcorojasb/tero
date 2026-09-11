@@ -1,20 +1,20 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · plan · 3 fuentes                                                                                                               │
-│ [ planificar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ planificacion ]                                         │
+│ [ evaluar ]  [ 1° medio ]  [ Matemática ]  [ sistemas 2×2 ]  [ 45 min ]  [ evaluacion ]                                                  │
 ╰─ ~/tero ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ plan ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ planificación · cuento                                                                                                                 █ │
+│ evaluación · sistemas 2×2                                                                                                              █ │
 │ Plan de trabajo · 1 entregable · Listo                                                                                                 █ │
 │                                                                                                                                        █ │
-│ Extraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.                                                █ │
+│ Evaluación corta 50 pts: SM, V/F y desarrollo (sustitución y reducción). Sin calculadora.                                              █ │
 │                                                                                                                                        █ │
 │ RESULTADO PREVISTO                                                                                                                     █ │
-│   · Planificación                                                                                                                      ▀ │
+│   · Evaluación                                                                                                                         ▀ │
 │                                                                                                                                          │
 │ CÓMO LO ABORDARÉ                                                                                                                         │
-│   1. Inicio — pregunta ancla                                                                                                             │
-│   2. Desarrollo — lectura guiada + parejas                                                                                               │
-│   3. Cierre — ticket de salida                                                                                                           │
+│   1. Selección múltiple                                                                                                                  │
+│   2. Verdadero o falso                                                                                                                   │
+│   3. Desarrollo                                                                                                                          │
 │                                                                                                                                          │
 │                                                                                                                                          │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

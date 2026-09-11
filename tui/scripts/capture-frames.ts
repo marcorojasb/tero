@@ -3,16 +3,20 @@
  * Writes site/assets/tui/frames/ so the Pages virtualization can match
  * the real shell rather than a restyled approximation.
  */
-import { mkdirSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createTestRenderer } from "@opentui/core/testing"
 import { mountShell } from "../src/shell.ts"
 import { initialState, type AppState } from "../src/state.ts"
 import { theme } from "../src/theme.ts"
+import type { Encargo, Evidence, Plan, WarningItem } from "../src/protocol.ts"
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = join(here, "../../site/assets/tui/frames")
+
+/** Same path the landing paints in the OpenTUI header (`shortPath` keeps two segments). */
+const CARPETA = "~/tero"
 
 type RGBA = { r: number; g: number; b: number; a: number }
 
@@ -33,6 +37,20 @@ type FrameDump = {
   text: string
 }
 
+type RumboId = 1 | 2 | 3 | 4
+
+type RumboFixture = {
+  encargo: Encargo
+  plan: Plan
+  proposalTitle: string
+  proposal: string
+  evidence: Evidence[]
+  warnings: WarningItem[]
+  sourceCount: number
+  thinkingLabel: string
+  activityDetail: string
+}
+
 function rgbaTuple(c: RGBA | number[] | undefined): [number, number, number, number] {
   if (!c) return [0, 0, 0, 1]
   if (Array.isArray(c)) {
@@ -50,33 +68,254 @@ function cssColor(c: [number, number, number, number]): string {
   return `#${[R, G, B].map((n) => n.toString(16).padStart(2, "0")).join("")}`
 }
 
-function encargoBase() {
-  return {
-    curso: "4° básico",
-    asignatura: "Lenguaje",
-    oa: "OA 4",
-    duracion: "45 min",
-    tipo: "planificacion" as const,
-    tema: "cuento",
-    rumbo: "planificar",
-  }
+const rumbos: Record<RumboId, RumboFixture> = {
+  1: {
+    encargo: {
+      rumbo: "planificar",
+      curso: "4° básico",
+      asignatura: "Lenguaje",
+      tema: "cuento",
+      oa: "OA 4",
+      duracion: "45 min",
+      tipo: "planificacion",
+    },
+    plan: {
+      objetivo:
+        "Extraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.",
+      tipo: "planificacion",
+      tipo_label: "planificación",
+      oa: "OA 4",
+      duracion: "45 min",
+      notas: "",
+      titulo: "Plan de planificación – cuento",
+      meta: "Plan de trabajo · 1 entregable · Listo",
+      resultado_previsto: ["Planificación"],
+      decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
+      como_abordare: [
+        { titulo: "Inicio", detalle: "pregunta ancla" },
+        { titulo: "Desarrollo", detalle: "lectura guiada + parejas" },
+        { titulo: "Cierre", detalle: "ticket de salida" },
+      ],
+      supuestos: [{ id: "s1", text: "45 min, fuentes de la carpeta" }],
+      questions: [],
+    },
+    proposalTitle: "Planificación",
+    proposal:
+      "## Objetivo\nExtraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).\n\nInicio pregunta. Desarrollo lectura. Cierre ticket.",
+    evidence: [
+      {
+        path: "fuentes/cuento-el-condor-y-el-huemul.md",
+        snippet: "El cóndor afirma ver el mar desde la cornisa",
+        seccion: "desarrollo",
+        verified: true,
+      },
+      {
+        path: "fuentes/bases-oa-lenguaje-4b.md",
+        snippet: "Extraer información explícita e implícita",
+        seccion: "OA 4",
+        verified: false,
+      },
+    ],
+    warnings: [
+      {
+        code: "unverified_citation",
+        message: "Hay parafraseo del cuento. No lo trates como cita literal.",
+        blocking: false,
+      },
+    ],
+    sourceCount: 3,
+    thinkingLabel: "leyendo fuentes",
+    activityDetail: "cuento-el-condor-y-el-huemul.md",
+  },
+  2: {
+    encargo: {
+      rumbo: "crear",
+      curso: "1° medio",
+      asignatura: "Matemática",
+      tema: "sistemas 2×2",
+      oa: "",
+      duracion: "90 min",
+      tipo: "guia",
+    },
+    plan: {
+      objetivo: "Introducir el sistema 2×2 como dos rectas, un punto. Sustitución + verificación.",
+      tipo: "guia",
+      tipo_label: "guía",
+      oa: "",
+      duracion: "90 min",
+      notas: "",
+      titulo: "Plan de guía – sistemas",
+      meta: "Plan de trabajo · 1 entregable · Listo",
+      resultado_previsto: ["Guía de autoaprendizaje"],
+      decisiones: { curso: "1° medio", asignatura: "Matemática", tema: "sistemas 2×2" },
+      como_abordare: [
+        { titulo: "Selección múltiple" },
+        { titulo: "Verdadero o falso" },
+        { titulo: "Desarrollo y ruedas" },
+      ],
+      supuestos: [{ id: "s1", text: "90 min, fuentes de la carpeta" }],
+      questions: [],
+    },
+    proposalTitle: "Guía",
+    proposal:
+      "## Propósito\nReconocer un sistema 2×2 como dos condiciones a la vez. La solución es el punto donde se cortan dos rectas.\n\nI. Selección múltiple  II. Verdadero o falso  III. Desarrollo.",
+    evidence: [
+      {
+        path: "fuentes/vocabulario-algebra.md",
+        snippet: "sistema 2×2: dos ecuaciones lineales…",
+        seccion: "Vocabulario",
+        verified: false,
+      },
+      {
+        path: "fuentes/ejemplos-sistemas-resueltos.md",
+        snippet: "Ejemplo A",
+        seccion: "Ejemplo A",
+        verified: false,
+      },
+    ],
+    warnings: [
+      {
+        code: "unverified_citation",
+        message:
+          "2 cita(s) no aparecen textuales. Puede ser parafraseo; no las trates como cita literal.",
+        blocking: false,
+      },
+      {
+        code: "missing_structure",
+        message: "Faltan apartados esperados para guía: instrucciones. Tú decides s o c.",
+        blocking: false,
+      },
+    ],
+    sourceCount: 3,
+    thinkingLabel: "leyendo fuentes",
+    activityDetail: "vocabulario-algebra.md",
+  },
+  3: {
+    encargo: {
+      rumbo: "evaluar",
+      curso: "1° medio",
+      asignatura: "Matemática",
+      tema: "sistemas 2×2",
+      oa: "",
+      duracion: "45 min",
+      tipo: "evaluacion",
+    },
+    plan: {
+      objetivo:
+        "Evaluación corta 50 pts: SM, V/F y desarrollo (sustitución y reducción). Sin calculadora.",
+      tipo: "evaluacion",
+      tipo_label: "evaluación",
+      oa: "",
+      duracion: "45 min",
+      notas: "",
+      titulo: "Plan de evaluación – sistemas",
+      meta: "Plan de trabajo · 1 entregable · Listo",
+      resultado_previsto: ["Evaluación"],
+      decisiones: { curso: "1° medio", asignatura: "Matemática", tema: "sistemas 2×2" },
+      como_abordare: [
+        { titulo: "Selección múltiple" },
+        { titulo: "Verdadero o falso" },
+        { titulo: "Desarrollo" },
+      ],
+      supuestos: [{ id: "s1", text: "45 min" }],
+      questions: [],
+    },
+    proposalTitle: "Evaluación",
+    proposal:
+      "## Ítems de selección múltiple\n¿Qué es un sistema 2×2?\n\n## Verdadero o falso\n## Desarrollo\nSustitución: 2x + y = 12, x − y = 3.",
+    evidence: [
+      {
+        path: "fuentes/vocabulario-algebra.md",
+        snippet: "sistema 2×2",
+        seccion: "Vocabulario",
+        verified: false,
+      },
+    ],
+    warnings: [
+      {
+        code: "unverified_citation",
+        message: "1 cita(s) no aparecen textuales. Puede ser parafraseo; no las trates como cita literal.",
+        blocking: false,
+      },
+    ],
+    sourceCount: 3,
+    thinkingLabel: "leyendo fuentes",
+    activityDetail: "vocabulario-algebra.md",
+  },
+  4: {
+    encargo: {
+      rumbo: "adaptar",
+      curso: "4° básico",
+      asignatura: "Lenguaje",
+      tema: "cuento",
+      oa: "OA 4",
+      duracion: "45 min",
+      tipo: "evaluacion",
+    },
+    plan: {
+      objetivo:
+        "Prueba corta 10 pts: SM 1–4, V/F 5–6, desarrollo con cita (ítem 7). Misma carpeta del rumbo 1, otro tipo.",
+      tipo: "evaluacion",
+      tipo_label: "evaluación",
+      oa: "OA 4",
+      duracion: "45 min",
+      notas: "",
+      titulo: "Plan de evaluación – cuento",
+      meta: "Plan de trabajo · 1 entregable · Listo",
+      resultado_previsto: ["Evaluación"],
+      decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
+      como_abordare: [
+        { titulo: "Selección múltiple" },
+        { titulo: "Verdadero o falso" },
+        { titulo: "Desarrollo con cita" },
+      ],
+      supuestos: [{ id: "s1", text: "45 min" }],
+      questions: [],
+    },
+    proposalTitle: "Evaluación",
+    proposal:
+      "## Selección múltiple\n¿Quién observa el mar desde la cornisa?\n\n## Verdadero o falso\n## Desarrollo\nEl cóndor afirma: «Yo veo el mar desde aquí».",
+    evidence: [
+      {
+        path: "fuentes/cuento-el-condor-y-el-huemul.md",
+        snippet: "Yo veo el mar desde aquí",
+        seccion: "desarrollo",
+        verified: true,
+      },
+      {
+        path: "fuentes/bases-oa-lenguaje-4b.md",
+        snippet: "OA 4",
+        seccion: "OA 4",
+        verified: false,
+      },
+    ],
+    warnings: [
+      {
+        code: "thin_evidence",
+        message: "Menos de dos fuentes citadas. El panel de evidencia quedará pobre.",
+        blocking: false,
+      },
+      {
+        code: "unverified_citation",
+        message: "La cita del ítem de desarrollo es parafraseo. Marcada ?, no ✓.",
+        blocking: false,
+      },
+    ],
+    sourceCount: 2,
+    thinkingLabel: "leyendo fuentes",
+    activityDetail: "cuento-el-condor-y-el-huemul.md",
+  },
 }
 
-function planFixture(state: AppState): AppState["plan"] {
+function baseWorkspace(encargo: Encargo, sourceCount: number): AppState {
   return {
-    objetivo: "Extraer información explícita e implícita del cuento de la carpeta.",
-    tipo: "planificacion",
-    tipo_label: "planificación",
-    oa: "OA 4",
-    duracion: "45 min",
-    notas: "",
-    titulo: "Plan de planificación – cuento carpeta",
-    meta: "Plan de trabajo · 1 entregable · Listo",
-    resultado_previsto: ["Planificación"],
-    decisiones: { curso: "4° básico", asignatura: "Lenguaje", tema: "cuento" },
-    como_abordare: [{ titulo: "Lectura", detalle: "cuento de la carpeta" }],
-    supuestos: [{ id: "s1", text: "45 min" }],
-    questions: [],
+    ...initialState(encargo),
+    screen: "workspace",
+    started: true,
+    mode: "offline",
+    model: "tero-offline",
+    carpeta: CARPETA,
+    sourceCount,
   }
 }
 
@@ -103,83 +342,62 @@ const shots: { name: string; width: number; height: number; state: () => AppStat
     width: 140,
     height: 40,
     state: () => ({
-      ...initialState(encargoBase()),
-      screen: "workspace",
-      started: true,
+      ...baseWorkspace(rumbos[1].encargo, rumbos[1].sourceCount),
       phase: "idle",
-      mode: "offline",
-      model: "tero-offline",
       statusLine: "escribe el encargo",
-      sourceCount: 5,
-      carpeta: "/tmp/carpeta-tui",
     }),
   },
-  {
-    name: "plan",
-    width: 140,
-    height: 40,
-    state: () => {
-      const base = {
-        ...initialState(encargoBase()),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_plan" as const,
-        planPinned: true,
-        sourceCount: 5,
-        mode: "offline",
-        model: "tero-offline",
-        statusLine: "plan listo",
-        carpeta: "/tmp/carpeta-tui",
-      }
-      return { ...base, plan: planFixture(base) }
-    },
-  },
-  {
-    name: "puerta",
-    width: 140,
-    height: 40,
-    state: () => {
-      const base = {
-        ...initialState(encargoBase()),
-        screen: "workspace" as const,
-        started: true,
-        phase: "esperando_criterio" as const,
-        proposalTitle: "Planificación",
-        proposal:
-          "## Objetivo\nExtraer información explícita e implícita.\n\nInicio pregunta. Desarrollo lectura. Cierre ticket.",
-        evidence: [
-          {
-            path: "fuentes/cuento-el-condor-y-el-huemul.md",
-            snippet: "El cóndor afirma ver el mar desde la cornisa",
-            seccion: "desarrollo",
-            verified: true,
-          },
-          {
-            path: "fuentes/bases-oa-lenguaje-4b.md",
-            snippet: "Extraer información explícita e implícita",
-            seccion: "OA 4",
-            verified: false,
-          },
-        ],
-        evidenceIndex: 0,
-        warnings: [
-          {
-            code: "unverified_citation",
-            message: "Hay parafraseo. No lo trates como cita literal.",
-            blocking: false,
-          },
-        ],
-        planPinned: true,
-        sourceCount: 5,
-        mode: "offline",
-        model: "tero-offline",
-        statusLine: "tu turno",
-        carpeta: "/tmp/carpeta-tui",
-      }
-      return { ...base, plan: planFixture(base) }
-    },
-  },
 ]
+
+for (const id of [1, 2, 3, 4] as RumboId[]) {
+  const rumbo = rumbos[id]
+  shots.push({
+    name: `leyendo-${id}`,
+    width: 140,
+    height: 40,
+    state: () => ({
+      ...baseWorkspace(rumbo.encargo, rumbo.sourceCount),
+      phase: "leyendo",
+      thinking: true,
+      thinkingLabel: rumbo.thinkingLabel,
+      spinnerFrame: 2,
+      statusLine: "0.0 s",
+      activities: [
+        { tool: "list_sources", state: "end" },
+        { tool: "read_source", state: "start", detail: rumbo.activityDetail },
+      ],
+    }),
+  })
+  shots.push({
+    name: `plan-${id}`,
+    width: 140,
+    height: 40,
+    state: () => ({
+      ...baseWorkspace(rumbo.encargo, rumbo.sourceCount),
+      phase: "esperando_plan",
+      planPinned: true,
+      plan: rumbo.plan,
+      statusLine: "plan listo",
+    }),
+  })
+  shots.push({
+    name: `puerta-${id}`,
+    width: 140,
+    height: 40,
+    state: () => ({
+      ...baseWorkspace(rumbo.encargo, rumbo.sourceCount),
+      phase: "esperando_criterio",
+      proposalTitle: rumbo.proposalTitle,
+      proposal: rumbo.proposal,
+      evidence: rumbo.evidence,
+      evidenceIndex: 0,
+      warnings: rumbo.warnings,
+      planPinned: true,
+      plan: rumbo.plan,
+      statusLine: "tu turno",
+    }),
+  })
+}
 
 async function captureOne(shot: (typeof shots)[0]): Promise<FrameDump> {
   const setup = await createTestRenderer({ width: shot.width, height: shot.height })
@@ -267,10 +485,12 @@ async function main() {
     )
     console.log(`captured ${dump.name} ${dump.cols}x${dump.rows}`)
   }
-  writeFileSync(
-    join(outDir, "theme.json"),
-    `${JSON.stringify(theme, null, 2)}\n`,
-  )
+  for (const alias of ["plan", "puerta"] as const) {
+    copyFileSync(join(outDir, `${alias}-1.json`), join(outDir, `${alias}.json`))
+    copyFileSync(join(outDir, `${alias}-1.txt`), join(outDir, `${alias}.txt`))
+    copyFileSync(join(outDir, `${alias}-1.html`), join(outDir, `${alias}.html`))
+  }
+  writeFileSync(join(outDir, "theme.json"), `${JSON.stringify(theme, null, 2)}\n`)
   writeFileSync(
     join(outDir, "index.json"),
     `${JSON.stringify({ generated: new Date().toISOString().slice(0, 10), frames: index }, null, 2)}\n`,

@@ -1,11 +1,11 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ offline · listo · 3 fuentes                                                                                                              │
-│ [ planificar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ planificacion ]                                         │
+│ offline · leyendo · 3 fuentes · ⠹ leyendo fuentes                                                                                        │
+│ [ evaluar ]  [ 1° medio ]  [ Matemática ]  [ sistemas 2×2 ]  [ 45 min ]  [ evaluacion ]                                                  │
 ╰─ ~/tero ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ sesión ───────────────╮╭─ ▸ propuesta ────────────────────────────────────────────────────────────────╮╭─ evidencia ────────────────────╮
-│ Sin turnos aún.        ││ # El agente prepara. Tú decides.                                             ││ Citas al redactar.             │
+│ Sin turnos aún.        ││ # ⠹ trabajando                                                               ││ Citas al redactar.             │
 │                        ││                                                                              ││ [ ] recorre · ✓ archivo · ?    │
-│ Historial:             ││ Elige un rumbo o escribe el encargo.                                         ││ parafraseo                     │
+│ Historial:             ││ leyendo fuentes                                                              ││ parafraseo                     │
 │ rumbo → plan →         ││                                                                              ││                                │
 │ borrador → criterio.   ││                                                                              ││                                │
 │                        ││                                                                              ││                                │
@@ -24,10 +24,10 @@
 │                        ││                                                                              ││                                │
 │                        ││                                                                              ││                                │
 │ actividad              ││                                                                              ││                                │
-│ en espera              ││                                                                              ││                                │
-│                        ││                                                                              ││                                │
-│                        ││                                                                              ││                                │
-│                        ││                                                                              ││                                │
+│ ✓ fuentes              ││                                                                              ││                                │
+│ › leer  vocabulario-   ││                                                                              ││                                │
+│ algebra.md             ││                                                                              ││                                │
+│ ⠹ leyendo fuentes      ││                                                                              ││                                │
 │                        ││                                                                              ││ avisos (no bloquean)           │
 │                        ││                                                                              ││ sin avisos                     │
 │                        ││                                                                              ││                                │
@@ -37,4 +37,4 @@
 ╭─ encargo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ Describe el material…  Enter envía                                                                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
- escribe el encargo     /export  Tab  ?  q                                                                                                  
+ 0.0 s     /export  Tab  ?  q                                                                                                               

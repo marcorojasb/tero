@@ -1,18 +1,18 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · puerta · 3 fuentes                                                                                                             │
-│ [ planificar ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ planificacion ]                                         │
+│ [ evaluar ]  [ 1° medio ]  [ Matemática ]  [ sistemas 2×2 ]  [ 45 min ]  [ evaluacion ]                                                  │
 ╰─ ~/tero ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ ▸ propuesta ────────────────────────────────────────────────────────────────────────────────────────╮╭─ evidencia ──────────────────────╮
-│ # Planificación                                                                                      ││ ▸ 1/2  ✓ en archivo              │
-│                                                                                                      ││   fuentes/cuento-el-condor-y-el- │
-│ ## Objetivo                                                                                          ││ huemul.md                        │
-│ Extraer información explícita e implícita del cuento «El cóndor y el huemul», distinguiendo lo que   ││   desarrollo                     │
-│ el texto dice de lo que el lector infiere con evidencia (LEN-4B-OA04).                               ││   “El cóndor afirma ver el mar   │
-│                                                                                                      ││   desde la cornisa”              │
-│ Inicio pregunta. Desarrollo lectura. Cierre ticket.                                                  ││                                  │
-│                                                                                                      ││   2/2  ?  fuentes/bases-oa-      │
-│                                                                                                      ││ lenguaje-4b.md                   │
-│                                                                                                      ││     OA 4                         │
+│ # Evaluación                                                                                         ││ ▸ 1/1  ? parafraseo              │
+│                                                                                                      ││   fuentes/vocabulario-algebra.md │
+│ ## Ítems de selección múltiple                                                                       ││   Vocabulario                    │
+│ ¿Qué es un sistema 2×2?                                                                              ││   “sistema 2×2”                  │
+│                                                                                                      ││                                  │
+│ ## Verdadero o falso                                                                                 ││                                  │
+│ ## Desarrollo                                                                                        ││                                  │
+│ Sustitución: 2x + y = 12, x − y = 3.                                                                 ││                                  │
+│                                                                                                      ││                                  │
+│                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
@@ -21,18 +21,18 @@
 │                                                                                                      ││                                  │
 │                                                                                                      ││                                  │
 │                                                                                                      ││ avisos (no bloquean)             │
-│                                                                                                      ││ ! Hay parafraseo del cuento. No  │
-│                                                                                                      ││ lo trates como cita literal.     │
-│                                                                                                      ││                                  │
+│                                                                                                      ││ ! 1 cita(s) no aparecen          │
+│                                                                                                      ││ textuales. Puede ser parafraseo; │
+│                                                                                                      ││ no las trates como cita literal. │
 │                                                                                                      ││                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────╯
 ╭─ plan · p detalle ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ planificación · cuento                                                                                                                   │
+│ evaluación · sistemas 2×2                                                                                                                │
 │                                                                                                                                          │
-│ Extraer información explícita e implícita del cuento «El cóndor y el huemul», con cita.                                                  │
-╰─4° básico · OA 4 · 45 min                                                                                                               ─╯
+│ Evaluación corta 50 pts: SM, V/F y desarrollo (sustitución y reducción). Sin calculadora.                                                │
+╰─1° medio · 45 min                                                                                                                       ─╯
 ╭─ puerta ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ [s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/2                                                                         │
+│ [s] sí→derivados/  [n] no  [b] borrador  [c] corregir   evid 1/1                                                                         │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ encargo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ teclas arriba · o crítica con c                                                                                                          │
