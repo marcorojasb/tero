@@ -30,15 +30,15 @@ host escribe, y solo tras `aprobar`.
 ```
 idle → pensando → respuesta?                → idle
                 → propuesta?                → esperando_aprobacion
-                     aprobar                → escrito → idle
+                     aprobar                → escribe → listo → idle
                      descartar              → idle
                      cambiar / nuevo prompt → pensando (revisa la propuesta)
                 → error                     → (r en TUI reintenta)
 ```
 
 `status.phase` solo toma esos cinco valores: `idle`, `pensando`,
-`esperando_aprobacion`, `listo`, `error`. `listo` se usa al cerrar un
-turno con archivo escrito.
+`esperando_aprobacion`, `listo`, `error`. El evento `escrito` avisa del
+archivo; la fase queda en `listo`.
 
 ## Cliente → host
 
@@ -48,7 +48,7 @@ Un objeto JSON por línea.
 | --- | --- | --- |
 | `hello` | `carpeta?`, `encargo?` | Abre sesión; responde `hello_ok` |
 | `prompt` | `text` | Mensaje de la persona. El agente infiere a/b/c |
-| `aprobar` | `decision`: `aprobar`\|`descartar`, `note?` | Botones explícitos de la TUI |
+| `aprobar` | `decision`: `aprobar`\|`descartar`, `note?` | Botones explícitos de la TUI. El nombre del mensaje es `aprobar` por compatibilidad con la TUI, pero lleva las dos decisiones |
 | `retry` | — | Reintenta el último mensaje |
 | `encargo.update` | `encargo` | Contexto (curso/asignatura/OA); no reinicia el flujo |
 | `curriculum.list` | `curso?`, `asignatura?` | Lista OA del catálogo |
@@ -128,6 +128,10 @@ texto **es** la respuesta (intención a). Es el camino normal, no un fallo.
   origen. El material de origen no se toca (ni en `derivados/` ni, jamás,
   en `fuentes/`).
 - `descartar` → no escribe nada.
+- **No hay escritura sin aprobación.** Este flujo no usa `borradores/`:
+  la propuesta vive en memoria hasta que la persona decide. `borradores/`
+  queda como carpeta heredada de la etapa anterior — lo que ya está ahí se
+  puede leer, editar o adaptar, pero tero no escribe nada nuevo en ella.
 - Tras escribir, el host re-hashea los originales. Si algo cambió, avisa;
   nunca reescribe la fuente.
 
