@@ -26,6 +26,7 @@ How not to overspend: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 | [JUDGES-EN.md](JUDGES-EN.md) | **English judge guide**: what tero is / is not, trust model, AWS usage, official curriculum bank, Ley 21.719 privacy, Decreto 83 NEE, Track A offline + Track B Bedrock with real outputs, and what "green" means. |
 | [DEVPOST.md](DEVPOST.md) | English submission text (copy/paste). |
 | [VIDEO.md](VIDEO.md) | ≤ 5 min script covering the three intents. |
+| [VIDEO-CAPTIONS.md](VIDEO-CAPTIONS.md) | Canonical on-screen copy: English captions, Spanish terminal strings. |
 | [BUILDER-POST.md](BUILDER-POST.md) | Builder Center article. |
 | [harness-playground.md](harness-playground.md) | Optional AgentCore sketch (not the product). |
 | [architecture.png](architecture.png) | Diagram for Devpost (regenerate: `python docs/hackathon/render_architecture.py`). |
