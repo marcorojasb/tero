@@ -22,7 +22,6 @@ def test_warnings_oa_and_thin(workspace: Workspace):
     warnings = collect_warnings(
         workspace=workspace,
         encargo=Encargo(oa="OA 4"),
-        plan=None,
         draft=draft,
     )
     codes = {item.code for item in warnings}
@@ -47,7 +46,6 @@ def test_oa_unknown_skipped_when_catalog_does_not_cover(workspace: Workspace):
     warnings = collect_warnings(
         workspace=workspace,
         encargo=Encargo(curso="1° medio", asignatura="Matemática", oa="sistemas 2x2"),
-        plan=None,
         draft=draft,
     )
     codes = {item.code for item in warnings}
@@ -85,7 +83,6 @@ def test_snippet_must_appear_in_source(workspace: Workspace):
     warnings = collect_warnings(
         workspace=workspace,
         encargo=Encargo(oa="OA 4"),
-        plan=None,
         draft=draft,
     )
     assert "unverified_citation" in {item.code for item in warnings}
