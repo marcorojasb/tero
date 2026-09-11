@@ -182,8 +182,8 @@ def collect_warnings(
                 WarningItem(
                     code="oa_unknown",
                     message=(
-                        f"OA «{check}» no está en el catálogo Chile host-side. "
-                        "El agente no debería inventar ids; usa list_oa/get_oa."
+                        f"El OA «{check}» no está en el catálogo de tero. Revísalo con tu "
+                        "curso o elige uno de la lista."
                     ),
                 )
             )
@@ -196,8 +196,8 @@ def collect_warnings(
                 WarningItem(
                     code="oa_wrong_level",
                     message=(
-                        f"OA «{check}» es de básica y el encargo es {encargo.curso}. "
-                        "El catálogo host no cubre media: no uses un OA de 4°–6° básico de relleno."
+                        f"El OA «{check}» es de básica y el contexto es {encargo.curso}. "
+                        "Revisa a qué nivel corresponde antes de usarlo."
                     ),
                 )
             )
@@ -271,20 +271,18 @@ def collect_warnings(
             WarningItem(
                 code="thin_evidence",
                 message=(
-                    "Menos de dos fuentes citadas. Cita la carpeta y, si el banco "
-                    'oficial cubre el OA, sus ítems con path="banco:<id>".'
+                    "Hay menos de dos fuentes citadas: la evidencia queda pobre. "
+                    "Puedes aprobarla igual, o pedir una versión con más respaldo."
                 ),
             )
         )
     if banco_sin_comprobar:
-        listed = ", ".join(dict.fromkeys(banco_sin_comprobar))
         warnings.append(
             WarningItem(
                 code="banco_cita_no_verificada",
                 message=(
-                    f"{len(banco_sin_comprobar)} cita(s) al banco que no salieron de una "
-                    f"consulta de este turno ({listed}). Compruébalas con buscar_banco o "
-                    "leer_item_banco antes de darlas por oficiales."
+                    f"{len(banco_sin_comprobar)} cita(s) al banco oficial no provienen de una "
+                    "consulta de este turno. Compruébalas antes de darlas por oficiales."
                 ),
             )
         )
