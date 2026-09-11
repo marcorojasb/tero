@@ -2,15 +2,10 @@
 
 For **Agents for Humans** (Devpost), Track **Professional Agents**.
 
-Everything below was executed against `main` at commit
-`b6a5bb8` (2026-09-11). The pasted outputs are what the commands actually
-printed. Where a repo doc disagrees with the code, this guide follows the code.
+Verified against `main` at `7500c62`. The pasted outputs are what the commands
+actually printed.
 
-Two ways to use this guide:
-
-- **Reading / watching only (no install):** §1 what it is, §2 trust model,
-  §3 AWS usage, §5 official curriculum bank, §6 privacy law, §7 NEE, §8
-  originality, §9 live demo.
+- **Reading or watching only:** §1–§3, §5–§9.
 - **20 minutes with a terminal:** §4. Track A needs no AWS account and no keys.
 
 > Language note: the UI, the CLI output and the generated artifacts are in
@@ -42,28 +37,14 @@ sirve"*; or asks for a change in the same breath (*"mejor hazlo para 2° básico
 which triggers another pass on the same proposal. Only then does host-side code
 write into `derivados/`.
 
-**What it is not:**
-
-- Not an Electron / desktop app. There is no GUI runtime; the shell is a terminal
-  UI, and the public page is that TUI virtualized (§9).
-- Not a cloud runtime as the product. No AgentCore Runtime/Gateway/Browser, no
-  S3-as-the-folder, no Lambda-as-the-agent. The agent is a local process and the
-  teacher's folder stays on the teacher's machine. AgentCore is optional and
-  **not required** (§3).
-- Not a chatbot. The deliverable is a file in the teacher's folder, not a
-  conversation transcript.
-
 ---
 
 ## 2. Trust model — the model never writes files
 
-- **The model has no write tool.** Its tools read (`list_sources`,
-  `search_sources`, `read_source`), read already-written material
-  (`list_artifacts`, `read_artifact`), query the Chile OA catalog (`list_oa`,
-  `get_oa`, `search_oa`), query the official curriculum bank (`buscar_banco`,
-  `leer_item_banco`, `orientaciones_banco`), bind citations (`cite_evidence`) and
-  **propose in memory** (`proponer_crear`, `proponer_editar`). Every write
-  primitive is absent from the tool registry.
+- **The model has no write tool.** Tools read the folder and the catalog, query
+  the curriculum bank, bind citations, and **propose in memory**
+  (`proponer_crear`, `proponer_editar`). No write primitive exists in the
+  registry; the full table is in `docs/CONVERSACIONAL.md`.
 - **Only the host writes, and only after approval.** Approval calls
   `tero.gate.write_approved()` → `Workspace.write_artifact()`, which raises
   `WriteGuardError` unless the target resolves under `derivados/`. `fuentes/` can

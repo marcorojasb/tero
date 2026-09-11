@@ -490,7 +490,8 @@ def test_docs_record_pr8_decision_and_index():
     assert "marcorojasb.github.io/tero" in readme
     assert "site/assets/tero-og.png" in readme
     assert "PUERTA-Y-PR8.md" in readme
-    assert "forzar" in readme  # listed as out of scope
+    # El README no promete ninguna palabra mágica que pase por encima del docente.
+    assert "forzar" not in readme
 
 
 def test_tero_txt_no_menciona_el_flujo_retirado():
