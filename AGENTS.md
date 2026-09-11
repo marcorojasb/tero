@@ -3,13 +3,22 @@
 Instructions for AI contributors working on tero.
 
 ## Product
-- Teacher agent: **prepare, don’t decide**. The human gate is `s` / `n` / `b` / `c`.
+- Teacher agent: **conversa, propone, y solo escribe si la persona aprueba**.
+  Entiende el primer mensaje y actúa según la intención: **a)** responder o
+  interactuar, **b)** crear material nuevo, **c)** editar o adaptar material
+  existente (incluida adaptación a NEE).
+- Sin flujo por pasos: no hay rumbos 1–4, plan tipado con `a`/`e`/`x`,
+  clarificaciones numeradas ni puerta `s` / `n` / `b` / `c`. Si falta
+  información, el agente **pregunta en lenguaje natural**.
+- Antes de escribir, muestra en interfaz clara **lo que va a hacer + vista
+  previa** y pide aprobación. Solo la aprobación explícita del usuario
+  permite escribir. El modelo nunca escribe archivos directamente.
 - Spanish UI copy. Chilean classroom tone, not marketing Spanish.
 - Carpeta de trabajo is the system of record. Never overwrite originals. Hash-check reads.
 - Default model id: `amazon.nova-lite-v1:0`. Offline scripted path must stay green.
 - Public face: the real OpenTUI, virtualized in one window on GitHub Pages (`site/`).
   Photocopied paper only for pages tero creates. Not a SaaS hero.
-  Warnings never block `s` — see `docs/PUERTA-Y-PR8.md`.
+  Warnings never block approval — see `docs/PUERTA-Y-PR8.md`.
 
 ## Stack
 - Python 3.11+ / `strands-agents` in `src/tero`.
