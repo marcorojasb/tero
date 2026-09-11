@@ -14,7 +14,7 @@ Cómo no gastar de más: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 - [ ] Pedir USD 50 si el form sigue abierto: <https://forms.gle/6sjzKiX6bKUMA5NEA>
 - [ ] Builder ID: <https://profile.aws.amazon.com>
 - [ ] Pegar texto Devpost: [DEVPOST.md](DEVPOST.md)
-- [ ] Subir diagrama: [architecture.svg](architecture.svg)
+- [ ] Subir diagrama: [architecture.png](architecture.png)
 - [ ] Video ≤ 5 min (YouTube o Vimeo público): [VIDEO.md](VIDEO.md)
 - [ ] Live demo: <https://marcorojasb.github.io/tero/> (si 404, enciende Pages)
 - [ ] Post bonus `#AgentsforHumans`: [BUILDER-POST.md](BUILDER-POST.md)
@@ -28,7 +28,8 @@ Cómo no gastar de más: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 | [VIDEO.md](VIDEO.md) | Guion ≤ 5 min |
 | [BUILDER-POST.md](BUILDER-POST.md) | Artículo Builder Center |
 | [harness-playground.md](harness-playground.md) | Qué pegar en AgentCore (sketch, no el producto) |
-| [architecture.svg](architecture.svg) / [architecture.png](architecture.png) | Diagrama de submission |
+| [architecture.png](architecture.png) | Diagrama para Devpost (regenerar: `python docs/hackathon/render_architecture.py`) |
+| [architecture.svg](architecture.svg) | Misma arquitectura en vector |
 | [iam-bedrock-minimo.json](iam-bedrock-minimo.json) | IAM lean |
 | [budget-tero.json](budget-tero.json) | Alerta de gasto |
 

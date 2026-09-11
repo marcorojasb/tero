@@ -69,7 +69,7 @@ New public MIT project built during the submission window. The *product thesis* 
 
 ### Architecture
 
-See `docs/hackathon/architecture.svg` and `ARCHITECTURE.md`.
+See `docs/hackathon/architecture.png` (upload this to Devpost) and `ARCHITECTURE.md`.
 
 ---
 

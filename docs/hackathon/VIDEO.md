@@ -20,7 +20,7 @@ Track: Professional Agents.
 
 ## 0:40–1:10 — architecture (one slide)
 
-Show `docs/hackathon/architecture.svg`.
+Show `docs/hackathon/architecture.png`.
 
 - OpenTUI → JSONL → Strands Agent
 - Tools read the carpeta (hashed). They never write originals.

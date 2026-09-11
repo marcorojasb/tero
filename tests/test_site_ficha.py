@@ -182,6 +182,9 @@ def test_docs_record_pr8_decision_and_index():
     assert "model-catalog" in aws
     assert "se habilitan solos" in aws
     assert (DOCS / "hackathon" / "architecture.svg").is_file()
+    png = DOCS / "hackathon" / "architecture.png"
+    assert png.is_file()
+    assert png.stat().st_size > 80_000
     assert (DOCS / "hackathon" / "DEVPOST.md").is_file()
 
     readme = _read(ROOT / "README.md")

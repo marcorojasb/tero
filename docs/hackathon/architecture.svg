@@ -1,52 +1,168 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640" role="img" aria-label="tero architecture for Agents for Humans">
-  <title>tero - Strands teacher agent</title>
-  <desc>OpenTUI to JSONL bridge to Strands Agent. Bedrock Nova Lite or tero-offline. Host tools read a hashed carpeta. Gate writes derivados after s or b.</desc>
-  <rect width="1100" height="640" fill="#1a2330"/>
-  <text x="40" y="42" fill="#e8f4f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="700">tero - the agent prepares, the teacher decides</text>
-  <text x="40" y="66" fill="#7fd3c0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">Agents for Humans | Professional Agents | Strands + Amazon Bedrock Nova Lite</text>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1240" viewBox="0 0 2000 1240" role="img" aria-labelledby="title desc">
+  <title id="title">tero architecture  -  Strands teacher agent</title>
+  <desc id="desc">Teacher OpenTUI talks JSONL to a Strands TeacherSession. The agent calls sandboxed host tools that read a hashed local carpeta, and Amazon Bedrock Nova Lite or the scripted tero-offline model. tero.gate writes derivados or borradores only after s, n, b, or c. AgentCore Harness is an optional sketch, not the system of record.</desc>
+  <defs>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#22D3EE"/>
+    </marker>
+    <marker id="arrow-aqua" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#20D4BF"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#FBBF24"/>
+    </marker>
+    <marker id="arrow-violet" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#C4B5FD"/>
+    </marker>
+  </defs>
+  <rect width="2000" height="1240" fill="#070B0C"/>
+  <text x="48" y="56" fill="#22D3EE" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="36" font-weight="700">tero</text>
+  <text x="140" y="54" fill="#F4F1DE" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20">the agent prepares, the teacher decides</text>
+  <text x="48" y="90" fill="#20D4BF" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500">Agents for Humans   |   Professional Agents   |   Strands Agents SDK   |   Amazon Bedrock Nova Lite</text>
+  <line x1="48" y1="112" x2="1952" y2="112" stroke="#24363A" stroke-width="1"/>
 
-  <rect x="40" y="90" width="300" height="200" rx="10" fill="#243140" stroke="#4fd1c5" stroke-width="2"/>
-  <text x="56" y="118" fill="#4fd1c5" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">1. User interface</text>
-  <text x="56" y="144" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">OpenTUI (Bun, @opentui/core)</text>
-  <text x="56" y="168" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">home, rumbos 1-4, chips</text>
-  <text x="56" y="188" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">plan, evidencia, avisos</text>
-  <text x="56" y="208" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">CLI: python -m tero demo</text>
-  <text x="56" y="240" fill="#9be7a8" font-family="ui-monospace, Menlo, monospace" font-size="16">s / n / b / c</text>
-  <text x="56" y="262" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">human gate - never the model</text>
+  <!-- 1 UI -->
+  <g>
+    <rect x="48" y="132" width="430" height="260" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="48" y="132" width="6" height="260" fill="#22D3EE"/>
+    <text x="72" y="156" fill="#22D3EE" font-family="Inter, sans-serif" font-size="13" font-weight="500">1. USER INTERFACE</text>
+    <text x="72" y="184" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">Teacher at the keyboard</text>
+    <text x="72" y="216" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">OpenTUI   |   Bun   |   @opentui/core</text>
+    <text x="72" y="240" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">home  |  rumbos 1-4  |  encargo chips</text>
+    <text x="72" y="260" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">plan card  |  evidencia  |  avisos</text>
+    <text x="72" y="290" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">CLI fallback</text>
+    <text x="72" y="312" fill="#86EFAC" font-family="ui-monospace, JetBrains Mono, monospace" font-size="14">python -m tero demo | tui</text>
+    <text x="72" y="340" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">Human gate  -  the model never writes</text>
+    <rect x="72" y="354" width="28" height="26" rx="6" fill="#14532D"/><text x="80" y="372" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="13" font-weight="700">s</text>
+    <rect x="108" y="354" width="28" height="26" rx="6" fill="#581C1C"/><text x="116" y="372" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="13" font-weight="700">n</text>
+    <rect x="144" y="354" width="28" height="26" rx="6" fill="#423008"/><text x="152" y="372" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="13" font-weight="700">b</text>
+    <rect x="180" y="354" width="28" height="26" rx="6" fill="#1E3A5A"/><text x="188" y="372" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="13" font-weight="700">c</text>
+    <text x="220" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">teacher decides</text>
+  </g>
 
-  <rect x="380" y="150" width="140" height="80" rx="8" fill="#2a3b2f" stroke="#9be7a8" stroke-width="2"/>
-  <text x="398" y="184" fill="#9be7a8" font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700">JSONL</text>
-  <text x="398" y="206" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">one object / line</text>
+  <line x1="478" y1="250" x2="508" y2="250" stroke="#22D3EE" stroke-width="3" marker-end="url(#arrow-cyan)"/>
 
-  <rect x="560" y="90" width="500" height="200" rx="10" fill="#243140" stroke="#7eb6ff" stroke-width="2"/>
-  <text x="576" y="118" fill="#7eb6ff" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">2. Strands Agents SDK</text>
-  <text x="576" y="144" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">python -m tero bridge / TeacherSession</text>
-  <text x="576" y="168" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">loop: model to tools to reason to pause</text>
-  <text x="576" y="200" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">BedrockModel  amazon.nova-lite-v1:0</text>
-  <text x="576" y="220" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">OfflineModel  tero-offline (scripted, honest)</text>
-  <text x="576" y="252" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">us-east-1 / no fake InvokeModel in --offline</text>
+  <!-- 2 Bridge -->
+  <g>
+    <rect x="518" y="132" width="300" height="260" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="518" y="132" width="6" height="260" fill="#86EFAC"/>
+    <text x="542" y="156" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13" font-weight="500">2. BRIDGE</text>
+    <text x="542" y="184" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">JSONL stdin/stdout</text>
+    <text x="542" y="216" fill="#86EFAC" font-family="ui-monospace, monospace" font-size="14">python -m tero bridge</text>
+    <text x="542" y="246" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">One JSON object per line.</text>
+    <text x="542" y="270" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">Logs on stderr only.</text>
+    <text x="542" y="292" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">TUI drives the session.</text>
+    <text x="542" y="314" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">Host owns the write.</text>
+    <text x="542" y="352" fill="#20D4BF" font-family="ui-monospace, monospace" font-size="15" font-weight="700">protocol v1</text>
+  </g>
 
-  <rect x="40" y="330" width="500" height="170" rx="10" fill="#243140" stroke="#e6c15a" stroke-width="2"/>
-  <text x="56" y="358" fill="#e6c15a" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">3. Tools (in-process, sandboxed)</text>
-  <text x="56" y="384" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">list_sources / search_sources / read_source</text>
-  <text x="56" y="404" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">list_oa / get_oa / search_oa (Chile catalog, host-side)</text>
-  <text x="56" y="424" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">propose_plan / cite_evidence / draft_artifact</text>
-  <text x="56" y="456" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Host: hash check, salvage, coerce, warnings</text>
-  <text x="56" y="476" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">No write into fuentes/. No arbitrary paths. No Browser.</text>
+  <line x1="818" y1="250" x2="848" y2="250" stroke="#22D3EE" stroke-width="3" marker-end="url(#arrow-cyan)"/>
 
-  <rect x="560" y="330" width="500" height="170" rx="10" fill="#243140" stroke="#f0a36b" stroke-width="2"/>
-  <text x="576" y="358" fill="#f0a36b" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">4. AWS (lean)</text>
-  <text x="576" y="384" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Amazon Bedrock - Nova Lite / Nova Micro</text>
-  <text x="576" y="404" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">IAM - InvokeModel*</text>
-  <text x="576" y="424" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Budgets - Free Tier guardrail</text>
-  <text x="576" y="456" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Optional sketch: AgentCore Harness playground</text>
-  <text x="576" y="476" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">Not SoR. No Runtime folder, no Gateway MCP for sources.</text>
+  <!-- 3 Strands -->
+  <g>
+    <rect x="858" y="132" width="520" height="260" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="858" y="132" width="6" height="260" fill="#20D4BF"/>
+    <text x="882" y="156" fill="#20D4BF" font-family="Inter, sans-serif" font-size="13" font-weight="500">3. STRANDS AGENTS SDK</text>
+    <text x="882" y="184" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">TeacherSession</text>
+    <text x="882" y="214" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Agent loop</text>
+    <text x="882" y="236" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">model  ?  tools  ?  reason  ?  pause</text>
+    <text x="882" y="266" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">Phases: plan  |  draft  |  correct</text>
+    <text x="882" y="290" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">propose_plan / draft_artifact stay in-memory.</text>
+    <text x="882" y="310" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">If the model writes prose, host salvages a typed draft.</text>
+    <text x="882" y="330" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">Draft tool budget is capped. Warnings never block s.</text>
+    <text x="882" y="362" fill="#A3E635" font-family="Inter, sans-serif" font-size="14">HITL is structural, not a chat afterthought.</text>
+  </g>
 
-  <rect x="40" y="520" width="1020" height="90" rx="10" fill="#243140" stroke="#c89bff" stroke-width="2"/>
-  <text x="56" y="548" fill="#c89bff" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">5. Output (carpeta de trabajo = system of record)</text>
-  <text x="56" y="574" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">s -&gt; derivados/    b -&gt; borradores/    n -&gt; nothing    c -&gt; another pass</text>
-  <text x="56" y="594" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Export md / docx / LaTeX from JSON templates. Originals hashed, never overwritten.</text>
+  <line x1="1378" y1="250" x2="1408" y2="250" stroke="#20D4BF" stroke-width="3" marker-end="url(#arrow-aqua)"/>
 
-  <polygon points="340,190 380,190 380,180 410,200 380,220 380,210 340,210" fill="#9be7a8"/>
-  <polygon points="520,190 560,190 560,180 590,200 560,220 560,210 520,210" fill="#9be7a8"/>
+  <!-- 4 AWS -->
+  <g>
+    <rect x="1418" y="132" width="534" height="260" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="1418" y="132" width="6" height="260" fill="#FB923C"/>
+    <text x="1442" y="156" fill="#FB923C" font-family="Inter, sans-serif" font-size="13" font-weight="500">4. AWS (LEAN INFERENCE)</text>
+    <text x="1442" y="184" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">Amazon Bedrock</text>
+    <text x="1442" y="214" fill="#FB923C" font-family="Inter, sans-serif" font-size="13">Live</text>
+    <text x="1442" y="236" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">BedrockModel  amazon.nova-lite-v1:0</text>
+    <text x="1442" y="256" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">us-east-1   |   auto-enable on first invoke</text>
+    <text x="1442" y="286" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">Offline (honest)</text>
+    <text x="1442" y="308" fill="#86EFAC" font-family="ui-monospace, monospace" font-size="14">OfflineModel  tero-offline</text>
+    <text x="1442" y="328" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">real Strands Model  -  not a fake InvokeModel</text>
+    <text x="1442" y="352" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="14">IAM  bedrock:InvokeModel*     Budgets  Free Tier</text>
+    <rect x="1438" y="364" width="494" height="18" rx="6" fill="#101A1C" stroke="#5A3C1E"/>
+    <text x="1450" y="377" fill="#FBBF24" font-family="Inter, sans-serif" font-size="12">AgentCore Harness = optional sketch, not the carpeta</text>
+  </g>
+
+  <line x1="1058" y1="392" x2="1058" y2="458" stroke="#20D4BF" stroke-width="3" marker-end="url(#arrow-aqua)"/>
+  <text x="1072" y="430" fill="#20D4BF" font-family="Inter, sans-serif" font-size="14">calls tools</text>
+
+  <!-- 5 Tools -->
+  <g>
+    <rect x="48" y="468" width="920" height="360" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="48" y="468" width="6" height="360" fill="#FBBF24"/>
+    <text x="72" y="492" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13" font-weight="500">5. TOOLS (IN-PROCESS, SANDBOXED)</text>
+    <text x="72" y="520" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">Host tools  -  the model cannot write files</text>
+    <text x="72" y="552" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">Read the carpeta</text>
+    <text x="542" y="552" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">Prepare (in-memory)</text>
+    <text x="72" y="578" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">list_sources</text>
+    <text x="72" y="600" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">search_sources</text>
+    <text x="72" y="622" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">read_source</text>
+    <text x="72" y="644" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">list_oa  /  get_oa  /  search_oa</text>
+    <text x="542" y="578" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">propose_plan</text>
+    <text x="542" y="600" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">cite_evidence</text>
+    <text x="542" y="622" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14">draft_artifact + payload_json</text>
+    <text x="72" y="690" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Host contracts (not the model)</text>
+    <text x="72" y="714" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="14">SHA-256 index   |   path sandbox   |   salvage prose/JSON</text>
+    <text x="72" y="736" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="14">citation check   |   coerce tool args   |   OA catalog Chile (host-side)</text>
+    <text x="72" y="758" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">No Browser   |   no Code Interpreter   |   no write into fuentes/</text>
+    <text x="72" y="788" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">Chile OA catalog is paraphrase, not MINEDUC verbatim.</text>
+  </g>
+
+  <line x1="968" y1="598" x2="1098" y2="598" stroke="#FBBF24" stroke-width="3" marker-end="url(#arrow-amber)"/>
+  <text x="988" y="586" fill="#FBBF24" font-family="Inter, sans-serif" font-size="14">read + hash</text>
+
+  <!-- 6 Carpeta -->
+  <g>
+    <rect x="1108" y="468" width="844" height="360" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="1108" y="468" width="6" height="360" fill="#C4B5FD"/>
+    <text x="1132" y="492" fill="#C4B5FD" font-family="Inter, sans-serif" font-size="13" font-weight="500">6. CARPETA DE TRABAJO = SYSTEM OF RECORD</text>
+    <text x="1132" y="520" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">Local disk  -  never S3, never Runtime</text>
+    <rect x="1128" y="548" width="804" height="58" rx="10" fill="#101A1C" stroke="#24363A"/>
+    <text x="1144" y="572" fill="#C4B5FD" font-family="ui-monospace, monospace" font-size="15" font-weight="700">fuentes/</text>
+    <text x="1308" y="572" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">originals  .md .txt .pdf</text>
+    <text x="1144" y="592" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">hashed, read-only, never overwritten</text>
+    <rect x="1128" y="614" width="804" height="58" rx="10" fill="#101A1C" stroke="#24363A"/>
+    <text x="1144" y="638" fill="#C4B5FD" font-family="ui-monospace, monospace" font-size="15" font-weight="700">borradores/</text>
+    <text x="1308" y="638" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">after teacher presses b</text>
+    <text x="1144" y="658" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">draft kept, not accepted</text>
+    <rect x="1128" y="680" width="804" height="58" rx="10" fill="#101A1C" stroke="#24363A"/>
+    <text x="1144" y="704" fill="#C4B5FD" font-family="ui-monospace, monospace" font-size="15" font-weight="700">derivados/</text>
+    <text x="1308" y="704" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">after teacher presses s</text>
+    <text x="1144" y="724" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">accepted pages for class tomorrow</text>
+    <rect x="1128" y="746" width="804" height="58" rx="10" fill="#101A1C" stroke="#24363A"/>
+    <text x="1144" y="770" fill="#C4B5FD" font-family="ui-monospace, monospace" font-size="15" font-weight="700">.tero/</text>
+    <text x="1308" y="770" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">criticas + transcripciones</text>
+    <text x="1144" y="790" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">host notes, not the artifact</text>
+  </g>
+
+  <line x1="538" y1="828" x2="538" y2="858" stroke="#C4B5FD" stroke-width="3" marker-end="url(#arrow-violet)"/>
+  <text x="550" y="848" fill="#C4B5FD" font-family="Inter, sans-serif" font-size="14">in-memory draft</text>
+
+  <!-- 7 Gate -->
+  <g>
+    <rect x="48" y="868" width="1904" height="268" rx="16" fill="#0C1214" stroke="#24363A" stroke-width="2"/>
+    <rect x="48" y="868" width="6" height="268" fill="#A3E635"/>
+    <text x="72" y="892" fill="#A3E635" font-family="Inter, sans-serif" font-size="13" font-weight="500">7. OUTPUT   |   TERO.GATE WRITES ONLY AFTER THE TEACHER</text>
+    <text x="72" y="920" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="22" font-weight="600">s / n / b / c is the product</text>
+    <text x="72" y="954" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">The Strands agent prepares. The host applies the decision. Originals are re-hashed after every write.</text>
+    <rect x="72" y="976" width="168" height="32" rx="8" fill="#14532D"/><text x="86" y="998" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14" font-weight="700">s  ?  derivados/</text>
+    <rect x="252" y="976" width="180" height="32" rx="8" fill="#423008"/><text x="266" y="998" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14" font-weight="700">b  ?  borradores/</text>
+    <rect x="444" y="976" width="128" height="32" rx="8" fill="#581C1C"/><text x="458" y="998" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14" font-weight="700">n  ?  discard</text>
+    <rect x="584" y="976" width="180" height="32" rx="8" fill="#1E3A5A"/><text x="598" y="998" fill="#F4F1DE" font-family="ui-monospace, monospace" font-size="14" font-weight="700">c  ?  another pass</text>
+    <text x="72" y="1040" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Export (host templates, not model TeX)</text>
+    <text x="72" y="1064" fill="#86EFAC" font-family="ui-monospace, monospace" font-size="14">markdown    |    docx    |    LaTeX/PDF from JSON schemas in templates/latex/</text>
+    <text x="72" y="1092" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">thin_evidence / unverified_citation stay visible and never block s.</text>
+  </g>
+
+  <text x="48" y="1210" fill="#94A8AA" font-family="Inter, sans-serif" font-size="14">No AgentCore Runtime as SoR   |   no Gateway MCP for the folder   |   no multi-agent A2A   |   MIT   |   github.com/marcorojasb/tero</text>
 </svg>
