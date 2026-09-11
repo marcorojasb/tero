@@ -163,7 +163,7 @@ body {
 }
 
 .tui-grid {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   font: 13px/1.2 var(--font);
   letter-spacing: 0;
   white-space: pre;
@@ -172,7 +172,8 @@ body {
   user-select: none;
   font-variant-ligatures: none;
   font-feature-settings: "liga" 0;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
 }
 
 .tui-row {
@@ -181,7 +182,6 @@ body {
   white-space: pre;
   overflow: hidden;
   width: max-content;
-  max-width: 100%;
 }
 
 .tui-row span {
