@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640" role="img" aria-label="tero architecture for Agents for Humans">
+  <title>tero  Strands teacher agent</title>
+  <desc>OpenTUI to JSONL bridge to Strands Agent. Bedrock Nova Lite or tero-offline. Host tools read a hashed carpeta. Gate writes derivados after s or b.</desc>
+  <rect width="1100" height="640" fill="#1a2330"/>
+  <text x="40" y="42" fill="#e8f4f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="700">tero  the agent prepares, the teacher decides</text>
+  <text x="40" y="66" fill="#7fd3c0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">Agents for Humans · Professional Agents · Strands + Amazon Bedrock Nova Lite</text>
+
+  <!-- TUI -->
+  <rect x="40" y="90" width="300" height="200" rx="10" fill="#243140" stroke="#4fd1c5" stroke-width="2"/>
+  <text x="56" y="118" fill="#4fd1c5" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">1. User interface</text>
+  <text x="56" y="144" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">OpenTUI (Bun, @opentui/core)</text>
+  <text x="56" y="168" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">home · rumbos 14 · chips</text>
+  <text x="56" y="188" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">plan · evidencia · avisos</text>
+  <text x="56" y="208" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">CLI: python -m tero demo</text>
+  <text x="56" y="240" fill="#9be7a8" font-family="ui-monospace, Menlo, monospace" font-size="16">s / n / b / c</text>
+  <text x="56" y="262" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">human gate  never the model</text>
+
+  <!-- Bridge -->
+  <rect x="380" y="150" width="140" height="80" rx="8" fill="#2a3b2f" stroke="#9be7a8" stroke-width="2"/>
+  <text x="398" y="184" fill="#9be7a8" font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700">JSONL</text>
+  <text x="398" y="206" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">one object / line</text>
+
+  <!-- Strands -->
+  <rect x="560" y="90" width="500" height="200" rx="10" fill="#243140" stroke="#7eb6ff" stroke-width="2"/>
+  <text x="576" y="118" fill="#7eb6ff" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">2. Strands Agents SDK</text>
+  <text x="576" y="144" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">python -m tero bridge · TeacherSession</text>
+  <text x="576" y="168" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">loop: model ’ tools ’ reason ’ pause</text>
+  <text x="576" y="200" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">BedrockModel  amazon.nova-lite-v1:0</text>
+  <text x="576" y="220" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">OfflineModel  tero-offline (scripted, honest)</text>
+  <text x="576" y="252" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">us-east-1 · no fake InvokeModel in --offline</text>
+
+  <!-- Tools -->
+  <rect x="40" y="330" width="500" height="170" rx="10" fill="#243140" stroke="#e6c15a" stroke-width="2"/>
+  <text x="56" y="358" fill="#e6c15a" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">3. Tools (in-process, sandboxed)</text>
+  <text x="56" y="384" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">list_sources · search_sources · read_source</text>
+  <text x="56" y="404" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">list_oa · get_oa · search_oa  (Chile catalog, host-side)</text>
+  <text x="56" y="424" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">propose_plan · cite_evidence · draft_artifact</text>
+  <text x="56" y="456" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Host: hash check · salvage · coerce · warnings</text>
+  <text x="56" y="476" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">No write into fuentes/. No arbitrary paths. No Browser.</text>
+
+  <!-- AWS -->
+  <rect x="560" y="330" width="500" height="170" rx="10" fill="#243140" stroke="#f0a36b" stroke-width="2"/>
+  <text x="576" y="358" fill="#f0a36b" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">4. AWS (lean)</text>
+  <text x="576" y="384" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Amazon Bedrock  Nova Lite / Nova Micro</text>
+  <text x="576" y="404" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">IAM  InvokeModel*</text>
+  <text x="576" y="424" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Budgets  Free Tier guardrail</text>
+  <text x="576" y="456" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Optional sketch: AgentCore Harness playground</text>
+  <text x="576" y="476" fill="#8aa39a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">Not SoR. No Runtime folder, no Gateway MCP for sources.</text>
+
+  <!-- Output -->
+  <rect x="40" y="520" width="1020" height="90" rx="10" fill="#243140" stroke="#c89bff" stroke-width="2"/>
+  <text x="56" y="548" fill="#c89bff" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">5. Output (carpeta de trabajo = system of record)</text>
+  <text x="56" y="574" fill="#e8f4f0" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">s ’ derivados/   b ’ borradores/   n ’ nothing   c ’ another pass</text>
+  <text x="56" y="594" fill="#c5d5ce" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">Export md · docx · LaTeX from JSON templates. Originals hashed, never overwritten.</text>
+
+  <!-- arrows -->
+  <polygon points="340,190 380,190 380,180 410,200 380,220 380,210 340,210" fill="#9be7a8"/>
+  <polygon points="520,190 560,190 560,180 590,200 560,220 560,210 520,210" fill="#9be7a8"/>
+</svg>

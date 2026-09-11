@@ -171,6 +171,15 @@ def test_docs_record_pr8_decision_and_index():
     index = _read(DOCS / "README.md")
     assert "PUERTA-Y-PR8.md" in index
     assert "SITIO.md" in index
+    assert "AWS-GRATIS.md" in index
+    assert "hackathon/README.md" in index
+
+    aws = _read(DOCS / "AWS-GRATIS.md")
+    assert "forms.gle/6sjzKiX6bKUMA5NEA" in aws
+    assert "amazon.nova-lite-v1:0" in aws
+    assert "AgentCore Harness es un chat administrado" in aws
+    assert (DOCS / "hackathon" / "architecture.svg").is_file()
+    assert (DOCS / "hackathon" / "DEVPOST.md").is_file()
 
     readme = _read(ROOT / "README.md")
     assert "marcorojasb.github.io/tero" in readme

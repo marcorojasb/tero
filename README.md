@@ -25,11 +25,13 @@ No finge Bedrock. AgentCore no es el producto.
 
 ![Splash tero: terminal, ola ASCII, wordmark pixel](site/assets/tero-og.png)
 
-Teacher agent for [Agents for Humans](https://aws.amazon.com/): AWS
+Teacher agent for [Agents for Humans](https://agentsforhumans.devpost.com/): AWS
 **Strands** behind a dense **OpenTUI** shell (same TUI family as
 [OpenCode](https://opencode.ai)). Sibling *idea* of Pteron — your
 sources, your judgment — without copying Pteron’s Electron/Solid/Meridian
-desktop.
+desktop. Cheapest live path is **local Nova Lite**, not AgentCore
+Runtime — [docs/AWS-GRATIS.md](docs/AWS-GRATIS.md). Submission pack:
+[docs/hackathon/README.md](docs/hackathon/README.md).
 
 Spanish UI. Keyboard-first. MIT.
 

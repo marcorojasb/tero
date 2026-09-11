@@ -1,0 +1,31 @@
+{
+  "BudgetName": "tero-nova-lite",
+  "BudgetLimit": {
+    "Amount": "5",
+    "Unit": "USD"
+  },
+  "TimeUnit": "MONTHLY",
+  "BudgetType": "COST",
+  "CostFilters": {
+    "Service": [
+      "Amazon Bedrock",
+      "Amazon Bedrock AgentCore"
+    ]
+  },
+  "NotificationsWithSubscribers": [
+    {
+      "Notification": {
+        "NotificationType": "ACTUAL",
+        "ComparisonOperator": "GREATER_THAN",
+        "Threshold": 80,
+        "ThresholdType": "PERCENTAGE"
+      },
+      "Subscribers": [
+        {
+          "SubscriptionType": "EMAIL",
+          "Address": "REPLACE_WITH_YOUR_EMAIL"
+        }
+      ]
+    }
+  ]
+}
