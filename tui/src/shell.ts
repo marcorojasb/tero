@@ -36,6 +36,18 @@ const syntax = SyntaxStyle.fromStyles({
   "markup.bold": { fg: theme.text, bold: true },
 })
 
+/** Compact queltehue — same bird as site/assets/tero.txt, sized for the home card. */
+export const HOME_BIRD = [
+  "         ▲",
+  "        ╱│",
+  " ▄▄▄▄▄ ╱(o)*",
+  "█     █▄▀",
+  "█ ▓▓▓▓  █",
+  " ▀▄▓▓▄▄▄▀",
+  "   ║   ║",
+  "  ─┘   └─",
+].join("\n")
+
 export type Shell = {
   input: InputRenderable
   sync: (state: AppState) => void
@@ -95,6 +107,12 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     paddingLeft: 2,
     paddingRight: 2,
   })
+  const bird = new TextRenderable(renderer, {
+    id: "bird",
+    content: HOME_BIRD,
+    fg: theme.accent,
+    wrapMode: "none",
+  })
   const brand = new TextRenderable(renderer, {
     id: "brand",
     content: "tero",
@@ -113,6 +131,12 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     fg: theme.text,
     wrapMode: "word",
   })
+  const rumboHints = new TextRenderable(renderer, {
+    id: "rumbo-hints",
+    content: "",
+    fg: theme.faint,
+    wrapMode: "word",
+  })
   const homeHint = new TextRenderable(renderer, {
     id: "home-hint",
     content: "1–4 rumbo · o escribe abajo",
@@ -125,6 +149,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     fg: theme.faint,
     wrapMode: "word",
   })
+  home.add(bird)
   home.add(brand)
   home.add(tagline)
   home.add(
@@ -135,6 +160,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     }),
   )
   home.add(rumboRow)
+  home.add(rumboHints)
   home.add(homeHint)
   home.add(recentText)
 
@@ -433,7 +459,10 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     center.visible = !isHome && !planFocus
     right.visible = !isHome && !planFocus
 
+    bird.visible = !state.compact
     rumboRow.content = RUMBOS.map((r) => `[${r.key}] ${r.label}`).join("   ")
+    rumboHints.content = state.compact ? "" : RUMBOS.map((r) => r.hint).join(" · ")
+    rumboHints.visible = !state.compact
     homeHint.visible = !state.compact
     if (state.recentSessions.length) {
       recentText.content =
