@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "capture": "bun scripts/capture-frames.ts && python3 scripts/rasterize-frames.py",
+    "capture:live": "python3 scripts/screenshot-frames.py",
     "start": "bun src/index.ts",
     "test": "bun test src"
   },
