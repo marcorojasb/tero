@@ -92,6 +92,35 @@ PREGUNTAR = [
 
 AMBIGUO = ["", "   ", "\n", "hola", "jaja", "mmm", "buenas", "🎉", "..."]
 
+# Negación pospuesta: el "no" no está al inicio, pero descarta igual.
+DESCARTAR_POSPUESTO = [
+    "ya, no gracias",
+    "ok, no gracias",
+    "bueno, no",
+    "perfecto, no",
+    "listo, no",
+    "sí, no",
+    "dale, no",
+    "está bien, no",
+    "vale, no",
+    "correcto, no",
+    "muy bien, no",
+    "hazlo así, no",
+    "escríbelo, no",
+    "de acuerdo, no",
+    "me gusta, no",
+    "ok, no.",
+]
+
+# Modismo chileno de aceptación: "no más" / "nomás" no es una negación.
+APROBAR_IDIOMA = [
+    "hazlo no más",
+    "dale no más",
+    "así no más",
+    "hazlo nomás",
+    "ya no más",
+]
+
 
 @pytest.mark.parametrize("texto", APROBAR)
 def test_aprobaciones(texto: str) -> None:
@@ -129,6 +158,56 @@ def test_ambiguos(texto: str) -> None:
     assert resultado.raw == texto
 
 
+@pytest.mark.parametrize("texto", DESCARTAR_POSPUESTO)
+def test_negacion_pospuesta_descarta(texto: str) -> None:
+    """El "no" descarta en cualquier posición, no solo al inicio."""
+    resultado = classify_approval(texto)
+    assert resultado.kind == "descartar", texto
+    assert resultado.kind != "aprobar", texto
+
+
+@pytest.mark.parametrize("texto", APROBAR_IDIOMA)
+def test_idioma_no_mas_sigue_aprobando(texto: str) -> None:
+    """ "no más" / "nomás" es aceptación, no negación."""
+    resultado = classify_approval(texto)
+    assert resultado.kind == "aprobar", texto
+    assert resultado.note == "", texto
+
+
+def test_negacion_en_cualquier_posicion_nunca_aprueba() -> None:
+    """Un "no" delimitado por palabras jamás puede terminar en aprobar."""
+    textos = [
+        *DESCARTAR,
+        *DESCARTAR_POSPUESTO,
+        "creo que no",
+        "no lo escribas",
+        "no lo guardes",
+        "no me gusta",
+        "¿no?",
+        "no sé",  # duda: pregunta, tampoco aprueba
+        "no entiendo",
+        "no estoy seguro",
+        "no más",  # modismo suelto, sin verbo: ambiguo
+    ]
+    for texto in textos:
+        assert classify_approval(texto).kind != "aprobar", texto
+
+
+def test_pregunta_con_marcador_firme_no_aprueba() -> None:
+    """Una consulta nunca aprueba, ni con marcadores firmes."""
+    assert classify_approval("¿de acuerdo?").kind == "preguntar"
+    assert classify_approval("¿me gusta?").kind == "preguntar"
+    assert classify_approval("¿escríbelo?").kind == "preguntar"
+    for texto in ("¿de acuerdo?", "¿me gusta?", "¿escríbelo?", "¿lo guardas?"):
+        assert classify_approval(texto).kind != "aprobar", texto
+
+
+def test_ya_no_descarta_y_ya_no_mas_aprueba() -> None:
+    """Decisión: "ya no" rechaza; "ya no más" es el modismo de aceptación."""
+    assert classify_approval("ya no").kind == "descartar"
+    assert classify_approval("ya no más").kind == "aprobar"
+
+
 def test_cambio_gana_sobre_descarte() -> None:
     """Un "no" con petición de cambio es cambiar, no descartar."""
     resultado = classify_approval("no, mejor cambia el título")
@@ -161,10 +240,23 @@ def test_pregunta_con_marcador_breve_no_aprueba() -> None:
 
 def test_duda_no_es_descarte() -> None:
     """ "no sé" y "no entiendo" piden ayuda, no descartan la propuesta."""
-    for texto in ("no sé", "no se", "no entiendo", "no cacho", "no estoy seguro"):
+    dudas = (
+        "no sé",
+        "no se",
+        "no lo sé",
+        "no entiendo",
+        "no entendí",
+        "no cacho",
+        "no comprendo",
+        "no me acuerdo",
+        "no estoy seguro",
+        "no estoy muy segura",
+    )
+    for texto in dudas:
         resultado = classify_approval(texto)
         assert resultado.kind == "preguntar", texto
         assert resultado.kind != "descartar", texto
+        assert resultado.kind != "aprobar", texto
 
 
 def test_hazlo_con_instruccion_es_cambio() -> None:
@@ -220,7 +312,15 @@ def test_textos_raros_jamas_aprueban(texto: str) -> None:
 
 def test_es_pura_y_determinista() -> None:
     """Mismo texto, mismo resultado: sin estado global ni efectos."""
-    textos = [*APROBAR, *DESCARTAR, *CAMBIAR, *PREGUNTAR, *AMBIGUO]
+    textos = [
+        *APROBAR,
+        *APROBAR_IDIOMA,
+        *DESCARTAR,
+        *DESCARTAR_POSPUESTO,
+        *CAMBIAR,
+        *PREGUNTAR,
+        *AMBIGUO,
+    ]
     for texto in textos:
         primera = classify_approval(texto)
         segunda = classify_approval(texto)

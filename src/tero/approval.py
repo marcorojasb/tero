@@ -7,8 +7,13 @@ tocar disco ni red y sin estado global.
 Precedencia: cambiar → descartar → aprobar → preguntar → ambiguo. Cualquier marca
 de cambio gana, aunque venga acompañada de un "sí" o de un "no".
 
-Regla de seguridad: la categoría por defecto nunca es ``aprobar``. Si el texto no
-calza en ninguna regla, la respuesta es ``ambiguo`` y tero vuelve a preguntar.
+Reglas de seguridad:
+
+- La negación cuenta en cualquier posición, no solo al inicio: "ya, no gracias" es
+  un descarte. La única excepción es el modismo de aceptación "no más" / "nomás".
+- Una consulta nunca aprueba: "¿está bien?", "¿de acuerdo?" son preguntas.
+- La categoría por defecto nunca es ``aprobar``. Si el texto no calza en ninguna
+  regla, la respuesta es ``ambiguo`` y tero vuelve a preguntar.
 """
 
 from __future__ import annotations
@@ -61,20 +66,24 @@ _CHANGE = re.compile(
     r"(?:basico|media|medio)\b"
 )
 
-# Dudas que en realidad piden ayuda: no son un descarte.
+# Dudas que en realidad piden ayuda: no son un descarte. Se evalúan antes que la
+# negación, así que "no lo sé" o "no entendí" preguntan en vez de descartar.
 _DOUBT = re.compile(
-    r"\bno\s+se\b"
-    r"|\bno\s+entiend\w*\b"
+    r"\bno\s+(?:lo\s+|la\s+)?se\b"
+    r"|\bno\s+ent(?:iend|end)\w*\b"
     r"|\bno\s+cach\w*\b"
     r"|\bno\s+comprend\w*\b"
+    r"|\bno\s+me\s+acuerd\w*\b"
     r"|\bno\s+estoy\s+(?:muy\s+|tan\s+|del todo\s+)?segur[oa]\b"
 )
 
-# Descartar: negativa limpia, sin verbo de cambio.
-_DISCARD_HEAD = re.compile(r"^(?:no|n)\b")
+# Descartar: negativa limpia, sin verbo de cambio. El "no" descarta en cualquier
+# posición ("ya, no gracias"), salvo el modismo de aceptación "no más" / "nomás".
+_DISCARD_HEAD = re.compile(r"^n\b")
 _DISCARD = re.compile(
     r"\b(?:dejal[oa]|deja|borr\w*|anul\w*|olvid\w*|descart\w*|nada|esta\s+mal\w*)\b"
     r"|\bno\s+(?:me\s+)?sirv\w*\b"
+    r"|\bno\b(?!\s*mas\b)"  # el plegado ya dejó "más" como "mas"
 )
 
 # Preguntar: signo de interrogación o arranque interrogativo.
@@ -85,10 +94,11 @@ _QUESTION_HEAD = re.compile(
 )
 
 # Aprobar: aceptación explícita. Los marcadores breves ("ok", "está bien") solo
-# valen al inicio y nunca en una pregunta; los firmes valen en cualquier posición.
+# valen al inicio; los firmes valen en cualquier posición. Ninguno aprueba dentro
+# de una consulta.
 _APPROVE_FIRM = re.compile(
     r"\b(?:me gusta|escribel[oa]|guardal[oa]|aprobad[oa]|apruebo|de acuerdo|asi nomas"
-    r"|hazl[oa] (?:asi|tal cual|igual|nomas|no mas))\b"
+    r"|asi no mas|hazl[oa] (?:asi|tal cual|igual|nomas|no mas))\b"
 )
 _APPROVE_SHORT = re.compile(
     r"^(?:si|s|dale|ok|okay|ya|listo|perfecto|bueno|bien|muy bien|correcto|vale"
@@ -122,6 +132,7 @@ _APPROVE_PHRASES = frozenset(
         "apruebo",
         "de acuerdo",
         "asi nomas",
+        "asi no mas",
         "hazlo asi",
         "hazla asi",
         "hazlo tal cual",
@@ -130,6 +141,10 @@ _APPROVE_PHRASES = frozenset(
         "hazla igual",
         "hazlo nomas",
         "hazla nomas",
+        "hazlo no mas",
+        "hazla no mas",
+        "dale no mas",
+        "ya no mas",
         "nomas",
         "no mas",
     }
@@ -177,15 +192,15 @@ def classify_approval(text: str) -> Approval:
 
     head = _APERTURA.sub("", folded)
 
-    # 3. Descartar: negativa sin cambio.
+    # 3. Descartar: negativa sin cambio, en cualquier posición del texto.
     if _DISCARD_HEAD.match(head) or _DISCARD.search(folded):
         return Approval(kind="descartar", raw=raw)
 
     question = bool(_QUESTION_END.search(folded) or _QUESTION_HEAD.match(head))
 
-    # 4. Aprobar. Una pregunta nunca aprueba por un marcador breve: "¿está bien?"
-    #    es una consulta, no una aceptación.
-    if _APPROVE_FIRM.search(folded) or (_APPROVE_SHORT.match(head) and not question):
+    # 4. Aprobar. Una consulta nunca aprueba, ni con marcadores firmes:
+    #    "¿está bien?" y "¿de acuerdo?" son preguntas, no aceptaciones.
+    if not question and (_APPROVE_FIRM.search(folded) or _APPROVE_SHORT.match(head)):
         return Approval(kind="aprobar", note=_approve_note(raw.strip()), raw=raw)
 
     # 5. Preguntar y, por defecto, ambiguo.
