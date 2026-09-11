@@ -9,6 +9,7 @@ from tero.config import Settings
 
 
 def test_settings_accepts_tero_model_id(monkeypatch):
+    monkeypatch.setattr("tero.config._load_dotenv", lambda: None)
     monkeypatch.setenv("TERO_MODEL_ID", "amazon.nova-micro-v1:0")
     monkeypatch.delenv("TERO_MODEL", raising=False)
     settings = Settings.from_env(offline=True)
