@@ -6,28 +6,49 @@ segundo titlebar alrededor. El recuadro raíz `╭─ tero ─╮` envuelve
 home y sesión; la carpeta va en el borde inferior. Colores de
 `tui/src/theme.ts` (`#0b0d10`, accent `#82aaff`).
 
-La primera vista **es** el home de la TUI. Un rumbo no cambia de ventana:
-solo pinta el frame. Capturas auténticas viven en
+La primera vista **es** el home de la TUI: el queltehue, la marca y
+`Pregunta, explora o crea…`. Escribir no cambia de ventana: solo pinta el
+frame siguiente. Capturas auténticas viven en
 [`site/assets/tui/frames/`](../site/assets/tui/frames/). Se regeneran
 con `cd tui && bun run capture` (JSON + PNG raster) y, con display,
 `bun run capture:live` (captura xfce4-terminal 140×40, JetBrains Mono 13).
 El landing blitea esos PNG a 1×.
 
-El papel hiperrealista —grano de tóner, ficha fotocopiada— queda
-**solo** en las páginas que tero crea (`#archivo` / `.hoja-frame`),
-después de `s` o `b`.
+El papel hiperrealista —grano de tóner, ficha fotocopiada, sello
+`REVISAR`— queda **solo** en las páginas que el host escribe
+(`#archivo` / `.hoja-frame`), después de aprobar.
 
-Rumbos `1–4`, avisos a la vista, puerta `s` / `n` / `b` / `c`. El modelo
-de la demo es `tero-offline`. AgentCore no es el producto.
+La sesión es **conversacional**
+([CONVERSACIONAL.md](CONVERSACIONAL.md)): la persona escribe y el agente
+infiere la intención —a) responder, b) crear, c) editar o adaptar
+(incluida NEE)—. Cuando propone un archivo muestra qué va a hacer
+(`resumen`), la `vista previa`, las evidencias (`✓` en el archivo, `?`
+parafraseo) y los avisos, que **nunca bloquean**. Se aprueba con `y` o
+escribiendo en el hilo («dale»); `n` descarta. La TUI **no escribe
+archivos**: escribe el host, en `derivados/`, y solo tras la aprobación.
+El modelo de la demo es `tero-offline`. AgentCore no es el producto.
 
-## Cómo se ve
+## Cómo se ve la sesión
 
-- Home: queltehue, `tus fuentes, tu criterio`, `[1] Planificar` … `[4] Adaptar`.
-- Un rumbo dispara `list_sources` → `draft_artifact` en los paneles.
-  Al lado, el tiempo de la corrida real (MiniMax 92.5 s / 94.9 s, GLM 29.1 s).
-- Las **páginas LaTeX reales** salen al final, con `s` o `b`. `n` no
+La simulación de `site/ficha.js` reproduce cuatro escenas en loop y se
+detiene apenas alguien escribe:
+
+- **a) responder**: «¿Qué tengo en la carpeta?» → el agente contesta; no
+  hay tarjeta ni nada que aprobar.
+- **b) crear**: una evaluación para 4° básico. El agente pregunta en
+  lenguaje natural lo que le falta, propone la evaluación con vista
+  previa y evidencias, y espera. Se aprueba con `dale` y aparece la
+  **hoja fotocopiada** de `derivados/`.
+- **b) descartar**: una guía de sistemas 2×2 que se responde con `n`: no
+  se escribe nada.
+- **c) adaptar (NEE)**: la misma evaluación adaptada para un estudiante
+  con dislexia. La tarjeta muestra `acción: adaptar`, el `origen`, los
+  `cambios` y los **apoyos y criterios NEE**. Al aprobar, el host escribe
+  una versión nueva: el material de origen no se toca.
+- Las **páginas LaTeX reales** salen al final, con la corrida que las
+  produjo (loop10 GLM 4.7 Flash 29.1 s, MiniMax M2.5 94.9 s). `n` no
   publica hojas.
-- Un aviso `unverified_citation` **no bloquea** `s`. Ver
+- Un aviso `unknown_source` **no bloquea** la aprobación. Ver
   [PUERTA-Y-PR8.md](PUERTA-Y-PR8.md).
 
 ## Virtualizar tero (OSS) y que se actualice solo
@@ -35,12 +56,12 @@ de la demo es `tero-offline`. AgentCore no es el producto.
 | Pieza | Qué hace |
 | --- | --- |
 | `site/tui-grid.js` | Encaja el PNG de la captura (o pinta celdas si falta). |
-| `site/ficha.js` | Consulta (rumbos, reloj, puerta) sobre esa grilla. |
+| `site/ficha.js` | Sesión conversacional (escenas, propuesta, aprobación, hoja). |
 | `tui/scripts/capture-frames.ts` | Vuelca frames OpenTUI (`createTestRenderer` + `captureSpans`). |
 | `tui/scripts/rasterize-frames.py` | PNG JetBrains si no hay display. |
-| `tui/scripts/screenshot-frames.py` | PNG del terminal real 140×40. |
+| `tui/scripts/screenshot-frames.py` | PNG del terminal real, altura por frame. |
 | `tui/scripts/compose-og.py` | OG de GitHub desde el home capturado. |
-| `site/assets/tui/frames/` | Home, help, leyendo, plan y puerta por rumbo 1–4. |
+| `site/assets/tui/frames/` | Home, respuesta, conversación, propuesta (crear y adaptar), escrito y descartado. |
 | `site/stamp.py` | En cada Pages deploy escribe el SHA en `build-info.json`. |
 | `.github/workflows/pages.yml` | Publica `site/` desde `main`. |
 

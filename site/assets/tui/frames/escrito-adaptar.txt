@@ -1,0 +1,46 @@
+╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ offline · listo · 2 fuentes                                                                                                              │
+│ [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                                                            │
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+││ tú  › Adapta la evaluación del cóndor para un    ││ adaptar (NEE) · evaluación — Evaluación adaptad█ ││ ▸ 1/2  ✓ en archivo            ││
+││ estudiante con dislexia.                         ││ — El cóndor y el huemul                        █ ││   fuentes/cuento-el-condor-y-  ││
+││                                                  ││ Misma prueba con apoyos NEE: tiempo extendido, █ ││ el-huemul.md                   ││
+││ tero › ¿Agrego tiempo extendido y enunciados en  ││ enunciados en dos pasos y sin doble negación.  █ ││   desarrollo                   ││
+││ dos pasos?                                       ││ origen  derivados/20260910-210457-evaluacion-  █ ││   “Yo veo el mar desde aquí”   ││
+││                                                  ││ condor-4a5586.md                               █ ││                                ││
+││ tú  › Sí, y deja el texto más grande cuando se   ││ cambios                                        █ ││   2/2  ?  fuentes/bases-oa-    ││
+││ exporte.                                         ││   · Agrega tiempo extendido y apoyos NEE       █ ││ lenguaje-4b.md                 ││
+││                                                  ││   · Reescribe los enunciados en dos pasos      █ ││     OA 4                       ││
+││ ·  escrito · adaptar · derivados/20260911-       ││   · Suma pauta de corrección con criterios     █ ││                                ││
+││ 101800-evaluacion-condor-adaptada-4d7b31.md      ││ apoyos y criterios NEE                         ▀ ││                                ││
+││                                                  ││   · Tiempo extendido (50% más)                   ││                                ││
+││                                                  ││   · Enunciados en dos pasos, sin doble negación  ││                                ││
+││                                                  ││   · Texto ampliado al exportar                   ││                                ││
+││                                                  ││ escrito · adaptar (NEE)                          ││                                ││
+││                                                  ││ derivados/20260911-101800-evaluacion-condor-     ││                                ││
+││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ ---                                              ││                                ││
+││                                                  ││ tipo: evaluacion                                 ││                                ││
+││                                                  ││ accion: adaptar                                  ││                                ││
+││                                                  ││ ---                                              ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ ## Selección múltiple (tiempo extendido)         ││                                ││
+││ actividad                                        ││ 1. ¿Quién observa el mar?                        ││                                ││
+││ en espera                                        ││                                                  ││                                ││
+││                                                  ││ a) El huemul                                     ││                                ││
+││                                                  ││ b) El cóndor                                     ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ ## Apoyos                                        ││ avisos (no bloquean)           ││
+││                                                  ││ - Enunciados en dos pasos.                       ││ ! Es una versión nueva: el     ││
+││                                                  ││ - Sin doble negación.                            ││ material de origen no se toca. ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+│╰──────────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯╰────────────────────────────────╯│
+│╭─ escrito ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ escrito · adaptar (NEE) · derivados/20260911-101800-evaluacion-condor-adaptada-4d7b31.md                                               ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ mensaje ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ Escribe tu respuesta…  Enter envía                                                                                                     ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ escrito · adaptar · derivados/20260911-101800-evaluacion-condor-adaptada-4d7b31.md                                                       │
+╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

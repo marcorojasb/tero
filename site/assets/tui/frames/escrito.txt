@@ -1,0 +1,46 @@
+╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ offline · listo · 3 fuentes                                                                                                              │
+│ [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                                                            │
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+││ tú  › Prepara una evaluación de comprensión      ││ crear · evaluación — Evaluación de comprensión   ││ ▸ 1/2  ✓ en archivo            ││
+││ lectora para 4° básico.                          ││ lectora — El cóndor y el huemul                  ││   fuentes/cuento-el-condor-y-  ││
+││                                                  ││ Prueba de 45 min con selección múltiple,         ││ el-huemul.md                   ││
+││ tero › ¿Incluyo pauta de corrección y los ítems  ││ verdadero/falso y una pregunta de desarrollo con ││   desarrollo                   ││
+││ citan el cuento de la carpeta?                   ││ cita.                                            ││   “El cóndor afirma ver el mar ││
+││                                                  ││ escrito · crear                                  ││   desde la cornisa”            ││
+││ tú  › Sí, con pauta. Usa el cuento del cóndor y  ││ derivados/20260911-101500-evaluacion-condor-     ││                                ││
+││ el huemul.                                       ││ 9c1f2a.md                                        ││   2/2  ?  fuentes/bases-oa-    ││
+││                                                  ││                                                  ││ lenguaje-4b.md                 ││
+││ ·  escrito · crear · derivados/20260911-101500-  ││                                                  ││     OA 4                       ││
+││ evaluacion-condor-9c1f2a.md                      ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ ---                                            █ ││                                ││
+││                                                  ││ tipo: evaluacion                               █ ││                                ││
+││                                                  ││ curso: 4° básico                               █ ││                                ││
+││                                                  ││ ---                                            █ ││                                ││
+││                                                  ││                                                █ ││                                ││
+││                                                  ││ ## Selección múltiple                          █ ││                                ││
+││ actividad                                        ││ 1. ¿Quién observa el mar desde la cornisa?     █ ││                                ││
+││ en espera                                        ││ a) El huemul                                   █ ││                                ││
+││                                                  ││ b) El cóndor                                   █ ││                                ││
+││                                                  ││ c) El zorro                                    █ ││                                ││
+││                                                  ││                                                ▀ ││                                ││
+││                                                  ││ ## Verdadero o falso                             ││ avisos (no bloquean)           ││
+││                                                  ││ 2. El huemul duda de lo que ve el cóndor.        ││ ! Hay parafraseo del cuento.   ││
+││                                                  ││                                                  ││ No lo trates como cita         ││
+││                                                  ││ ## Desarrollo                                    ││ literal.                       ││
+││                                                  ││ 3. Cita el fragmento donde el cóndor afirma ver  ││                                ││
+│╰──────────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯╰────────────────────────────────╯│
+│╭─ escrito ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ escrito · crear · derivados/20260911-101500-evaluacion-condor-9c1f2a.md                                                                ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ mensaje ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ Escribe tu respuesta…  Enter envía                                                                                                     ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ escrito · crear · derivados/20260911-101500-evaluacion-condor-9c1f2a.md                                                                  │
+╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -1,0 +1,46 @@
+╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ offline · tu decisión · 3 fuentes                                                                                                        │
+│ [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                                                            │
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+││ tú  › Prepara una evaluación de comprensión      ││ crear · evaluación — Evaluación de comprensión   ││ ▸ 1/2  ✓ en archivo            ││
+││ lectora para 4° básico.                          ││ lectora — El cóndor y el huemul                  ││   fuentes/cuento-el-condor-y-  ││
+││                                                  ││ Prueba de 45 min con selección múltiple,         ││ el-huemul.md                   ││
+││ tero › ¿Incluyo pauta de corrección y los ítems  ││ verdadero/falso y una pregunta de desarrollo con ││   desarrollo                   ││
+││ citan el cuento de la carpeta?                   ││ cita.                                            ││   “El cóndor afirma ver el mar ││
+││                                                  ││                                                  ││   desde la cornisa”            ││
+││ tú  › Sí, con pauta. Usa el cuento del cóndor y  ││                                                  ││                                ││
+││ el huemul.                                       ││                                                  ││   2/2  ?  fuentes/bases-oa-    ││
+││                                                  ││                                                  ││ lenguaje-4b.md                 ││
+││                                                  ││                                                  ││     OA 4                       ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││                                                  ││                                ││
+││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ ---                                            █ ││                                ││
+││                                                  ││ tipo: evaluacion                               █ ││                                ││
+││                                                  ││ curso: 4° básico                               █ ││                                ││
+││                                                  ││ ---                                            █ ││                                ││
+││                                                  ││                                                █ ││                                ││
+││                                                  ││ ## Selección múltiple                          █ ││                                ││
+││ actividad                                        ││ 1. ¿Quién observa el mar desde la cornisa?     █ ││                                ││
+││ en espera                                        ││ a) El huemul                                   █ ││                                ││
+││                                                  ││ b) El cóndor                                   █ ││                                ││
+││                                                  ││ c) El zorro                                    █ ││                                ││
+││                                                  ││                                                ▀ ││                                ││
+││                                                  ││ ## Verdadero o falso                             ││ avisos (no bloquean)           ││
+││                                                  ││ 2. El huemul duda de lo que ve el cóndor.        ││ ! Hay parafraseo del cuento.   ││
+││                                                  ││                                                  ││ No lo trates como cita         ││
+││                                                  ││ ## Desarrollo                                    ││ literal.                       ││
+││                                                  ││ 3. Cita el fragmento donde el cóndor afirma ver  ││                                ││
+│╰──────────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯╰────────────────────────────────╯│
+│╭─ aprobación ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ ¿escribo el archivo?   [y] aprobar   [n] descartar   ·  o escribe tu decisión abajo   evid 1/2                                         ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│╭─ tu decisión ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮│
+││ y aprueba · n descarta · o escribe tu decisión…                                                                                        ││
+│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ tu decisión: y aprueba · n descarta · o escribe                                                                                          │
+╰─ …/examples/carpeta-demo ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

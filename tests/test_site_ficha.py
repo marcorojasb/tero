@@ -1,12 +1,37 @@
-"""The public GitHub page is one OpenTUI window, not an AgentCore hero."""
+"""The public GitHub page is one OpenTUI window showing the conversational session.
+
+The landing virtualizes the real OpenTUI. There are no rumbos 1–4, no typed
+plan `a`/`e`/`x`, no numbered clarifications and no gate `s` / `n` / `b` / `c`:
+the person writes, the agent infers the intent (a responder, b crear,
+c editar/adaptar) and nothing is written without explicit approval.
+"""
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 DOCS = ROOT / "docs"
+FRAMES = SITE / "assets" / "tui" / "frames"
+
+# Flujo viejo: no puede quedar ni en el HTML ni en la simulación.
+FLUJO_VIEJO = [
+    "rumbo",
+    "data-gate",
+    "data-rumbo",
+    "Espera un rumbo",
+    "elige un rumbo",
+    "la puerta se enciende",
+    "Planificar",
+    "leyendo-",
+    "plan-1",
+    "puerta-1",
+    "borradores/",
+    "WARNINGS_BLOCK_S",
+]
 
 
 def _read(path: Path) -> str:
@@ -17,31 +42,85 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
+def _site_texts() -> dict[str, str]:
+    return {
+        "index.html": _read(SITE / "index.html"),
+        "ficha.js": _read(SITE / "ficha.js"),
+        "styles.css": _read(SITE / "styles.css"),
+        "404.html": _read(SITE / "404.html"),
+    }
+
+
 def test_ficha_landing_is_the_github_page():
     html = _flat(_read(SITE / "index.html"))
     css = _read(SITE / "styles.css")
     js = _read(SITE / "ficha.js")
+    grid = _read(SITE / "tui-grid.js")
 
     assert 'lang="es"' in html
     assert "tus fuentes, tu criterio" in html
     assert "tero-offline" in html
     assert 'data-offline-model="tero-offline"' in html
-    assert 'data-warnings-block-s="false"' in html
 
-    for key in ("s", "n", "b", "c"):
-        assert f'data-gate="{key}"' in html
-    for rumbo in ("1", "2", "3", "4"):
-        assert f'data-rumbo="{rumbo}"' in html
+    # El flujo por pasos no existe en la cara pública.
+    for old in FLUJO_VIEJO:
+        assert old not in html, old
+        assert old not in js, old
+    assert "forzar" not in js
+    assert not (SITE / "tui" / "frames" / "puerta-2.txt").exists()
 
-    assert "AgentCore no es el producto" in html
+    # La sesión conversacional: intenciones a/b/c, propuesta y aprobación.
+    assert "conversa" in html or "Conversa" in html
+    assert "responde" in html
+    assert "adapta" in html
+    for escena in ("responder", "crear", "descartar", "adaptar"):
+        assert f'data-escena="{escena}"' in html
+    assert 'data-decision="aprobar"' in html
+    assert 'data-decision="descartar"' in html
+    assert "aprobación" in html
     assert "derivados/" in html
-    assert "borradores/" in html
-    assert "fuentes/" in html
+
+    # Aprobación con y o escribiendo en el hilo; n descarta.
+    assert "ESCENAS" in js
+    assert 'decision: "dale"' in js
+    assert 'decision: "n"' in js
+    assert 'decision: "y"' in js
+    assert "classifyDecision" in js
+    assert "applyDecision" in js
+    assert '"aprobar"' in js and '"descartar"' in js
+    assert "dale" in js
+    assert '"?": ' not in js
+
+    # La TUI nunca escribe: escribe el host, y solo tras aprobación.
+    assert "La TUI nunca escribe archivos" in js
+    assert "El host escribió" in js
+    assert "el host escribe" in html
+    assert "no se escribió nada" in js
+    assert "readOnly" not in js
+
+    # Las tres intenciones y las fases del protocolo están a la vista.
+    for fase in ("idle", "pensando", "esperando_aprobacion", "listo", "error"):
+        assert fase in js, fase
+    assert "esperando_aprobacion" in js
+    assert "notas_nee" in js or "apoyos y criterios NEE" in js
+    assert "propuesta-adaptar" in js
+    assert "vista previa" in js.lower()
+    assert "evidencia" in js
+
+    # Assets de la ventana y del papel.
+    assert "AgentCore no es el producto" in html
     assert "amazon.nova-lite-v1:0" in html
+    assert "fuentes/" in html
     assert 'id="consulta"' in html
     assert 'id="archivo"' in html
-    assert "hojas/guia-sistemas" in js or "guia-sistemas/p1.png" in js
+    assert "eval-cuento/p1.png" in js
+    assert "terraform" not in html
+    assert "Get started" not in html
+    assert "Sign up" not in html
+    assert "enterSession" not in js
+    assert 'id="session"' not in html
 
+    # La ventana: una sola OpenTUI, sin segundo titlebar.
     assert "--tui-bg: #0b0d10" in css
     assert "--tui-accent: #82aaff" in css
     assert "--accent: #82aaff" in css
@@ -49,9 +128,9 @@ def test_ficha_landing_is_the_github_page():
     assert 'id="app"' in html
     assert "window-chrome" in html
     assert "window-chrome sr-only" in html
+    assert html.count("window-chrome") == 1
     assert "term-chrome" not in html
     assert 'id="splash"' not in html
-    assert 'id="wave"' not in html
     assert "wave.js" not in html
     assert not (SITE / "wave.js").exists()
     assert "asistente pedagógico" in html
@@ -63,50 +142,25 @@ def test_ficha_landing_is_the_github_page():
     assert "photocopied" in css.lower()
     header = "\n".join(css.splitlines()[:8]).lower()
     assert "opentui" in header or "tui" in header
-    assert html.count("window-chrome") == 1
-    grid = _read(SITE / "tui-grid.js")
     assert "#82aaff" in grid
     assert "╭" in grid
-    assert "Planificar" in grid
 
-    assert "WARNINGS_BLOCK_S = false" in js
-    assert "function canAccept" in js
-    assert "tero-offline" in js
-    assert "draft_artifact" in js
-    assert "list_sources" in js
-    assert "unverified_citation" in js
-    assert "92.5" in js
-    assert "94.9" in js
-    assert "sistemas" in js.lower()
-    assert "Selección múltiple" in js or "selección múltiple" in js
-    assert "Verdadero o falso" in js or "verdadero o falso" in js
-    assert "Desarrollo" in js
-    # The rejected PR #8 override must not appear as a gate.
-    assert "forzar" not in js
-    assert "tú decides" in html
-    assert "vos decidís" not in html
-    assert "vos decidís" not in js
-    assert "Get started" not in html
-    assert "Sign up" not in html
-    assert "enterSession" not in js
-    assert 'id="session"' not in html
+    # El sello REVISAR sigue siendo la fotocopia, no un CTA.
+    assert 'id="stamp-label"' in html
+    assert "REVISAR" in html
+    assert "stamp-label" in css
+    assert ".stamp-label" in css
+
     assert "tui-grid.js" in html
-    assert "styles.css?v=chilensis" in html
-    assert "tui-grid.js?v=chilensis" in html
-    assert "ficha.js?v=chilensis" in html
+    assert "styles.css?v=conversacional" in html
+    assert "tui-grid.js?v=conversacional" in html
+    assert "ficha.js?v=conversacional" in html
     assert "left: var(--cell-w, 10px)" in css
     assert "top: var(--cell-h, 24px)" in css
     assert "left: 8%" not in css
     assert 'host.style.setProperty("--cell-w"' in js
     assert "min-height: calc(100vh" not in css
-    assert "0 24px 70px" not in css
-    assert "border-radius: 10px" not in css
     assert "background: var(--tui-bg)" in css
-    assert '$("consulta").hidden = false' not in js
-    assert '$("consulta").hidden = true' in js
-    assert '$("prompt").readOnly' in js
-    assert 'state.phase === "esperando_criterio"' in js
-    assert 'const editable = inPrompt && !$("prompt").readOnly' in js or "editable = inPrompt" in js
     assert "#consulta" in css
     assert "Never a second column" in css or "display: none !important" in css
     assert "paintFrame" in grid
@@ -115,7 +169,6 @@ def test_ficha_landing_is_the_github_page():
     assert "innerX" in grid
     assert "promptBoxFromFrame" in grid
     assert "viewportBudget" in grid
-    assert "innerHeight - 96" not in grid
     assert "paddingLeft" in grid
     assert 'scale >= 0.999 ? "pixelated"' in grid
     assert "html,\nbody {\n  margin: 0;\n  min-height: 100%;\n  overflow: hidden;\n}" in css
@@ -126,10 +179,7 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-prompt:not(.is-typing)" in css
     assert "loadFrames" in js
     assert "assets/tui/frames/" in js
-    assert "?v=chilensis" in js or "chilensis" in js
-    assert "plan-2" in js
-    assert "puerta-2" in js
-    assert "leyendo-2" in js
+    assert "conversacional" in js
     assert "frames.help" in js
     assert "~/carpeta-tui" not in html
     assert 'id="window-path"' in html
@@ -140,7 +190,147 @@ def test_ficha_landing_is_the_github_page():
     assert ".tui-shot-src" in css
     assert '$("tui-canvas")' in js
     assert "~/tero" in html
-    assert '$("window-path").textContent = "~/tero"' in js or 'textContent = "~/tero"' in js
+    assert 'textContent = "~/tero"' in js
+
+
+def test_ficha_frames_are_conversational_and_referenced():
+    index = json.loads(_read(FRAMES / "index.json"))
+    names = [item["name"] for item in index["frames"]]
+    assert names, "index.json sin frames"
+
+    # Los frames que la simulación pide existen en el index y en disco.
+    js = _read(SITE / "ficha.js")
+    declared = re.findall(r'^\s*"([a-z-]+)",$', js, flags=re.M)
+    for name in declared:
+        assert name in names, f"{name} no está en index.json"
+    for required in (
+        "home",
+        "respuesta",
+        "conversacion",
+        "conversacion-streaming",
+        "propuesta",
+        "propuesta-adaptar",
+        "escrito",
+        "escrito-adaptar",
+        "descartado",
+        "help",
+        "error",
+    ):
+        assert required in names, required
+        assert required in js, required
+
+    # Nada del flujo viejo quedó en el directorio de frames.
+    leftovers = [
+        path.name
+        for path in FRAMES.glob("*")
+        if re.match(r"^(encargo|leyendo|plan|puerta)", path.name)
+    ]
+    assert leftovers == [], leftovers
+
+    for item in index["frames"]:
+        name = item["name"]
+        for suffix in ("json", "txt", "html", "png"):
+            path = FRAMES / f"{name}.{suffix}"
+            assert path.is_file(), path
+        png = FRAMES / f"{name}.png"
+        assert png.stat().st_size > 8_000, png
+        text = _read(FRAMES / f"{name}.txt")
+        lines = [line for line in text.splitlines() if line]
+        assert lines[0].startswith("╭─ tero"), name
+        assert lines[-1].startswith("╰"), name
+        assert "examples/carpeta-demo" in lines[-1], name
+        assert len({len(line) for line in text.splitlines() if line}) == 1, name
+
+    home = _read(FRAMES / "home.txt")
+    assert "tus fuentes, tu criterio" in home
+    assert "▀▀▀▀███████" in home
+    assert "Pregunta, explora o crea…" in home
+    assert "El agente responde, crea o adapta · tú apruebas" in home
+    assert "5 fuentes" in home
+    assert "recientes" in home
+    assert "rumbo" not in home.lower()
+    assert "[1] Planificar" not in home
+
+    propuesta = _read(FRAMES / "propuesta.txt")
+    assert "crear · evaluación" in propuesta
+    assert "vista previa · markdown" in propuesta
+    assert "evidencia" in propuesta
+    assert "? " in propuesta and "✓" in propuesta
+    assert "avisos (no bloquean)" in propuesta
+    assert "¿escribo el archivo?" in propuesta
+    assert "[y] aprobar" in propuesta
+    assert "[n] descartar" in propuesta
+    assert "[s]" not in propuesta and "[b]" not in propuesta and "[c]" not in propuesta
+
+    adaptar = _read(FRAMES / "propuesta-adaptar.txt")
+    assert "adaptar (NEE) · evaluación" in adaptar
+    assert "Evaluación adaptada" in adaptar
+    assert "origen" in adaptar
+    assert "cambios" in adaptar
+    assert "apoyos y criterios NEE" in adaptar
+    assert "Tiempo extendido" in adaptar
+    assert "[y] aprobar" in adaptar
+
+    escrito = _read(FRAMES / "escrito.txt")
+    assert "escrito · crear" in escrito
+    assert "derivados/" in escrito
+    adaptada = _read(FRAMES / "escrito-adaptar.txt")
+    assert "escrito · adaptar" in adaptada
+    assert "adaptada" in adaptada
+
+    respuesta = _read(FRAMES / "respuesta.txt")
+    assert "¿Qué tengo en la carpeta?" in respuesta
+    assert "Puedo responder sobre ellas, crear material nuevo o adaptar" in respuesta
+    assert "decidir" not in respuesta.lower()
+
+    descartado = _read(FRAMES / "descartado.txt")
+    assert "descartado · no se escribió nada" in descartado
+
+    theme = json.loads(_read(FRAMES / "theme.json"))
+    assert theme["accent"] == "#82aaff"
+    assert theme["bg"] == "#0b0d10"
+    assert theme["border"] == "#4c566a"
+    css = _read(SITE / "styles.css")
+    assert "--border: #4c566a" in css
+    assert 'border: "#4c566a"' in _read(SITE / "tui-grid.js")
+
+
+def test_ficha_referenced_assets_exist():
+    """Ningún asset referenciado por el HTML o la simulación puede faltar."""
+    html = _read(SITE / "index.html")
+    js = _read(SITE / "ficha.js")
+    css = _read(SITE / "styles.css")
+    grid = _read(SITE / "tui-grid.js")
+
+    refs: set[str] = set()
+    for blob in (html, js, css, grid):
+        refs.update(re.findall(r"\./(assets/[\w./-]+\.(?:png|svg|webp|txt|json))", blob))
+        refs.update(re.findall(r"assets/tui/frames/([\w-]+)\.png", blob))
+    frames_refs = re.findall(r"assets/tui/frames/([\w-]+)\.png", js + grid)
+    assert refs, "sin assets referenciados"
+    for ref in sorted(refs):
+        if ref.endswith(".png") and not ref.startswith("assets/"):
+            continue
+        path = SITE / ref
+        assert path.is_file(), ref
+        assert path.stat().st_size > 0, ref
+    for name in frames_refs:
+        assert (FRAMES / f"{name}.png").is_file(), name
+
+    for local in ("./styles.css", "./tui-grid.js", "./ficha.js", "./assets/tero-mark.svg"):
+        assert local in html, local
+        assert (SITE / local.lstrip("./")).is_file(), local
+
+    for folder, n in (
+        ("eval-cuento", 3),
+        ("guia-sistemas", 3),
+        ("eval-sistemas", 3),
+        ("plan", 3),
+    ):
+        for i in range(1, n + 1):
+            path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
+            assert path.is_file(), path
+            assert path.stat().st_size > 10_000, path
 
 
 def test_ficha_assets_and_pages_workflow():
@@ -152,6 +342,9 @@ def test_ficha_assets_and_pages_workflow():
     assert (SITE / "brand.json").is_file()
     assert (SITE / "tui-grid.js").is_file()
     assert (SITE / "stamp.py").is_file()
+    assert not (SITE / "assets" / "tui" / "puerta.webp").exists()
+    assert not list((SITE / "assets" / "tui").glob("puerta*.webp"))
+    assert not list((SITE / "assets" / "tui").glob("plan*.webp"))
     brand = _read(SITE / "brand.json")
     assert "82AAFF" in brand
     assert "Vanellus chilensis" in brand
@@ -162,75 +355,25 @@ def test_ficha_assets_and_pages_workflow():
     mark_svg = _read(SITE / "assets" / "tero-mark.svg")
     assert "Vanellus chilensis" in mark_svg
     assert "<path" in mark_svg
-    home_html = _read(SITE / "assets" / "tui" / "frames" / "home.html")
+    home_html = _read(FRAMES / "home.html")
     assert "window-chrome sr-only" in home_html
     assert 'class="traffic"' not in home_html
     assert "tui-grid.js" in home_html
     assert "fitHost" in home_html
-    home_frame = _read(SITE / "assets" / "tui" / "frames" / "home.txt")
-    home_lines = [line for line in home_frame.splitlines() if line]
-    assert home_lines[0].startswith("╭─ tero")
-    assert home_lines[-1].startswith("╰")
-    assert "examples/carpeta-demo" in home_lines[-1]
-    assert not home_lines[2].startswith("╰")
-    assert "[1] Planificar" in home_frame
-    assert "tus fuentes, tu criterio" in home_frame
-    assert "▀▀▀▀███████" in home_frame
-    assert "secuencia de clase" in home_frame
-    assert "5 fuentes" in home_frame
-    assert "recientes" in home_frame
-    puerta_lines = [
-        line
-        for line in _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt").splitlines()
-        if line
-    ]
-    assert puerta_lines[0].startswith("╭─ tero")
-    assert puerta_lines[-1].startswith("╰")
-    assert "examples/carpeta-demo" in puerta_lines[-1]
-    help_frame = _read(SITE / "assets" / "tui" / "frames" / "help.txt")
-    assert "Rumbos" in help_frame
-    assert "tero-offline" in help_frame or "cierra" in help_frame.lower()
-    puerta_frame = _read(SITE / "assets" / "tui" / "frames" / "puerta.txt")
-    assert "sí→derivados" in puerta_frame or "derivados" in puerta_frame
-    guia_puerta = _read(SITE / "assets" / "tui" / "frames" / "puerta-2.txt")
-    assert "guía" in guia_puerta.lower() or "sistemas" in guia_puerta.lower()
-    assert "cóndor" not in guia_puerta.lower()
-    leyendo = _read(SITE / "assets" / "tui" / "frames" / "leyendo-2.txt")
-    assert "leyendo" in leyendo.lower()
-    theme = _read(SITE / "assets" / "tui" / "frames" / "theme.json")
-    assert "#82aaff" in theme
-    assert "#0b0d10" in theme
-    assert "#4c566a" in theme
-    css = _read(SITE / "styles.css")
-    assert "--border: #4c566a" in css
-    assert 'border: "#4c566a"' in _read(SITE / "tui-grid.js")
-    for folder, n in (
-        ("plan", 3),
-        ("guia-sistemas", 3),
-        ("eval-sistemas", 3),
-        ("eval-cuento", 3),
-    ):
-        for i in range(1, n + 1):
-            path = SITE / "assets" / "hojas" / folder / f"p{i}.png"
-            assert path.is_file(), path
-            assert path.stat().st_size > 10_000
-    frames_dir = SITE / "assets" / "tui" / "frames"
-    for html_path in frames_dir.glob("*.html"):
+    for html_path in FRAMES.glob("*.html"):
         if html_path.name == "gallery.html":
             continue
         frame_html = _read(html_path)
         assert "window-chrome sr-only" in frame_html, html_path.name
         assert 'class="traffic"' not in frame_html, html_path.name
-    for shot in ("home", "help", "puerta-2", "plan-2", "leyendo-2"):
-        png = frames_dir / f"{shot}.png"
-        assert png.is_file(), png
-        assert png.stat().st_size > 8_000
-    assert (SITE / "assets" / "tui" / "puerta.webp").is_file()
     assert (SITE / "404.html").is_file()
-    not_found = _read(SITE / "404.html")
+    not_found = _flat(_read(SITE / "404.html"))
     assert "unknown_source" in not_found
     assert "no bloquea" in not_found
     assert "window-chrome" in not_found
+    assert "Nada se escribe sin tu aprobación" in not_found
+    assert "la TUI nunca escribe archivos" in not_found
+    assert "la puerta" not in not_found
     workflow = _read(ROOT / ".github" / "workflows" / "pages.yml")
     assert "path: site" in workflow
     assert "deploy-pages" in workflow
@@ -248,6 +391,11 @@ def test_ficha_assets_and_pages_workflow():
     assert "capture-frames" in sitio
     assert "compose-og" in sitio
     assert "una sola ventana" in sitio.lower() or "una ventana" in sitio.lower()
+    assert "rumbo" not in sitio.lower()
+    assert "planificar" not in sitio.lower()
+    assert "`s` / `n` / `b` / `c`" not in sitio
+    assert "respuesta" in sitio.lower()
+    assert "aprobación" in sitio.lower()
     readme = _read(ROOT / "README.md")
     assert "settings/pages" in readme
     agents = _read(ROOT / "AGENTS.md")

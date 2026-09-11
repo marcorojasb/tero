@@ -8,15 +8,39 @@ xfce4-terminal --geometry=140x40 --font='JetBrains Mono 13' measures
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
-from shutil import copyfile
 
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).resolve().parent
 FRAMES = HERE.parents[1] / "site" / "assets" / "tui" / "frames"
-FONT_REG = Path("/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Regular.ttf")
-FONT_BOLD = Path("/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Bold.ttf")
+
+# El mismo rostro que xfce4-terminal usa para "JetBrains Mono 13". Se busca en
+# el sistema y, si falta, donde el usuario instaló la fuente (TERO_TUI_FONT_DIR).
+FONT_DIRS = [
+    Path(os.environ["TERO_TUI_FONT_DIR"]) if os.environ.get("TERO_TUI_FONT_DIR") else None,
+    Path("/usr/share/fonts/truetype/jetbrains-mono"),
+    Path.home() / ".local/share/fonts/jetbrains-mono",
+]
+
+
+def find_font(name: str) -> Path:
+    for folder in FONT_DIRS:
+        if folder is None:
+            continue
+        candidate = folder / name
+        if candidate.is_file():
+            return candidate
+    tried = ", ".join(str(f) for f in FONT_DIRS if f)
+    raise SystemExit(
+        f"falta {name} en {tried}\n"
+        "instálala (fonts-jetbrains-mono) o apunta TERO_TUI_FONT_DIR a la carpeta"
+    )
+
+
+FONT_REG = find_font("JetBrainsMono-Regular.ttf")
+FONT_BOLD = find_font("JetBrainsMono-Bold.ttf")
 
 # 13pt at 96 dpi — same face xfce4-terminal uses for "JetBrains Mono 13".
 FONT_PX = 17
@@ -82,10 +106,6 @@ def main() -> None:
         dest = FRAMES / f"{name}.png"
         png.save(dest, format="PNG", optimize=True)
         print(f"raster {name} {png.size[0]}x{png.size[1]} → {dest.stat().st_size} bytes")
-    for alias in ("plan", "puerta"):
-        src = FRAMES / f"{alias}-1.png"
-        if src.is_file():
-            copyfile(src, FRAMES / f"{alias}.png")
 
 
 if __name__ == "__main__":

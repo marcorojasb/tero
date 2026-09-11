@@ -12,69 +12,59 @@
       "rows": 40
     },
     {
-      "name": "encargo",
+      "name": "respuesta",
       "cols": 140,
       "rows": 40
     },
     {
-      "name": "leyendo-1",
+      "name": "conversacion",
       "cols": 140,
       "rows": 40
     },
     {
-      "name": "plan-1",
+      "name": "conversacion-streaming",
       "cols": 140,
       "rows": 40
     },
     {
-      "name": "puerta-1",
+      "name": "propuesta",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "propuesta-guia",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "propuesta-adaptar",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "escrito",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "escrito-adaptar",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "descartado",
+      "cols": 140,
+      "rows": 46
+    },
+    {
+      "name": "error",
       "cols": 140,
       "rows": 40
     },
     {
-      "name": "leyendo-2",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "plan-2",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "puerta-2",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "leyendo-3",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "plan-3",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "puerta-3",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "leyendo-4",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "plan-4",
-      "cols": 140,
-      "rows": 40
-    },
-    {
-      "name": "puerta-4",
-      "cols": 140,
-      "rows": 40
+      "name": "compacto",
+      "cols": 96,
+      "rows": 30
     }
   ]
 }
