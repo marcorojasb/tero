@@ -13,6 +13,7 @@
    Docs index: `docs/README.md`.
 
 Hackathon: this is a **new public MIT project**. Offline mode is scripted; Bedrock is the live path.
+Devpost pack (paste-ready): `docs/hackathon/`. Cheapest AWS path: `docs/AWS-GRATIS.md`.
 
 ## Español (corto)
 
@@ -28,3 +29,4 @@ Hackathon: this is a **new public MIT project**. Offline mode is scripted; Bedro
    de producto.
 
 Hackathon: proyecto **nuevo**, MIT, público. El modo offline es scripted a propósito; Bedrock es el camino real.
+Pack Devpost: `docs/hackathon/`. AWS barato: `docs/AWS-GRATIS.md`.

@@ -14,5 +14,7 @@ docente decide** (`s` / `n` / `b` / `c`).
 | [ANALISIS-ADVERSARIAL.md](ANALISIS-ADVERSARIAL.md) | Autocrítica de elegibilidad y HITL. |
 | [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) | AgentCore no es el producto; calidad = ficha usable. |
 | [ADVERSARIAL-LATEX-CURRICULO.md](ADVERSARIAL-LATEX-CURRICULO.md) | JSON → plantilla, catálogo Chile host-side. |
+| [AWS-GRATIS.md](AWS-GRATIS.md) | Nova Lite + Free Tier; el playground de AgentCore no es tero. |
+| [hackathon/README.md](hackathon/README.md) | Pack Devpost: texto, video, diagrama, post Builder. |
 
 La página pública es la TUI: <https://marcorojasb.github.io/tero/>.

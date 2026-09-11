@@ -34,11 +34,13 @@ No finge Bedrock. AgentCore no es el producto.
 
 ![TUI de tero: home OpenTUI con queltehue y rumbos](site/assets/tero-og.png)
 
-Teacher agent for [Agents for Humans](https://aws.amazon.com/): AWS
+Teacher agent for [Agents for Humans](https://agentsforhumans.devpost.com/): AWS
 **Strands** behind a dense **OpenTUI** shell (same TUI family as
 [OpenCode](https://opencode.ai)). Sibling *idea* of Pteron — your
 sources, your judgment — without copying Pteron’s Electron/Solid/Meridian
-desktop.
+desktop. Cheapest live path is **local Nova Lite**, not AgentCore
+Runtime — [docs/AWS-GRATIS.md](docs/AWS-GRATIS.md). Submission pack:
+[docs/hackathon/README.md](docs/hackathon/README.md).
 
 Spanish UI. Keyboard-first. MIT.
 
@@ -106,10 +108,13 @@ carpeta.
 #### AWS free tier / Nova Lite checklist
 
 1. Region with Amazon Nova on-demand (README default **`us-east-1`**).
-2. Bedrock console → **Model access** → enable **Amazon Nova Lite**
-   (`amazon.nova-lite-v1:0`). Confirm in the playground.
+2. **No Model access page** — AWS retired it. Serverless models (Nova Lite)
+   auto-enable on first `InvokeModel` / Converse. Optional smoke: Bedrock
+   **Model catalog** → playground with `amazon.nova-lite-v1:0`. If the
+   account wants a cross-region profile, `TERO_MODEL=us.amazon.nova-lite-v1:0`.
 3. IAM: `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`
    on that model id (and `amazon.nova-micro-v1:0` only if you switch).
+   Amazon Nova is not Marketplace; no `aws-marketplace:Subscribe` for Lite.
 4. Credentials: `aws configure`, or `AWS_ACCESS_KEY_ID` /
    `AWS_SECRET_ACCESS_KEY`, or `AWS_BEARER_TOKEN_BEDROCK`. **Never commit
    `.env`.**
