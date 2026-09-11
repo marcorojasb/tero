@@ -172,3 +172,64 @@ def test_el_guion_offline_nombra_la_seccion_en_los_cambios(workspace: Workspace)
     assert turn.propuesta is not None
     assert turn.propuesta.cambios
     assert all(":" in cambio for cambio in turn.propuesta.cambios)
+
+
+def test_el_host_etiqueta_los_apoyos_que_vienen_sin_criterio():
+    """Contrato blando: si el modelo escribe el apoyo en texto libre, se etiqueta."""
+    from tero.evidence import normalizar_notas_nee
+
+    notas, etiquetadas = normalizar_notas_nee(
+        [
+            "Tiempo extra para terminar",
+            "Letra más grande y apoyos visuales",
+            "Puede responder de forma oral o con dibujo",
+            "acceso · entorno: puesto cerca del pizarrón",
+            "Se prioriza el OA de comprensión",
+        ]
+    )
+    assert etiquetadas == 3
+    assert notas[0] == "acceso · tiempo: Tiempo extra para terminar"
+    assert notas[1].startswith("acceso · presentación de la información:")
+    assert notas[2].startswith("acceso · formas de respuesta:")
+    # Lo que ya traía criterio se respeta tal cual, y una nota sin palabra
+    # inequívoca no se inventa: queda como estaba y se avisa más abajo.
+    assert notas[3] == "acceso · entorno: puesto cerca del pizarrón"
+    assert notas[4] == "Se prioriza el OA de comprensión"
+
+
+def test_una_adaptacion_sin_criterios_avisa_sin_bloquear():
+    from tero.evidence import propuesta_warnings
+
+    warnings = propuesta_warnings(_propuesta(notas=["Apoyo general para la clase"]))
+    codigos = {item.code for item in warnings}
+    assert "nee_sin_criterios" in codigos
+    assert all(item.blocking is False for item in warnings)
+
+
+def test_adaptar_sin_notas_pide_una_vez_y_no_bloquea(workspace: Workspace):
+    """El contrato blando pide los apoyos una vez; la segunda llamada pasa."""
+    import json
+
+    from tero.tools import TurnContext, build_tools
+
+    workspace.write_artifact("derivados/base.md", "# Base\n")
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
+    tools = {tool.tool_name: tool for tool in build_tools(ctx)}
+    argumentos = dict(
+        ruta_origen="derivados/base.md",
+        accion="adaptar",
+        tipo="guia",
+        titulo="Guía adaptada",
+        resumen="Versión adaptada.",
+        vista_previa_markdown=GUIA,
+    )
+    primera = json.loads(tools["proponer_editar"](**argumentos))
+    assert primera["ok"] is False
+    assert primera["error"] == "nee_sin_notas"
+    assert "acceso ·" in primera["hint"]
+    assert ctx.pending_propuesta is None
+
+    segunda = json.loads(tools["proponer_editar"](**argumentos))
+    assert segunda["ok"] is True  # no bloquea: se acepta igual
+    assert ctx.pending_propuesta is not None
+    assert ctx.pending_propuesta.notas_nee == []

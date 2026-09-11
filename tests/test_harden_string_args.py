@@ -82,4 +82,6 @@ def test_proponer_editar_acepta_listas_en_cambios_y_notas(workspace: Workspace):
     assert propuesta.accion == "adaptar"
     assert propuesta.origen == "derivados/base.md"
     assert propuesta.cambios == ["Tiempos por momento", "Enunciados cortos"]
-    assert propuesta.notas_nee == ["Lectura en voz alta", "Tiempo extra"]
+    # El host etiqueta con el criterio del Decreto 83 cuando la nota lo dice sin
+    # estructura; el texto del apoyo no se toca.
+    assert propuesta.notas_nee == ["Lectura en voz alta", "acceso · tiempo: Tiempo extra"]

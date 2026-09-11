@@ -838,10 +838,10 @@ Contexto del encargo
 
 ? cierra`
   }
-  return `tero — el agente prepara, el docente decide
+  return `tero — el agente propone, tú decides
 
 Escribe en lenguaje natural: pregunta, crea o adapta.
-El agente propone y tú apruebas (y/n) o pides cambios.
+Verás qué hará y la vista previa antes de que escriba nada.
 
 Teclas
   y / n decisión    [ ] evidencia    Tab paneles

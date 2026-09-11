@@ -1,4 +1,4 @@
-"""tero — agente docente. El agente prepara; el profesor decide."""
+"""tero — agente docente. El agente propone; la persona decide."""
 
 __version__ = "0.1.0"
 

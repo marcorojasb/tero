@@ -157,7 +157,7 @@ class TeacherSession:
         cleaned = (prompt or "").strip()
         if not cleaned:
             raise TeroError(
-                "Escribe un mensaje: tero conversa, no adivina con la línea vacía.",
+                "Escribe un mensaje: tero conversa, no adivina con un mensaje vacío.",
                 code="empty_prompt",
             )
         if len(cleaned) > _MAX_PROMPT:
@@ -228,7 +228,7 @@ class TeacherSession:
             return
         if not text:
             raise TeroError(
-                "El agente no respondió nada. Pulsa r para reintentar.", code="no_response"
+                "El agente no respondió nada. Pulsa «r» para reintentar.", code="no_response"
             )
         turn.respuesta = text
         turn.phase = "idle"

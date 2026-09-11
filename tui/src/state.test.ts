@@ -539,3 +539,22 @@ describe("chrome sin el flujo viejo", () => {
     expect(error).toContain("/retry")
   })
 })
+
+  test("la ayuda nombra la tesis y no el flujo retirado", () => {
+    const vacio = { curso: "", asignatura: "", oa: "", duracion: "", tipo: null }
+    const home = helpFor(initialState(vacio))
+    expect(home).toContain("responde · crea material · edita o adapta")
+    expect(home).toContain("? cierra")
+
+    const enHilo = applyHostEvent(initialState(vacio), {
+      type: "respuesta",
+      id: "t1",
+      texto: "Listo.",
+    })
+    const hilo = helpFor(enHilo)
+    expect(hilo).toContain("el agente propone, tú decides")
+
+    for (const texto of [home, hilo]) {
+      expect(texto).not.toMatch(/el docente decide|plan a\/e\/x|s\/n\/b\/c|rumbo|borrador \/|puerta/i)
+    }
+  })

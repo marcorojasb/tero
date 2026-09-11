@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from tero.export import export_latex, render_latex
 from tero.latex.schemas import extract_payload_from_markdown, repair_payload, validate_payload
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_repair_and_render_guia_schema():
@@ -813,3 +816,12 @@ def test_escape_latex_drops_narrow_nbsp_for_pdflatex():
     )
     assert "\u202f" not in tex
     assert "15 min" in tex
+
+
+def test_todas_las_plantillas_llevan_el_mismo_pie_orientativo():
+    """El aviso de catálogo no oficial no puede vivir en una sola plantilla."""
+    for path in sorted((ROOT / "templates" / "latex").glob("*.tex")):
+        body = path.read_text(encoding="utf-8")
+        assert "propuesta para revisar" in body, path.name
+        assert "no texto oficial MINEDUC" in body, path.name
+        assert "curriculum/chile/evaluacion/lineamientos.md" not in body, path.name

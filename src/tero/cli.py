@@ -20,7 +20,7 @@ from tero.workspace import Workspace
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tero",
-        description="tero — el agente prepara, el docente decide (s/n/b/c).",
+        description="tero — el agente propone, la persona decide.",
     )
     parser.add_argument("--version", action="version", version=f"tero {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -28,13 +28,15 @@ def main(argv: list[str] | None = None) -> int:
     demo = sub.add_parser("demo", help="Recorrido offline (o Bedrock) para video y jueces.")
     _add_common(demo)
     demo.add_argument(
-        "--yes", action="store_true", help="Aprueba el plan y acepta (s) sin teclado."
+        "--yes", action="store_true", help="Aprueba la propuesta sin teclado (demo/tests)."
     )
     demo.add_argument("--prompt", default="", help="Encargo en lenguaje natural.")
 
     bridge = sub.add_parser("bridge", help="Host JSONL para OpenTUI (stdin/stdout).")
     _add_common(bridge)
-    bridge.add_argument("--yes", action="store_true", help="Autogate (solo tests/demo).")
+    bridge.add_argument(
+        "--yes", action="store_true", help="Aprueba automáticamente (solo tests/demo)."
+    )
 
     tui = sub.add_parser("tui", help="Lanza OpenTUI (Bun) y el bridge JSONL.")
     _add_common(tui)
@@ -46,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         "export",
         help="Exporta un artefacto .md a md|docx|latex (JSON→plantilla; sin TeX libre).",
     )
-    export.add_argument("source", type=Path, help="Markdown aceptado/borrador.")
+    export.add_argument("source", type=Path, help="Markdown escrito en derivados/.")
     export.add_argument(
         "--format",
         dest="fmt",
@@ -88,7 +90,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--model", default=None, help=f"Bedrock model id (default {DEFAULT_MODEL_ID})."
     )
-    parser.add_argument("--curso", default=None, help="Chip curso (vacío = home limpio en TUI).")
+    parser.add_argument("--curso", default=None, help="Contexto: curso (p. ej. «4° básico»).")
     parser.add_argument("--asignatura", default=None)
     parser.add_argument("--oa", default=None)
     parser.add_argument("--duracion", default=None)
@@ -105,7 +107,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
 
 
 def _encargo(args: argparse.Namespace, *, demo_defaults: bool = False) -> Encargo:
-    """CLI encargo. Demo keeps classroom defaults; TUI starts empty (home-first)."""
+    """CLI context. The demo keeps classroom defaults; the TUI starts empty."""
     if demo_defaults:
         return Encargo.from_dict(
             {

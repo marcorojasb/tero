@@ -25,7 +25,12 @@ from tero.curriculum.catalog import get_oa as catalog_get_oa
 from tero.curriculum.catalog import list_oa as catalog_list_oa
 from tero.curriculum.catalog import search_oa as catalog_search_oa
 from tero.errors import WorkspaceError
-from tero.evidence import parse_evidence_blob, snippet_in_text, verify_evidence
+from tero.evidence import (
+    normalizar_notas_nee,
+    parse_evidence_blob,
+    snippet_in_text,
+    verify_evidence,
+)
 from tero.latex.schemas import enrich_payload_from_markdown, parse_payload_json
 from tero.sanitize import strip_tool_traces_value
 from tero.types import (
@@ -77,6 +82,8 @@ class TurnContext:
     banco: BegoniaClient | None = None
     # Ids del banco servidos en este turno: son los que se pueden citar.
     banco_ids: set[str] = field(default_factory=set)
+    # Contrato blando NEE: se pide una vez por turno, nunca bloquea.
+    nee_pedido: bool = False
 
     def _emit(self, event: dict[str, Any]) -> None:
         if self.emit:
@@ -94,8 +101,9 @@ class TurnContext:
         return cliente.snapshot_id() if cliente else ""
 
     def reset_banco(self) -> None:
-        """Nuevo turno: se olvida el snapshot y los ids servidos."""
+        """Nuevo turno: se olvida el snapshot, los ids servidos y el aviso NEE."""
         self.banco_ids.clear()
+        self.nee_pedido = False
         if self.banco is not None:
             self.banco.reset()
 
@@ -887,13 +895,59 @@ def _proponer_editar(ctx: TurnContext):
         )
         if isinstance(draft, str):
             return draft
+        accion_final = parse_accion(accion)
+        notas = _split_items(notas_nee)
+        if accion_final == "adaptar" and not notas and not ctx.nee_pedido:
+            # Contrato blando: se pide una vez, no se bloquea. Si el modelo no
+            # estructura los apoyos, la propuesta se acepta igual y el aviso
+            # `nee_sin_criterios` queda a la vista en la puerta.
+            ctx.nee_pedido = True
+            ctx._emit(
+                {
+                    "type": "activity",
+                    "tool": "proponer",
+                    "state": "end",
+                    "detail": "faltan apoyos NEE",
+                }
+            )
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "nee_sin_notas",
+                    "hint": (
+                        'Para accion="adaptar" llena `notas_nee`, una por línea, con el '
+                        "criterio del Decreto 83 delante: "
+                        "`acceso · <criterio>: <apoyo>` u `objetivos · <criterio>: <ajuste>`. "
+                        "Criterios de acceso: presentación de la información, formas de "
+                        "respuesta, entorno, tiempo. De objetivos: graduación, priorización, "
+                        "temporalización, enriquecimiento, eliminación. "
+                        "Vuelve a llamar proponer_editar con el mismo contenido más las notas."
+                    ),
+                },
+                ensure_ascii=False,
+            )
+        notas, etiquetadas = normalizar_notas_nee(notas)
+        if etiquetadas:
+            ctx._emit(
+                {
+                    "type": "warning",
+                    "warning": {
+                        "code": "nee_normalizado",
+                        "message": (
+                            f"El host etiquetó {etiquetadas} apoyo(s) con su criterio del "
+                            "Decreto 83 (acceso u objetivos). El texto del apoyo no cambió."
+                        ),
+                        "blocking": False,
+                    },
+                }
+            )
         ctx.pending_propuesta = Propuesta(
-            accion=parse_accion(accion),
+            accion=accion_final,
             draft=draft,
             resumen=resumen.strip(),
             origen=ruta_origen.strip(),
             cambios=_split_items(cambios),
-            notas_nee=_split_items(notas_nee),
+            notas_nee=notas,
         )
         ctx._emit({"type": "activity", "tool": "proponer", "state": "end", "detail": draft.titulo})
         return json.dumps(

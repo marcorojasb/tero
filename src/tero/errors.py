@@ -172,16 +172,16 @@ def humanize_exception(exc: BaseException) -> tuple[str, str]:
         return (
             "bedrock_stream",
             "Bedrock interrumpió el stream (ToolUse/Nova Lite). "
-            "tero reintenta el borrador una vez; si sigue, pulsa r o /retry.",
+            "tero reintenta el turno una vez; si sigue, pulsa «r» o /retry.",
         )
 
     if "empty" in lower and "response" in lower:
         return (
             "bedrock_empty",
-            "Bedrock devolvió una respuesta vacía. tero reintenta el borrador una vez; "
-            "si sigue fallando, pulsa r o /retry.",
+            "Bedrock devolvió una respuesta vacía. tero reintenta el turno una vez; "
+            "si sigue fallando, pulsa «r» o /retry.",
         )
     return (
         "host_error",
-        f"Algo falló en el host: {text[:240]}. Puedes reintentar el último encargo (r).",
+        f"Algo falló en el host: {text[:240]}. Puedes reintentar el último mensaje «r».",
     )

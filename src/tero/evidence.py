@@ -342,6 +342,58 @@ NEE_CRITERIOS_OBJETIVOS = (
 NEE_ELIMINACION_PROHIBIDA = ("lectoescritura", "operaciones matemáticas", "vida cotidiana")
 
 
+# Palabras que identifican un criterio de acceso del Decreto 83 en texto libre.
+# Es vocabulario cerrado del decreto, no una regla pedagógica inventada.
+_NEE_ACCESO_HINTS: tuple[tuple[str, str], ...] = (
+    ("tiempo", "tiempo"),
+    ("presentacion", "presentación de la información"),
+    ("letra", "presentación de la información"),
+    ("imagen", "presentación de la información"),
+    ("visual", "presentación de la información"),
+    ("icono", "presentación de la información"),
+    ("esquema", "presentación de la información"),
+    ("oral", "formas de respuesta"),
+    ("dibujo", "formas de respuesta"),
+    ("respuesta", "formas de respuesta"),
+    ("entorno", "entorno"),
+    ("lugar", "entorno"),
+    ("silencio", "entorno"),
+    ("pausa", "entorno"),
+)
+
+
+def _fold(text: str) -> str:
+    from tero.privacy import slug
+
+    return slug(text)
+
+
+def normalizar_notas_nee(notas: list[str]) -> tuple[list[str], int]:
+    """Prefija el criterio del Decreto 83 cuando la nota lo dice sin estructura.
+
+    Solo reescribe entradas que **no** declaran criterio y cuyo texto contiene una
+    palabra inequívoca del vocabulario del decreto: no inventa apoyos ni cambia su
+    contenido, únicamente los etiqueta. Devuelve las notas y cuántas se etiquetaron.
+    """
+    salida: list[str] = []
+    etiquetadas = 0
+    for nota in notas:
+        texto = str(nota).strip()
+        if not texto:
+            continue
+        plano = _fold(texto)
+        if plano.startswith("acceso") or plano.startswith("objetivos"):
+            salida.append(texto)
+            continue
+        criterio = next((nombre for clave, nombre in _NEE_ACCESO_HINTS if clave in plano), "")
+        if criterio:
+            salida.append(f"acceso · {criterio}: {texto}")
+            etiquetadas += 1
+        else:
+            salida.append(texto)
+    return salida, etiquetadas
+
+
 def propuesta_warnings(propuesta: Propuesta) -> list[WarningItem]:
     """Avisos propios de una propuesta de adaptación. Nunca bloquean: informan."""
     if propuesta.accion != "adaptar":
@@ -377,6 +429,22 @@ def propuesta_warnings(propuesta: Propuesta) -> list[WarningItem]:
                     "Hay un criterio de eliminación. El Decreto 83 no permite eliminar "
                     "aprendizajes de lectoescritura, de operaciones matemáticas ni los que "
                     "permiten desenvolverse en la vida cotidiana."
+                ),
+            )
+        )
+    sin_criterio = [
+        nota
+        for nota in notas
+        if nota and not (nota.startswith("acceso") or nota.startswith("objetivos"))
+    ]
+    if sin_criterio:
+        warnings.append(
+            WarningItem(
+                code="nee_sin_criterios",
+                message=(
+                    f"{len(sin_criterio)} apoyo(s) sin criterio del Decreto 83. El material "
+                    "sirve igual; si necesitas el respaldo normativo, pide la adaptación otra "
+                    "vez nombrando el criterio (acceso u objetivos)."
                 ),
             )
         )
