@@ -7,6 +7,11 @@
       "rows": 40
     },
     {
+      "name": "help",
+      "cols": 140,
+      "rows": 40
+    },
+    {
       "name": "encargo",
       "cols": 140,
       "rows": 40

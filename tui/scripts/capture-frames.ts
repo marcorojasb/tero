@@ -15,8 +15,8 @@ import type { Encargo, Evidence, Plan, WarningItem } from "../src/protocol.ts"
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = join(here, "../../site/assets/tui/frames")
 
-/** Same path the landing paints in the OpenTUI header (`shortPath` keeps two segments). */
-const CARPETA = "~/tero"
+/** Same carpeta `python -m tero tui --offline` uses in this repo. */
+const CARPETA = "/workspace/examples/carpeta-demo"
 
 type RGBA = { r: number; g: number; b: number; a: number }
 
@@ -319,30 +319,53 @@ function baseWorkspace(encargo: Encargo, sourceCount: number): AppState {
   }
 }
 
+function homeState(): AppState {
+  return {
+    ...initialState({
+      curso: "",
+      asignatura: "",
+      oa: "",
+      duracion: "",
+      tipo: null,
+    }),
+    ready: true,
+    mode: "offline",
+    model: "tero-offline",
+    carpeta: CARPETA,
+    sourceCount: 5,
+    statusLine: "5 fuentes",
+    recentSessions: [
+      {
+        kind: "derivado",
+        label: "20260910-210457-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-4a5586.md",
+        path: "derivados/20260910-210457-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-4a5586.md",
+      },
+      {
+        kind: "derivado",
+        label: "20260910-205527-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-e46559.md",
+        path: "derivados/20260910-205527-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-e46559.md",
+      },
+      {
+        kind: "derivado",
+        label: "20260910-201559-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-2bff17.md",
+        path: "derivados/20260910-201559-planificacion-leer-el-cuento-y-distinguir-lo-explicito-de-lo-i-2bff17.md",
+      },
+    ],
+  }
+}
+
 const shots: { name: string; width: number; height: number; state: () => AppState }[] = [
   {
     name: "home",
     width: 140,
     height: 40,
-    state: () => ({
-      ...initialState({
-        curso: "",
-        asignatura: "",
-        oa: "",
-        duracion: "",
-        tipo: null,
-      }),
-      ready: true,
-      mode: "offline",
-      model: "tero-offline",
-      carpeta: "~/tero",
-      sourceCount: 5,
-      statusLine: "5 fuentes",
-      recentSessions: [
-        { kind: "derivado", label: "planificacion-cuento", path: "derivados/planificacion.pdf" },
-        { kind: "derivado", label: "guia-sistemas", path: "derivados/guia.pdf" },
-      ],
-    }),
+    state: homeState,
+  },
+  {
+    name: "help",
+    width: 140,
+    height: 40,
+    state: () => ({ ...homeState(), help: true }),
   },
   {
     name: "encargo",
@@ -462,8 +485,8 @@ function frameToHtml(frame: FrameDump): string {
   <title>tero OpenTUI · ${frame.name}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../../../styles.css?v=ready-home"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../../../styles.css?v=jb-shot"/>
 </head>
 <body data-offline-model="tero-offline">
   <div class="window" id="app">
@@ -476,7 +499,7 @@ function frameToHtml(frame: FrameDump): string {
       <div id="tui-grid" class="tui-grid">${rows}</div>
     </div>
   </div>
-  <script src="../../../tui-grid.js?v=ready-home"></script>
+  <script src="../../../tui-grid.js?v=jb-shot"></script>
   <script>
     (function () {
       const host = document.getElementById("tui-host");
@@ -542,10 +565,10 @@ async function main() {
   <meta charset="utf-8"/>
   <title>tero OpenTUI frames</title>
   <style>
-    html, body { margin: 0; background: ${theme.bg}; color: ${theme.text}; font: 13px/1.35 "IBM Plex Mono", ui-monospace, monospace; }
+    html, body { margin: 0; background: ${theme.bg}; color: ${theme.text}; font: 13px/1.35 "JetBrains Mono", ui-monospace, monospace; }
     h1, h2 { font-weight: 500; color: ${theme.muted}; padding: 0.6rem 0.8rem; }
     section { margin-bottom: 1.5rem; border-top: 1px solid ${theme.border}; }
-    .grid { font: 13px/1.2 "IBM Plex Mono", ui-monospace, monospace; white-space: pre; }
+    .grid { font: 13px/1.2 "JetBrains Mono", ui-monospace, monospace; white-space: pre; }
     .row { height: 1.2em; }
   </style>
 </head>
