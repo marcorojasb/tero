@@ -124,7 +124,8 @@ Docs index: [docs/README.md](docs/README.md) · Architecture:
 ## Disclosure
 
 New public MIT project for [Agents for Humans](https://agentsforhumans.devpost.com/)
-(track **Professional Agents**). The product concept is inspired by **Pteron**, a
-private app by the same author; no code was copied from it. The offline demo is
-scripted on purpose so no recording pretends to be a live Bedrock call. See
-[docs/NORMAS.md](docs/NORMAS.md).
+(track **Professional Agents**). The product thesis (sources as system of record;
+agent proposes cited material; teacher approves before anything lands in
+`derivados/`) builds on prior private desktop work by the same author; no code was
+copied from that predecessor. The offline demo is scripted on purpose so no
+recording pretends to be a live Bedrock call. See [docs/NORMAS.md](docs/NORMAS.md).

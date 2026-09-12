@@ -1,7 +1,7 @@
 # Empirical Evaluation of Conversational Teacher Agents for Local Pedagogical Workflows under Amazon Bedrock and Strands
 
 **Marco Rojas**  
-*Patagua / tero project* — [github.com/marcorojasb/tero](https://github.com/marcorojasb/tero)  
+*tero project* — [github.com/marcorojasb/tero](https://github.com/marcorojasb/tero)  
 Submission for **Agents for Humans: AWS AI Agent Global Hackathon** (Track: Professional Agents)  
 September 2026
 

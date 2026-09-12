@@ -273,10 +273,10 @@ objetivos · <criterion>: <what was adjusted and how>
 
 This public MIT repository is a **new project** built for Agents for Humans. The
 *product concept* (teacher-in-the-loop pedagogical preparation for Chilean
-classrooms) is inspired by **Pteron**, an earlier private application by the same
-author. No code was copied from that private Electron/SolidJS codebase — the stack
-here is Python + Strands + OpenTUI. The offline demo is scripted on purpose so that
-a recording never pretends to be a live Bedrock call.
+classrooms) builds on prior private desktop work by the same author. No code was
+copied from that predecessor — the stack here is Python + Strands + OpenTUI. The
+offline demo is scripted on purpose so that a recording never pretends to be a live
+Bedrock call.
 
 No third-party code is vendored. Dependencies are permissively licensed (Strands
 Agents Apache-2.0, OpenTUI MIT, pypdf BSD-3-Clause, python-docx MIT, pytest MIT,
