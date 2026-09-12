@@ -6,13 +6,13 @@ before recording the video or submitting the URL.
 ## What this repo actually is
 
 tero is a **new public MIT project**. The *product idea* (teacher-in-the-loop
-preparation: carpeta as system of record, agent drafts, human gate) is a sibling
-of **Pteron**, a private Electron/Solid/Meridian desktop. This tree does not
-contain that desktop. If a judge diffs the two, they should see a Python
+preparation: carpeta as system of record, agent drafts, human gate) builds on a
+**private desktop predecessor** (Electron/Solid) by the same author. This tree does
+not contain that desktop. If a judge diffs the two, they should see a Python
 Strands host + an OpenTUI shell + a JSONL bridge — not a port.
 
-If the video or README slides into “this is Pteron in the terminal”, that is a
-disclosure failure. Say: new stack, same thesis.
+If the video or README slides into “this is the old desktop in the terminal”, that
+is a disclosure failure. Say: new stack, same thesis.
 
 ## Eligibility / honesty risks
 
@@ -78,19 +78,19 @@ Theater / weak:
 - Plan “edit” is local (`/objetivo`, `/oa`, …) then `a` sends the dict.
   There is no field-by-field modal.
 
-**Update (`feat/tui-pteron-opencode`):** `c` now writes under `.tero/criticas/`
+**Update (`feat/tui-density-opencode`):** `c` now writes under `.tero/criticas/`
 and is appended when the artifact is saved. Plan assumptions edit inline
 (`e`); clarifications use numbered options + free text. See mitigations below.
 
-## Mitigaciones aterrizadas (`feat/tui-pteron-opencode`)
+## Mitigaciones aterrizadas (`feat/tui-density-opencode`)
 
-Stress + Pteron/OpenCode overhaul. Lo que cambió de verdad:
+Stress + density/OpenCode overhaul. Lo que cambió de verdad:
 
 | Riesgo / gap | Mitigación |
 | --- | --- |
 | Encargo vs chips desync (fracciones 6° vs chips 4° Lenguaje) | `encargo_sync.sync_encargo_from_prompt` reescribe curso/asignatura/tema/tipo/rumbo antes del turno; TUI refresca chips vía evento `encargo`. |
 | Citas de dominio incorrecto (math vs carpeta lenguaje) | Warning no bloqueante `domain_mismatch` en `collect_warnings` + al inicio del turno. |
-| Plan delgado vs card Pteron | Plan card con título/meta, resultado previsto, decisiones, cómo lo abordaré, supuestos editables (`e` / `plan.edit_assumption`). |
+| Plan delgado vs card densa | Plan card con título/meta, resultado previsto, decisiones, cómo lo abordaré, supuestos editables (`e` / `plan.edit_assumption`). |
 | Sin clarificaciones | Preguntas tipadas con opciones + badge **SUGERIDA** + texto libre (`plan.answer`). |
 | Home ausente (grilla vacía) | Pantalla `home`: marca tero, 4 rumbos, hero input; chips solo tras rumbo/prompt. |
 | `/export` tras `b` confuso | Exporta último **aceptado o borrador**; copy dice cómo llegar a `s` si no hay nada. |
@@ -140,28 +140,28 @@ Sigue siendo verdad (no mitigué del todo):
 - Offline sigue siendo prosa template + paths reales.
 - No hay source viewer con highlight de línea.
 - Bedrock no corre en CI.
-- OpenTUI ≠ paridad con OpenCode ni con el desktop Pteron.
+- OpenTUI ≠ paridad con OpenCode ni con el desktop privado predecesor.
 - Catálogo Chile es mínimo (4°–6°, tres asignaturas), no bases curriculares completas.
 
 Ver también [docs/INFORME-MEJORAS.md](INFORME-MEJORAS.md).
 
 ## Evidence / plan / gate UX (what is built vs OpenCode envy)
 
-Built: home Pteron, rumbo chips, session log, streaming activity + spinner,
+Built: home screen, rumbo chips, session log, streaming activity + spinner,
 markdown proposal, evidence list with `[` `]` and ✓/?, non-blocking avisos,
 deep plan card + clarifications + editable assumptions, dedicated `s/n/b/c`
 strip with labels, Tab focus, `/export` (aceptado o borrador), error panel + retry.
 
 Not built: split-diff of crítica vs previous draft, jump-to-line in the
 source, mouse-drag selection of a quote, multi-file workspaces, session
-replay, or anything that looks like Pteron’s Biblioteca.
+replay, or a rich desktop-style library browser.
 
 If a judge has used OpenCode, this TUI is in the same family and still thinner.
 Do not claim parity.
 
-## Thin vs Pteron (say this if asked)
+## Thin vs private desktop predecessor (say this if asked)
 
-| | Pteron (private) | tero (this repo) |
+| | Private desktop predecessor | tero (this repo) |
 | --- | --- | --- |
 | Shell | Electron + Solid | OpenTUI (Bun) |
 | Agent | not this codebase | AWS Strands |
@@ -169,8 +169,8 @@ Do not claim parity.
 | Gate | desktop HITL | host `s/n/b/c` |
 | Offline | n/a here | scripted Strands model |
 
-Copying UI chrome from Pteron into this repo would be a mistake twice:
-eligibility and taste.
+Copying UI chrome from that private desktop into this repo would be a mistake
+twice: eligibility and taste.
 
 ## Bedrock coupling
 

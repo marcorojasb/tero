@@ -146,4 +146,4 @@ Create an IAM user with the minimum Bedrock policy. Access keys only in the loca
 - [EVALUATION-PAPER.md](EVALUATION-PAPER.md) — which models, how they were measured.
 - [ADVERSARIAL-CORE-CALIDAD.md](ADVERSARIAL-CORE-CALIDAD.md) — why a runtime is not
   the product.
-- [NORMAS.md](NORMAS.md) — Pteron / MIT disclosure.
+- [NORMAS.md](NORMAS.md) — MIT / prior-work disclosure.

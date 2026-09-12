@@ -4,7 +4,7 @@
 5° básico, Ciencias Naturales, unidad *El agua y los océanos*.
 
 Files are original notes written for tero. They paraphrase public MINEDUC *Objetivos
-de Aprendizaje*; they are not an official curriculum PDF and not a copy of Pteron.
+de Aprendizaje*; they are not an official curriculum PDF.
 
 Default judge path uses `examples/carpeta-demo/`. This pack is the extra classroom folder
 from the first MVP (includes a PDF). Same host rules: originals hashed, writes only under

@@ -1,6 +1,6 @@
-# Informe de mejoras — TUI Pteron × OpenCode
+# Informe de mejoras — TUI densificada × OpenCode
 
-Autorizado por Marco Rojas. Rama: `feat/tui-pteron-opencode`.
+Autorizado por Marco Rojas. Rama: `feat/tui-density-opencode`.
 
 ## Stress notes (antes del overhaul)
 
@@ -8,7 +8,7 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 
 1. **Chips desincronizados del encargo** — p.ej. prompt de *fracciones 6°* mientras los chips seguían en *4° Lenguaje*. El plan y las citas heredaban el encargo viejo.
 2. **Fuentes de dominio incorrecto** — carpeta demo de lenguaje citada para un encargo de matemática, sin aviso visible de desajuste.
-3. **Plan delgado vs card Pteron** — faltaban RESULTADO PREVISTO, DECISIONES CONFIRMADAS, CÓMO LO ABORDARÉ, SUPUESTOS QUE PUEDES CAMBIAR y clarificaciones con opción SUGERIDA.
+3. **Plan delgado vs card densa** — faltaban RESULTADO PREVISTO, DECISIONES CONFIRMADAS, CÓMO LO ABORDARÉ, SUPUESTOS QUE PUEDES CAMBIAR y clarificaciones con opción SUGERIDA.
 4. **Home ausente** — la TUI abría en grilla 4 paneles vacía; no había landing con marca + 4 rumbos + hero input.
 5. **`/export` confuso tras `b`** — mensaje *“no hay artefacto aceptado”* aunque existía borrador en `borradores/`.
 6. **`/oa` / `/tipo` regeneraban plan** dejando propuesta previa → contexto mezclado / stale.
@@ -16,7 +16,7 @@ Hallazgos del stress test (TUI Bedrock en la máquina de Marco + corridas offlin
 
 ## Qué aterrizó (P0 + P1)
 
-### Home Pteron
+### Home tero
 - Pantalla inicial: marca **tero**, tagline, rumbos **Planificar / Crear / Evaluar / Adaptar** (1–4), hero *“Pregunta, explora o crea…”*.
 - Chips **solo después** de rumbo o prompt; sesiones recientes si hay artefactos en la carpeta.
 

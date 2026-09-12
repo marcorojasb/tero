@@ -352,7 +352,7 @@ git log --reverse --format='%ci' | head -1    # 2026-09-09 → dentro de la vent
 disclose any other pre-existing code or work incorporated into the Project"* y
 *"not an existing project you're repackaging."*
 
-**Por qué aplica:** tero nace de una idea previa (Pteron, app Electron privada).
+**Por qué aplica:** tero nace de una idea previa (desktop privado del mismo autor).
 
 **Mitigación (ya en marcha, hay que reforzarla):**
 1. Los hechos juegan a favor: el repo nació **9 sep 2026**, dentro de la ventana;
@@ -462,8 +462,9 @@ en el título de la descripción, en el About, en el diagrama y en el video.
 ## 6. Divulgación honesta: qué decir exactamente
 
 `docs/NORMAS.md` §"Hackathon disclosure" fija la línea: *"New project, public MIT
-repository. Concepts inspired by Pteron (teacher workflow) without copying that
-private Electron app. Declare offline vs Bedrock honestly in the demo video."*
+repository. The product thesis builds on prior private desktop work by the same
+author without copying that predecessor. Declare offline vs Bedrock honestly in
+the demo video."*
 
 Eso es correcto pero **demasiado breve para el formulario**. Texto recomendado, para
 pegar en la sección **"Disclosure / Pre-existing work"** de la descripción de Devpost
@@ -475,10 +476,11 @@ y repetir —más corto— en el video:
 > codebase.
 >
 > Two things are worth disclosing. (1) The *product thesis* — a teacher-in-the-loop
-> preparation loop where your own sources stay the system of record — is a sibling
-> idea of **Pteron**, a private desktop application by the same author. No Pteron code
-> is used here: Pteron is Electron/SolidJS, tero is Python + Strands Agents SDK with an
-> OpenTUI shell. No Pteron assets, files, or student data are included. (2) The
+> preparation loop where your own sources stay the system of record — builds on
+> prior private desktop work by the same author. No code from that predecessor is
+> used here: that app was Electron/SolidJS; tero is Python + Strands Agents SDK with
+> an OpenTUI shell. No assets, files, or student data from that predecessor are
+> included. (2) The
 > `--offline` path runs a **scripted Strands `Model`** labelled `tero-offline`. It is a
 > real `strands.models.Model` implementation, not a stand-in for an Amazon Bedrock
 > call, and it never claims to be one. The live Amazon Bedrock (Nova Lite) path is

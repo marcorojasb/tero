@@ -86,7 +86,7 @@ Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`. Nova Lite auto-en
 
 ### Disclosure
 
-New public MIT project built during the submission window. The *product thesis* (teacher-in-the-loop prep; your sources, your judgment) is a sibling idea of Pteron, a private Electron app by the same author. This repository does not contain that desktop and no code was copied from it. The offline demo is scripted and labeled `tero-offline`; say that in the video.
+New public MIT project built during the submission window. The *product thesis* (teacher-in-the-loop prep; your sources, your judgment) builds on prior private desktop work by the same author. This repository does not contain that desktop and no code was copied from it. The offline demo is scripted and labeled `tero-offline`; say that in the video.
 
 ### Architecture
 

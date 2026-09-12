@@ -62,6 +62,8 @@ pytest && (cd tui && bun test src)
 
 ## Hackathon disclosure
 
-New project, public MIT repository. The product concept is inspired by Pteron
-(teacher workflow) without copying that private Electron app. The offline demo is
-scripted on purpose; declare offline vs Bedrock honestly in the demo video.
+New project, public MIT repository. The product thesis (teacher-in-the-loop prep;
+carpeta as system of record; agent proposes, educator decides) builds on prior
+private desktop work by the same author; no code was copied from that
+predecessor. The offline demo is scripted on purpose; declare offline vs Bedrock
+honestly in the demo video.
