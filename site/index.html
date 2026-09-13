@@ -67,7 +67,10 @@
         />
 
         <section class="archivo" id="archivo" hidden aria-label="Ficha que el host escribió en derivados/">
-          <p class="archivo-lead" id="archivo-lead">Archivo escrito</p>
+          <div class="archivo-top">
+            <p class="archivo-lead" id="archivo-lead">Archivo escrito</p>
+            <button type="button" id="hoja-close" class="hoja-close-btn" title="Cerrar visor">✕ Volver a la terminal [Esc]</button>
+          </div>
           <figure class="hoja-frame">
             <img id="hoja-img" alt="Página de la ficha escrita en derivados/" />
             <figcaption id="hoja-cap"></figcaption>
@@ -79,6 +82,16 @@
             <button type="button" id="hoja-next">página siguiente</button>
           </p>
         </section>
+
+        <div class="actions-strip" id="actions-strip" aria-label="Acciones rápidas para probar">
+          <span class="actions-hint">Probar:</span>
+          <button type="button" class="action-btn" data-run="responder" title="Intención a: Responder preguntas">💬 a) Preguntar fuentes</button>
+          <button type="button" class="action-btn" data-run="planificar" title="Intención b: Crear planificación">📋 b) Planificación 45 min</button>
+          <button type="button" class="action-btn" data-run="evaluar" title="Intención b: Crear evaluación con pauta">📝 b) Evaluación con pauta</button>
+          <button type="button" class="action-btn" data-run="adaptar" title="Intención c: Adaptación a NEE Decreto 83">♿ c) Adaptación NEE (Decreto 83)</button>
+          <button type="button" class="action-btn action-btn-alt" data-run="help" title="Ayuda contextual">❓ Ayuda</button>
+          <button type="button" class="action-btn action-btn-alt" data-run="reset" title="Reiniciar sesión">🔄 Reiniciar</button>
+        </div>
       </div>
     </div>
 

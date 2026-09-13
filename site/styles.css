@@ -272,31 +272,80 @@ body {
   position: absolute;
   z-index: 3;
   margin: 0;
-  padding: 0;
+  padding: 0 4px;
   border: none;
   outline: none;
   background: transparent;
-  color: transparent;
-  font: 13px/1.2 var(--font);
-  caret-color: transparent;
-}
-
-.tui-prompt:not(.is-typing) {
-  opacity: 0;
-}
-
-.tui-prompt.is-typing {
   color: var(--text);
+  font: 13px/1.2 var(--font);
   caret-color: var(--cursor);
-  background: var(--input-bg);
+  opacity: 1;
 }
 
 .tui-prompt::placeholder {
-  color: transparent;
+  color: var(--faint);
+  opacity: 0.8;
 }
 
-.tui-prompt.is-typing::placeholder {
+.tui-prompt:not(.is-typing) {
+  caret-color: var(--cursor);
+}
+
+.tui-prompt:focus {
+  background: var(--input-bg);
+}
+
+.actions-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--panel);
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.75rem;
+  color: var(--muted);
+  z-index: 5;
+}
+
+.actions-hint {
   color: var(--faint);
+  margin-right: 0.2rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.action-btn {
+  background: var(--chip);
+  color: var(--chip-fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.22rem 0.5rem;
+  font: inherit;
+  font-size: 0.73rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  border-color: var(--accent);
+  color: #fff;
+  background: #202b3c;
+}
+
+.action-btn-alt {
+  background: transparent;
+  border-color: var(--border-soft);
+  color: var(--muted);
+}
+
+.action-btn-alt:hover {
+  border-color: var(--border);
+  color: var(--text);
 }
 
 /* Photocopied hoja — only created pages, not the chrome.
@@ -320,8 +369,31 @@ body {
   display: none !important;
 }
 
+.archivo-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.hoja-close-btn {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  color: var(--accent);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  border-radius: 2px;
+}
+
+.hoja-close-btn:hover {
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .archivo-lead {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-size: 0.78rem;
   letter-spacing: 0;
   text-transform: none;

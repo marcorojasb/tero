@@ -13,8 +13,6 @@
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const speed = reduceMotion ? 0.08 : 1;
   const Tui = window.teroTui;
   const GRID_COLS = 140;
   const BASE_ROWS = 40;
@@ -69,8 +67,7 @@
     },
   };
 
-  /* Escenas del guion. Cada beat: lo que se teclea, el frame real que se pinta,
-     la fase del protocolo y lo que pasa después de la decisión. */
+  /* Escenas del protocolo conversacional */
   const ESCENAS = {
     responder: {
       prompt: "¿Qué tengo en la carpeta?",
@@ -179,14 +176,12 @@
     },
   };
 
-  /* Sesión guiada: se reproduce sola y en loop. Cualquier tecla la detiene. */
-  const GUION = ["responder", "crear", "descartar", "adaptar"];
-
+  /* Estado interactivo: NUNCA reproduce un video en bucle */
   const state = {
     phase: "idle",
     frame: "home",
     escena: null,
-    auto: true,
+    auto: false, // Modo interactivo real
     token: 0,
     pages: [],
     page: 0,
@@ -204,6 +199,12 @@
     promptBox: null,
     model: null,
     pendiente: null,
+    messages: [],
+    activities: [],
+    lastWritten: null,
+    promptValue: "",
+    focus: "propuesta",
+    evidenceIndex: 0,
   };
 
   const HELP = `tero — conversación
@@ -217,14 +218,18 @@ Cuando propone un archivo verás qué va a hacer y la vista previa.
   n  descartar — no se escribe nada
 También puedes responder con tus palabras («dale»); el host clasifica.
 
+Atajos:
+  Tab    cambiar foco entre paneles
+  [ ]    recorrer citas de evidencia
+  ?      abrir o cerrar esta ayuda
+  /clear reiniciar la pantalla a inicio
+
 Los avisos no bloquean la aprobación: se muestran antes de decidir.
 La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
 
-? cierra`;
+? o Esc cierra`;
 
-  /* --- clasificador de la decisión ---------------------------------------
-     Espejo acotado de `tero.approval.classify_approval` (host). Ante duda no
-     se aprueba: lo desconocido vuelve a preguntar. */
+  /* Clasificador de la decisión (espejo de tero.approval) */
   const TRIM = /^[¡!¿?.,;:()[\]{}«»"'\u2026-]+|[¡!¿?.,;:()[\]{}«»"'\u2026-]+$/g;
 
   function fold(text) {
@@ -262,8 +267,7 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
       return { kind: "descartar", note: raw };
     }
     if (/\?/.test(raw)) return { kind: "preguntar", note: raw };
-    if (APROBAR_FIRME.test(t)) return { kind: "aprobar", note: raw };
-    if (APROBAR_CORTO.test(t)) return { kind: "aprobar", note: raw };
+    if (APROBAR_FIRME.test(t) || APROBAR_CORTO.test(t)) return { kind: "aprobar", note: raw };
     if (["dale no mas", "no mas", "nomas", "como no", "asi no mas", "asi nomas"].includes(phrase)) {
       return { kind: "aprobar", note: raw };
     }
@@ -271,94 +275,14 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     return { kind: "ambiguo", note: raw };
   }
 
-  /* --- ruteo del mensaje a la escena más parecida ------------------------- */
-  function routeScene(text) {
-    const t = fold(text);
-    if (/\b(adapt\w*|nee|dislex\w*|tdah|tea\b|inclusi\w*|apoyo\w*|ajust\w*)/.test(t)) {
-      return "adaptar";
-    }
-    if (/\b(guia|sistema|ecuacion|matematic|algebra|ejercicio)/.test(t)) return "descartar";
-    if (/\b(evalua\w*|prueba|pauta|cuento|lectora|comprension|planifica\w*|actividad)/.test(t)) {
-      return "crear";
-    }
-    return "responder";
-  }
-
-  /* --- pintura ----------------------------------------------------------- */
   function measure() {
     const fitted = Tui.fitHost($("tui-host"), $("tui-grid"), GRID_COLS, state.rows);
     state.cellW = fitted.cellW;
     state.cellH = fitted.cellH;
     state.fontSize = fitted.fontSize;
-  }
-
-  function syncPromptOverlay() {
-    const input = $("prompt");
-    const typing = Boolean(input.value);
-    input.classList.toggle("is-typing", typing);
-    input.placeholder = typing ? "" : "Pregunta, explora o crea…";
-    input.style.background = typing ? Tui.theme.inputBg : "transparent";
-  }
-
-  function applyPainted(painted, frameName, view) {
-    state.cellW = painted.cellW || state.cellW;
-    state.cellH = painted.cellH || state.cellH;
-    state.fontSize = painted.fontSize || state.fontSize;
-    state.hits = painted.hits || [];
-    state.promptBox = painted.prompt;
-    placePrompt(painted.prompt);
-    document.body.dataset.view = view;
-    document.body.dataset.frame = frameName || "live";
-    document.body.dataset.phase = state.phase;
-    $("window-path").textContent = "~/tero";
-    syncPromptOverlay();
     const host = $("tui-host");
     host.style.setProperty("--cell-w", `${state.cellW}px`);
     host.style.setProperty("--cell-h", `${state.cellH}px`);
-  }
-
-  function frameData() {
-    if (state.help) return frames.help || frames.home;
-    return frames[state.frame] || frames.home;
-  }
-
-  function paintLive(captured) {
-    measure();
-    const model = liveModel();
-    model.cols = GRID_COLS;
-    model.rows = state.rows;
-    state.model = model;
-    $("tui-shot").hidden = true;
-    const canvas = $("tui-canvas");
-    if (canvas) canvas.hidden = true;
-    $("tui-grid").classList.remove("is-shot");
-    const painted = captured
-      ? Tui.paintFrame($("tui-grid"), captured)
-      : Tui.paint($("tui-grid"), model);
-    applyPainted(
-      { ...painted, cellW: state.cellW, cellH: state.cellH, fontSize: state.fontSize },
-      captured && captured.name ? captured.name : "live",
-      captured && captured.name === "home" ? "home" : "session",
-    );
-  }
-
-  function paint() {
-    const captured = frameData();
-    if (captured && captured.rows) state.rows = captured.rows;
-    measure();
-    const host = $("tui-host");
-    const grid = $("tui-grid");
-    const shot = $("tui-shot");
-    const stage = $("tui-stage");
-    if (captured && Tui.paintShot) {
-      const painted = Tui.paintShot(host, stage, shot, grid, captured);
-      if (painted) {
-        applyPainted(painted, captured.name, captured.name === "home" ? "home" : "session");
-        return;
-      }
-      return;
-    }
-    paintLive(captured);
   }
 
   function placePrompt(box) {
@@ -374,49 +298,156 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     input.style.lineHeight = `${state.cellH}px`;
   }
 
-  /* Modelo solo para el respaldo en vivo: si el PNG no carga, la grilla se
-     pinta con los mismos tokens, no con el flujo viejo. */
+  function syncPromptOverlay() {
+    const input = $("prompt");
+    const typing = Boolean(input.value);
+    input.classList.toggle("is-typing", typing);
+    input.placeholder =
+      state.phase === "esperando_aprobacion"
+        ? "y aprueba · n descarta · o escribe un cambio…"
+        : state.frame === "home"
+          ? "Pregunta, explora o crea…"
+          : "Escribe tu respuesta…  Enter envía";
+    $("window-path").textContent = "~/tero";
+  }
+
+  function applyPainted(painted, frameName, view) {
+    state.cellW = painted.cellW || state.cellW;
+    state.cellH = painted.cellH || state.cellH;
+    state.fontSize = painted.fontSize || state.fontSize;
+    state.hits = painted.hits || [];
+    state.promptBox = painted.prompt;
+    placePrompt(painted.prompt);
+    document.body.dataset.view = view;
+    document.body.dataset.frame = frameName || "live";
+    document.body.dataset.phase = state.phase;
+    syncPromptOverlay();
+  }
+
+  function frameData() {
+    if (state.help) return frames.help || frames.home;
+    return frames[state.frame] || frames.home;
+  }
+
+  /* Modelo vivo dinámico para renderizar con Tui.paint */
   function liveModel() {
-    const pendiente = state.pendiente;
+    const p = state.pendiente;
+
+    let thread = "Escribe lo que necesitas.\nEl agente responde, crea o adapta; tú apruebas.";
+    if (state.messages.length > 0) {
+      thread = state.messages
+        .map((m) => `${m.role === "persona" ? "Docente:\n" : "tero:\n"}${m.text}`)
+        .join("\n\n");
+    }
+
+    let activity = state.activities.length ? state.activities.slice(-3).join("\n") : "en espera";
+    if (state.phase === "pensando") {
+      activity = `${Tui.spinner(state.spinner)} ${activity}`;
+    }
+
+    let proposal = "";
+    let evidence = "Las citas aparecen cuando el agente propone un archivo.\n✓ en el archivo · ? parafraseo";
+    let warnings = "sin avisos";
+    let gate = "";
+
+    if (p) {
+      if (p.status === "escrito") {
+        proposal = `✓ ESCRITO · ${p.accion} · ${p.tipo_label}\n` +
+          `Ruta: ${p.writtenPath || "derivados/..."}\n\n` +
+          `Originales intactos (SHA-256 verificado).\n` +
+          `El host escribió el archivo en derivados/ tras tu aprobación.\n\n` +
+          `── vista previa ──\n` +
+          p.vista_previa;
+      } else if (p.status === "descartado") {
+        proposal = `✕ DESCARTADO · ${p.tipo_label}\n` +
+          `No se escribió ningún archivo.\n` +
+          `La carpeta de trabajo quedó intacta.`;
+      } else {
+        let extra = "";
+        if (p.accion === "adaptar") {
+          extra = `\norigen: ${p.origen || "derivados/..."}\n` +
+            `cambios: ${(p.cambios || []).join("; ")}\n` +
+            `notas_nee: ${(p.notas_nee || []).join("; ")}\n`;
+        }
+        proposal = `PROPUESTA · ${p.accion} · ${p.tipo_label}\n` +
+          `${p.titulo}\n\n` +
+          `${p.resumen}\n` +
+          extra +
+          `\n── vista previa ──\n` +
+          p.vista_previa;
+      }
+
+      if (p.evidencias && p.evidencias.length) {
+        evidence = p.evidencias
+          .map((e, idx) => {
+            const marker = idx === state.evidenceIndex ? "▸" : " ";
+            const check = e.verified ? "✓ en archivo" : "? parafraseo";
+            return `${marker} ${idx + 1}/${p.evidencias.length}  ${check}\n  ${e.path}\n  «${e.snippet}»`;
+          })
+          .join("\n\n");
+      }
+
+      if (p.warnings && p.warnings.length) {
+        warnings = p.warnings.map((w) => `! ${w.message}`).join("\n");
+      }
+
+      if (p.status === "pendiente") {
+        gate = "¿escribo el archivo?   [y] aprobar   [n] descartar   o escribe un cambio";
+      }
+    }
+
+    let header = "offline · inicio";
+    if (state.phase === "pensando") header = `offline · pensando ${Tui.spinner(state.spinner)}`;
+    else if (state.phase === "esperando_aprobacion") header = "offline · tu decisión: y / n";
+    else if (state.phase === "listo") header = "offline · escrito en derivados/";
+    else if (state.frame !== "home") header = "offline · conversación";
+
     return {
       view: state.frame === "home" ? "home" : "conversacion",
       cols: state.cols,
       rows: state.rows,
-      header: `offline · ${state.phase.replace(/_/g, " ")}`,
-      chips: pendiente ? ["4° básico", "Lenguaje", pendiente.tipo_label] : [],
+      header,
+      chips: p ? ["4° básico", "Lenguaje", p.tipo_label] : ["4° básico", "Lenguaje", "LEN-4B-OA04"],
       path: "~/tero",
-      promptTitle: pendiente ? "tu decisión" : state.frame === "home" ? "pregunta" : "mensaje",
-      placeholder: pendiente
+      promptTitle: p && p.status === "pendiente" ? "tu decisión" : state.frame === "home" ? "pregunta" : "mensaje",
+      placeholder: p && p.status === "pendiente"
         ? "y aprueba · n descarta · o escribe tu decisión…"
         : state.frame === "home"
           ? "Pregunta, explora o crea…"
           : "Escribe tu respuesta…  Enter envía",
-      footer: pendiente ? "tu decisión: y aprueba · n descarta · o escribe" : "",
-      thread: "Escribe lo que necesitas.\nEl agente responde, crea o adapta; tú apruebas.",
-      activity: "en espera",
-      proposal: pendiente
-        ? `${pendiente.accion} · ${pendiente.tipo_label} — ${pendiente.titulo}\n${pendiente.resumen}\n\nvista previa · markdown\n${pendiente.vista_previa}`
-        : "",
-      evidence: pendiente
-        ? pendiente.evidencias
-            .map(
-              (e, i) =>
-                `${i === 0 ? "▸" : " "} ${i + 1}/${pendiente.evidencias.length}  ${e.verified ? "✓" : "?"} ${e.verified ? "en archivo" : "parafraseo"}\n  ${e.path}`,
-            )
-            .join("\n\n")
-        : "Las citas aparecen cuando el agente propone un archivo.\n✓ en el archivo · ? parafraseo",
-      warnings: pendiente && pendiente.warnings.length
-        ? pendiente.warnings.map((w) => `! ${w.message}`).join("\n")
-        : "sin avisos",
-      gate: pendiente ? "¿escribo el archivo?   [y] aprobar   [n] descartar" : "",
+      promptValue: $("prompt") ? $("prompt").value : "",
+      footer: p && p.status === "pendiente"
+        ? "tu decisión: y aprueba · n descarta · o escribe tu decisión"
+        : "? ayuda · tab paneles · [ ] evidencia · /clear reinicia",
+      thread,
+      activity,
+      proposal,
+      evidence,
+      warnings,
+      gate,
       gateTitle: " aprobación ",
       help: state.help ? HELP : "",
-      focus: "propuesta",
+      focus: state.focus,
       tagline: "tus fuentes, tu criterio",
     };
   }
 
-  /* --- hilo y archivos --------------------------------------------------- */
+  function paint() {
+    measure();
+    const model = liveModel();
+    $("tui-shot").hidden = true;
+    const canvas = $("tui-canvas");
+    if (canvas) canvas.hidden = true;
+    $("tui-grid").classList.remove("is-shot");
+
+    const painted = Tui.paint($("tui-grid"), model);
+    applyPainted(
+      { ...painted, cellW: state.cellW, cellH: state.cellH, fontSize: state.fontSize },
+      state.frame,
+      state.frame === "home" ? "home" : "session",
+    );
+  }
+
   function setFuentes(names) {
     const ul = $("fuentes");
     ul.innerHTML = "";
@@ -435,7 +466,6 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     const ul = $("derivados");
     const empty = ul.querySelector(".empty");
     if (empty) empty.hidden = true;
-    ul.querySelectorAll("[data-file]").forEach((n) => n.remove());
     const li = document.createElement("li");
     li.dataset.file = name;
     li.textContent = name;
@@ -460,6 +490,7 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     $("archivo").hidden = true;
     state.pages = [];
     state.page = 0;
+    $("prompt").focus();
   }
 
   function showPages(hoja, caption, lead, cap) {
@@ -493,7 +524,7 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     stopSpinner();
     state.spinnerTimer = window.setInterval(() => {
       state.spinner += 1;
-      if (state.frame === "conversacion-streaming") paint();
+      paint();
     }, 90);
   }
 
@@ -504,190 +535,361 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     }
   }
 
-  /* --- guion ------------------------------------------------------------- */
-  function show(beat) {
-    state.help = false;
-    state.frame = beat.frame || "conversacion-streaming";
-    state.phase = beat.phase || (beat.pensando ? "pensando" : state.phase);
-    state.pendiente = beat.pendiente || null;
-    $("gate-note").textContent = beat.nota || "";
-    if (beat.nota) logLine(beat.nota);
-    $("prompt").placeholder = state.pendiente
-      ? "y aprueba · n descarta · o escribe tu decisión…"
-      : "Pregunta, explora o crea…";
-    if (beat.pensando) startSpinner();
-    else stopSpinner();
-    paint();
-  }
+  /* Plantillas deterministas para interacción en vivo */
+  const LIVE_TEMPLATES = {
+    planificacion: {
+      accion: "crear",
+      tipo: "planificacion",
+      tipo_label: "planificación",
+      titulo: "Planificación: Leer el cuento y distinguir lo explícito de lo implícito en el valle",
+      resumen: "Planificación lista para usar en aula, con evidencia de las fuentes de la carpeta.",
+      vista_previa: `---
+generado_por: tero
+tipo: planificacion
+titulo: "Planificación: Leer el cuento y distinguir lo explícito de lo implícito en el valle"
+curso: 4° básico
+asignatura: Lenguaje y Comunicación
+oa: LEN-4B-OA04
+duracion: 45 min
+---
+# Planificación — El cóndor y el huemul
 
-  async function typeInto(text, token) {
-    const input = $("prompt");
-    if (reduceMotion) {
-      input.value = text;
-      syncPromptOverlay();
-      return;
-    }
-    for (let i = 1; i <= text.length; i++) {
-      if (token !== state.token) return;
-      input.value = text.slice(0, i);
-      syncPromptOverlay();
-      await wait(14 + Math.random() * 22);
-    }
-    await wait(320);
-  }
+## Objetivo
+Que las y los estudiantes de 4° básico extraigan información explícita e implícita del cuento, usando el diálogo del huemul como evidencia — no como adorno.
 
-  function decideBeat(beat, decision) {
-    return decision === "aprobar" ? beat.aprobar : beat.descartar;
-  }
+## OA
+LEN-4B-OA04 (Lenguaje y Comunicación). Comprensión lectora de narraciones: lo que el texto dice y lo que deja inferir.
 
-  async function runScene(id, token) {
-    const escena = ESCENAS[id];
-    if (!escena) return;
-    state.escena = id;
-    clearDerivado();
-    hidePages();
-    state.pendiente = null;
-    if (escena.prompt) {
-      await typeInto(escena.prompt, token);
-      if (token !== state.token) return;
-      $("prompt").value = "";
-      syncPromptOverlay();
-    }
-    logLine(`$ ${escena.prompt}`);
-    for (const beat of escena.beats) {
-      if (token !== state.token) return;
-      if (beat.prompt) {
-        await typeInto(beat.prompt, token);
-        if (token !== state.token) return;
-        $("prompt").value = "";
-        syncPromptOverlay();
-        logLine(`$ ${beat.prompt}`);
-      }
-      show(beat);
-      await wait(beat.hold * speed);
-      if (token !== state.token) return;
-      if (!beat.decision) continue;
-      await typeInto(beat.decision, token);
-      if (token !== state.token) return;
-      $("prompt").value = "";
-      syncPromptOverlay();
-      const kind = classifyDecision(beat.decision);
-      logLine(`decisión «${beat.decision}» → ${kind.kind}`, kind.kind);
-      const next = decideBeat(beat, kind.kind);
-      if (!next) return;
-      show({ ...next, pendiente: null });
-      if (next.archivo) {
-        putDerivado(next.archivo);
-        const hoja = HOJAS[next.hoja];
-        showPages(hoja, next.capFile || next.archivo, next.lead, next.cap);
-        $("stamp-label").textContent = "REVISAR";
-        logLine(`escrito · ${next.accion} · ${next.archivo} · ${hoja.corrida}`, "ok");
-      }
-      await wait(next.hold * speed);
-    }
-  }
+## Inicio (10 min)
+- Pregunta abierta al curso: «¿Quién sabe más del valle? ¿El que vuela alto o el que pregunta por el agua?»
+- Anotar en la pizarra dos columnas: *explícito* / *implícito*.
 
-  async function autoplay() {
-    while (state.auto) {
-      for (const id of GUION) {
-        if (!state.auto) return;
-        const token = ++state.token;
-        await runScene(id, token);
-        if (token !== state.token) return;
-      }
-      if (!state.auto) return;
-      const token = ++state.token;
-      state.frame = "home";
-      state.phase = "idle";
-      state.pendiente = null;
-      show({ frame: "home", phase: "idle" });
-      await wait(2600 * speed);
-      if (token !== state.token) return;
-    }
-  }
+## Desarrollo (25 min)
+1. Lectura compartida del cuento de la carpeta (\`fuentes/cuento-el-condor-y-el-huemul.md\`).
+2. Primera pasada: subrayar datos explícitos (el río bajo, el maitén seco, el vuelo del cóndor).
+3. Segunda pasada: inferir motivaciones (el huemul no huye porque necesita entender; preguntar es valentía).
+4. Trabajo en parejas: responder la pregunta «¿Por qué el cóndor baja cuando el huemul no corre?».
 
-  /* --- decisión de la persona -------------------------------------------- */
-  function applyDecision(kind, note) {
-    const pendiente = state.pendiente;
-    if (!pendiente) return false;
-    state.auto = false;
-    state.token += 1;
-    stopSpinner();
-    if (kind === "aprobar") {
-      state.phase = "listo";
-      state.frame = pendiente.accion === "crear" ? "escrito" : "escrito-adaptar";
-      state.pendiente = null;
-      putDerivado(pendiente.archivo);
-      const hoja = HOJAS[pendiente.hoja];
-      showPages(hoja, pendiente.capFile || pendiente.archivo, pendiente.lead, pendiente.cap);
-      $("gate-note").textContent =
-        "Aprobado. El host escribió en derivados/; la TUI no escribe archivos. El original no se tocó.";
-      logLine(`decisión «${note}» → aprobar · escrito · ${pendiente.archivo}`, "ok");
-      paint();
-      return true;
-    }
-    if (kind === "descartar") {
-      state.phase = "idle";
-      state.frame = "descartado";
-      state.pendiente = null;
-      clearDerivado();
-      hidePages();
-      $("gate-note").textContent = "Descartado: no se escribió nada.";
-      logLine(`decisión «${note}» → descartar · sin archivo`, "descartar");
-      paint();
-      return true;
-    }
-    /* cambiar / preguntar / ambiguo: la propuesta sigue pendiente. */
-    $("gate-note").textContent =
-      kind === "cambiar"
-        ? "Anotado el cambio: la propuesta sigue pendiente hasta que decidas."
-        : "No lo tomo como aprobación. La propuesta sigue pendiente: y aprueba · n descarta.";
-    logLine(`decisión «${note}» → ${kind} · sigue pendiente`, kind);
-    return false;
-  }
+## Cierre (10 min)
+- Ticket de salida de 2 líneas: escribir una afirmación explícita y una inferencia sobre el cuento.`,
+      evidencias: [
+        {
+          path: "fuentes/cuento-el-condor-y-el-huemul.md",
+          snippet: "El huemul no corrió. Miró el agua del valle y preguntó por qué el río estaba tan bajo.",
+          verified: true,
+        },
+        {
+          path: "fuentes/cuento-el-condor-y-el-huemul.md",
+          snippet: "El cóndor bajó al maitén y abrió las alas para tapar el sol…",
+          verified: true,
+        },
+      ],
+      warnings: [],
+      hojaKey: "cuento",
+    },
 
-  function submit(text) {
+    evaluacion: {
+      accion: "crear",
+      tipo: "evaluacion",
+      tipo_label: "evaluación",
+      titulo: "Evaluación formativa de comprensión lectora — El cóndor y el huemul",
+      resumen: "Prueba de 45 min con ítems de selección múltiple y V/F con pauta.",
+      vista_previa: `---
+generado_por: tero
+tipo: evaluacion
+titulo: "Evaluación de comprensión lectora — El cóndor y el huemul"
+curso: 4° básico
+asignatura: Lenguaje y Comunicación
+oa: LEN-4B-OA04
+duracion: 45 min
+puntaje_total: 10
+---
+# Evaluación formativa — El cóndor y el huemul
+
+**Nombre:** ____________________________________ **Fecha:** ___________
+**Instrucciones:** Lee el cuento de la carpeta. Tiempo 45 minutos.
+
+## Ítem 1: Selección múltiple (4 puntos)
+1. ¿Qué anotó la niña detrás del maitén?
+   a) Que el río estaba bajo
+   b) Que el cóndor tenía hambre
+   c) Que el huemul corrió
+
+2. ¿Qué significa que el cóndor abriera las alas para tapar el sol?
+   a) Dar sombra
+   b) Demostrar tamaño y poder
+   c) Avisar que llovería
+
+## Ítem 2: Verdadero o Falso con justificación (3 puntos)
+1. ___ El huemul huyó asustado hacia la quebrada.
+2. ___ El río del valle llevaba poca agua.
+
+## Ítem 3: Desarrollo con cita textual (3 puntos)
+Cita el cuento para explicar por qué el huemul decidió no correr.`,
+      evidencias: [
+        {
+          path: "fuentes/cuento-el-condor-y-el-huemul.md",
+          snippet: "El huemul no corrió. Miró el agua del valle y preguntó por qué el río estaba tan bajo.",
+          verified: true,
+        },
+        {
+          path: "fuentes/cuento-el-condor-y-el-huemul.md",
+          snippet: "El cóndor bajó al maitén y abrió las alas para tapar el sol…",
+          verified: true,
+        },
+      ],
+      warnings: [],
+      hojaKey: "cuento",
+    },
+
+    adaptacion: {
+      accion: "adaptar",
+      tipo: "evaluacion",
+      tipo_label: "evaluación adaptada (NEE)",
+      titulo: "Evaluación adaptada: El cóndor y el huemul (Apoyos Decreto 83/2015)",
+      resumen: "Adaptación con Decreto 83: apoyos visuales y tiempo adicional.",
+      origen: "derivados/20260911-101500-evaluacion-condor-9c1f2a.md",
+      cambios: [
+        "Instrucciones directas destacadas paso a paso",
+        "Menos carga de lectura por ítem y formato espaciado",
+      ],
+      notas_nee: [
+        "acceso · presentación de la información: lectura guiada en voz alta y apoyos visuales de la secuencia",
+        "acceso · tiempo: 15 minutos adicionales y pausas programadas",
+      ],
+      vista_previa: `---
+generado_por: tero
+tipo: evaluacion
+titulo: "Evaluación adaptada (NEE) — El cóndor y el huemul"
+origen: derivados/20260911-101500-evaluacion-condor-9c1f2a.md
+curso: 4° básico
+asignatura: Lenguaje y Comunicación
+oa: LEN-4B-OA04
+apoyos_decreto_83:
+  - "acceso · presentación: lectura guiada y apoyos visuales"
+  - "acceso · tiempo: 15 min extra con pausa intermedia"
+---
+# Evaluación adaptada — El cóndor y el huemul
+
+**Nombre:** ____________________________________ **Fecha:** ___________
+**Instrucción:** Puedes responder por escrito o conversando con tu docente.
+
+## Paso 1: Lee junto a tu docente el fragmento
+«El huemul no corrió. Miró el agua del valle y preguntó…»
+
+## Paso 2: Marca la respuesta correcta (3 pts)
+1. ¿Qué hizo el huemul cuando vio al cóndor?
+   [ ] Corrió rápido
+   [ ] Se quedó y preguntó
+   [ ] Se durmió
+
+## Paso 3: Dibuja y cuenta (3 pts)
+Dibuja qué le respondió el cóndor al huemul.`,
+      evidencias: [
+        {
+          path: "derivados/20260911-101500-evaluacion-condor-9c1f2a.md",
+          snippet: "Ítem 1: Selección múltiple... ¿Qué hizo el huemul cuando vio al cóndor descender?",
+          verified: true,
+        },
+        {
+          path: "fuentes/cuento-el-condor-y-el-huemul.md",
+          snippet: "El huemul no corrió. Miró el agua del valle y preguntó…",
+          verified: true,
+        },
+      ],
+      warnings: [
+        {
+          code: "paci_no_oficial",
+          message: "Apoyos de aula bajo Decreto 83/2015. No constituye un PACI ni adecuación curricular formal MINEDUC.",
+          blocking: false,
+        },
+      ],
+      hojaKey: "cuento",
+    },
+  };
+
+  /* Ejecución de un turno interactivo */
+  async function submit(text) {
     const value = (text || "").trim();
     if (!value) return;
-    if (state.pendiente) {
+
+    // Comandos slash
+    if (value === "/clear" || value === "/reset") {
+      state.frame = "home";
+      state.phase = "idle";
+      state.messages = [];
+      state.activities = [];
+      state.pendiente = null;
+      hidePages();
+      paint();
+      return;
+    }
+    if (value === "/help" || value === "?") {
+      state.help = !state.help;
+      paint();
+      return;
+    }
+    if (value.startsWith("/export")) {
+      const fmt = value.split(" ")[1] || "markdown";
+      state.messages.push({ role: "persona", text: value });
+      state.messages.push({
+        role: "agente",
+        text: state.lastWritten
+          ? `Exportado a ${fmt.toUpperCase()}: ${state.lastWritten.replace(/\.md$/, "." + (fmt === "latex" ? "tex" : fmt))}`
+          : "No hay ningún archivo aprobado en derivados/ para exportar.",
+      });
+      paint();
+      return;
+    }
+
+    // Decisión pendiente
+    if (state.pendiente && state.pendiente.status === "pendiente") {
       const kind = classifyDecision(value);
-      if (kind.kind === "aprobar" || kind.kind === "descartar") {
-        applyDecision(kind.kind, value);
+      if (kind.kind === "aprobar") {
+        applyDecision("aprobar", value);
+        return;
+      }
+      if (kind.kind === "descartar") {
+        applyDecision("descartar", value);
         return;
       }
       if (kind.kind === "cambiar") {
-        $("gate-note").textContent =
-          "Anotado el cambio. La propuesta sigue pendiente: y aprueba · n descarta.";
-        logLine(`cambio pedido: «${value}»`, "cambiar");
+        await revisePending(value);
         return;
       }
-      $("gate-note").textContent =
-        "No lo tomo como aprobación. La propuesta sigue pendiente: y aprueba · n descarta.";
-      logLine(`sin decisión clara: «${value}»`, kind.kind);
+      state.messages.push({ role: "persona", text: value });
+      state.messages.push({
+        role: "agente",
+        text: "Entendido. La propuesta sigue en pantalla esperando tu decisión: presiona 'y' para aprobar, 'n' para descartar o escribe el cambio que deseas.",
+      });
+      paint();
       return;
     }
-    playScene(routeScene(value), value);
-  }
 
-  function playScene(id, texto) {
-    state.auto = false;
-    const token = ++state.token;
-    const escena = ESCENAS[id];
-    if (texto) escena.prompt = texto;
-    runScene(id, token).then(() => {
-      if (token !== state.token) return;
-      state.frame = "home";
+    // Nuevo turno del usuario
+    state.frame = "conversacion";
+    state.phase = "pensando";
+    state.messages.push({ role: "persona", text: value });
+    state.activities = ["list_sources · 4 fuentes en carpeta"];
+    startSpinner();
+    paint();
+
+    await wait(240);
+    state.activities.push("read_source · fuentes/cuento-el-condor-y-el-huemul.md");
+    paint();
+
+    await wait(240);
+    state.activities.push("get_oa · LEN-4B-OA04");
+    paint();
+
+    const folded = fold(value);
+    const isAdaptar = /\b(adapt\w*|nee|dislex\w*|tdah|tea\b|inclusi\w*|apoyo\w*|decreto\s*83)\b/.test(folded);
+    const isCrear = /\b(crear|prepara\w*|haz\w*|planifi\w*|evalua\w*|prueba|guia|pauta|actividad|ficha)\b/.test(folded);
+    const isQuestion = /\b(fuente\w*|carpeta|que tengo|que hay|hola|como funcion\w*|quien eres|mineduc)\b/.test(folded);
+
+    await wait(260);
+    stopSpinner();
+
+    if (isAdaptar) {
+      state.activities.push("cite_evidence · 2 citas");
+      state.activities.push("proponer_editar · accion: adaptar");
+      state.pendiente = JSON.parse(JSON.stringify(LIVE_TEMPLATES.adaptacion));
+      state.pendiente.status = "pendiente";
+      state.phase = "esperando_aprobacion";
+      state.messages.push({
+        role: "agente",
+        text: "He preparado la propuesta de adaptación según Decreto 83 con apoyos de acceso. Revisa la vista previa y dime si la apruebas.",
+      });
+    } else if (isCrear || !isQuestion) {
+      let tmpl = LIVE_TEMPLATES.planificacion;
+      if (/\b(evalua\w*|prueba|pauta|test)\b/.test(folded)) {
+        tmpl = LIVE_TEMPLATES.evaluacion;
+      }
+      state.activities.push("cite_evidence · 2 citas verificadas");
+      state.activities.push(`proponer_crear · tipo: ${tmpl.tipo}`);
+      state.pendiente = JSON.parse(JSON.stringify(tmpl));
+      state.pendiente.status = "pendiente";
+      state.phase = "esperando_aprobacion";
+      state.messages.push({
+        role: "agente",
+        text: `He preparado la propuesta de ${state.pendiente.tipo_label} con citas verificadas de tus fuentes. ¿Escribo este material en derivados/?`,
+      });
+    } else {
       state.phase = "idle";
-      show({ frame: "home", phase: "idle", nota: "escribe otra vez, o espera: la sesión sigue sola" });
-      window.setTimeout(() => {
-        if (token === state.token) autoplay();
-      }, 3000 * speed);
-    });
+      let respuesta = "";
+      if (/\b(fuente\w*|carpeta|que tengo|que hay)\b/.test(folded)) {
+        respuesta = "Tienes 4 fuentes locales en la carpeta de trabajo:\n" +
+          "• `fuentes/cuento-el-condor-y-el-huemul.md` (cuento del valle cordillerano)\n" +
+          "• `fuentes/bases-oa-lenguaje-4b.md` (OA 4 de comprensión lectora)\n" +
+          "• `fuentes/vocabulario-unidad.md`\n" +
+          "• `fuentes/notas-curso.md`\n\n" +
+          "Puedo preparar una planificación o una evaluación sobre este cuento. ¿Qué te gustaría hacer?";
+      } else {
+        respuesta = "¡Hola! Soy tero, tu asistente pedagógico con AWS Strands Agents y Amazon Bedrock.\n" +
+          "Leo las fuentes de tu carpeta, preparo propuestas pedagógicas en memoria y solo escribo cuando tú lo apruebas.";
+      }
+      state.messages.push({ role: "agente", text: respuesta });
+    }
+
+    paint();
   }
 
-  /* --- eventos ----------------------------------------------------------- */
-  function help() {
-    state.help = !state.help;
+  async function revisePending(changeText) {
+    state.phase = "pensando";
+    state.messages.push({ role: "persona", text: changeText });
+    state.activities = ["revisar_propuesta · aplicando ajuste docente"];
+    startSpinner();
+    paint();
+
+    await wait(500);
+    stopSpinner();
+    state.phase = "esperando_aprobacion";
+    if (state.pendiente) {
+      state.pendiente.resumen += ` [Ajuste aplicado: ${changeText}]`;
+      state.pendiente.vista_previa = `> Corrección docente: ${changeText}\n\n` + state.pendiente.vista_previa;
+    }
+    state.messages.push({
+      role: "agente",
+      text: `He actualizado la propuesta con tu indicación («${changeText}»). Revisa los cambios y dime si la apruebas.`,
+    });
+    paint();
+  }
+
+  function applyDecision(decision, note) {
+    if (!state.pendiente || state.pendiente.status !== "pendiente") return;
+
+    if (decision === "aprobar") {
+      state.pendiente.status = "escrito";
+      const now = new Date();
+      const ts = now.toISOString().slice(0, 10).replace(/-/g, "") + "-" +
+        now.toTimeString().slice(0, 8).replace(/:/g, "");
+      const path = `derivados/${ts}-${state.pendiente.tipo}-${state.pendiente.accion}-9c1f2a.md`;
+      state.pendiente.writtenPath = path;
+      state.lastWritten = path;
+      state.phase = "listo";
+
+      putDerivado(path);
+      state.messages.push({ role: "persona", text: note || "y" });
+      state.messages.push({
+        role: "agente",
+        text: `✓ Aprobado. El host escribió el archivo en \`${path}\`.\nOriginales intactos (SHA-256 verificado).`,
+      });
+
+      const hoja = HOJAS.cuento;
+      showPages(hoja, path, "El host escribió el archivo en derivados/ después de tu aprobación. Estas son sus páginas, la fotocopia para revisar.");
+      $("stamp-label").textContent = "REVISAR";
+      logLine(`escrito · ${state.pendiente.accion} · ${path}`, "ok");
+    } else {
+      state.pendiente.status = "descartado";
+      state.phase = "idle";
+      state.messages.push({ role: "persona", text: note || "n" });
+      state.messages.push({
+        role: "agente",
+        text: "Descartado: no se escribió nada. La carpeta quedó igual.",
+      });
+      logLine("descartado · no se escribió nada");
+    }
+
     paint();
   }
 
@@ -699,52 +901,82 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     return state.hits.find((h) => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
   }
 
-  document.querySelectorAll("[data-escena]").forEach((btn) => {
-    btn.addEventListener("click", () => playScene(btn.dataset.escena, btn.dataset.prompt || ""));
-  });
-  document.querySelectorAll("[data-decision]").forEach((btn) => {
-    btn.addEventListener("click", () => applyDecision(btn.dataset.decision, btn.dataset.decision));
-  });
-  $("hoja-prev").addEventListener("click", () => showPage(state.page - 1));
-  $("hoja-next").addEventListener("click", () => showPage(state.page + 1));
+  /* Eventos de la interfaz */
   $("tui-stage").addEventListener("click", (ev) => {
     const hit = hitFromEvent(ev);
-    if (!hit) {
-      $("prompt").focus();
+    if (hit) {
+      if (hit.action === "approve") applyDecision("aprobar", "y");
+      if (hit.action === "discard") applyDecision("descartar", "n");
       return;
     }
-    if (hit.action === "approve") applyDecision("aprobar", "y");
-    if (hit.action === "discard") applyDecision("descartar", "n");
+    $("prompt").focus();
   });
-  $("prompt").addEventListener("input", () => {
+
+  const promptInput = $("prompt");
+  promptInput.addEventListener("input", () => {
     state.auto = false;
     syncPromptOverlay();
+    paint();
   });
-  $("prompt").addEventListener("keydown", (ev) => {
+
+  promptInput.addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter") return;
     ev.preventDefault();
-    const text = $("prompt").value;
-    $("prompt").value = "";
+    const text = promptInput.value;
+    promptInput.value = "";
     syncPromptOverlay();
     submit(text);
   });
 
+  // Atajos globales
   document.addEventListener("keydown", (ev) => {
     const inPrompt = ev.target && ev.target.id === "prompt";
-    if (ev.key === "?" && (!inPrompt || !$("prompt").value)) {
+    if (ev.key === "?" && (!inPrompt || !promptInput.value)) {
       ev.preventDefault();
-      help();
+      state.help = !state.help;
+      paint();
       return;
     }
-    if (ev.key === "Escape" && state.help) {
+    if (ev.key === "Escape") {
+      if (state.help) {
+        ev.preventDefault();
+        state.help = false;
+        paint();
+        return;
+      }
+      if (!$("archivo").hidden) {
+        hidePages();
+        return;
+      }
+    }
+    if (ev.key === "Tab") {
       ev.preventDefault();
-      help();
+      const panels = ["hilo", "propuesta", "evidencia"];
+      const next = (panels.indexOf(state.focus) + 1) % panels.length;
+      state.focus = panels[next];
+      paint();
       return;
     }
-    if (!inPrompt && state.pendiente && (ev.key === "y" || ev.key === "n")) {
-      ev.preventDefault();
-      applyDecision(ev.key === "y" ? "aprobar" : "descartar", ev.key);
-      return;
+    if (ev.key === "[" || ev.key === "]") {
+      if (!inPrompt && state.pendiente && state.pendiente.evidencias && state.pendiente.evidencias.length > 1) {
+        ev.preventDefault();
+        const n = state.pendiente.evidencias.length;
+        state.evidenceIndex = ev.key === "]" ? (state.evidenceIndex + 1) % n : (state.evidenceIndex - 1 + n) % n;
+        paint();
+        return;
+      }
+    }
+    if (!inPrompt && state.pendiente && state.pendiente.status === "pendiente") {
+      if (ev.key === "y" || ev.key === "Y") {
+        ev.preventDefault();
+        applyDecision("aprobar", "y");
+        return;
+      }
+      if (ev.key === "n" || ev.key === "N") {
+        ev.preventDefault();
+        applyDecision("descartar", "n");
+        return;
+      }
     }
     if (ev.key === "ArrowLeft" && !$("archivo").hidden) {
       showPage(state.page - 1);
@@ -755,37 +987,61 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
     }
   });
 
-  window.addEventListener("resize", () => paint());
+  // Botones de acciones rápidas (chips)
+  document.querySelectorAll("[data-run]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const run = btn.dataset.run;
+      if (run === "responder") submit("¿Qué fuentes tengo en la carpeta?");
+      else if (run === "planificar") submit("Prepara una planificación de 45 minutos sobre el cuento de la carpeta.");
+      else if (run === "evaluar") submit("Prepara una evaluación de comprensión lectora con pauta para 4° básico.");
+      else if (run === "adaptar") submit("Adapta la evaluación del cóndor para un estudiante con dislexia.");
+      else if (run === "help") {
+        state.help = !state.help;
+        paint();
+      } else if (run === "reset") {
+        submit("/clear");
+      }
+      promptInput.focus();
+    });
+  });
 
-  fetch("./build-info.json")
-    .then((r) => (r.ok ? r.json() : null))
-    .then((info) => {
-      if (info && info.short) $("window-path").dataset.sha = info.short;
-    })
-    .catch(() => {});
+  document.querySelectorAll("[data-escena]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      submit(btn.dataset.prompt || "");
+      promptInput.focus();
+    });
+  });
+
+  document.querySelectorAll("[data-decision]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      applyDecision(btn.dataset.decision, btn.dataset.decision);
+      promptInput.focus();
+    });
+  });
+
+  $("hoja-prev").addEventListener("click", () => showPage(state.page - 1));
+  $("hoja-next").addEventListener("click", () => showPage(state.page + 1));
+  const closeBtn = $("hoja-close");
+  if (closeBtn) closeBtn.addEventListener("click", hidePages);
+
+  window.addEventListener("resize", () => paint());
 
   setFuentes([
     "cuento-el-condor-y-el-huemul.md",
     "bases-oa-lenguaje-4b.md",
-    "pauta-lectura.md",
-    "vocabulario-algebra.md",
-    "ejemplos-sistemas-resueltos.md",
+    "notas-curso.md",
+    "vocabulario-unidad.md",
   ]);
   clearDerivado();
   hidePages();
 
-  $("tui-shot").addEventListener("load", () => paint());
-  $("tui-shot").addEventListener("error", () => paintLive(frameData()));
-  const start = () => {
-    paint();
-  };
   loadFrames().finally(() => {
-    start();
+    paint();
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => start()).catch(() => {});
+      document.fonts.ready.then(() => paint()).catch(() => {});
     }
-    window.setTimeout(() => {
-      if (state.auto) autoplay();
-    }, 900);
+    setTimeout(() => {
+      promptInput.focus();
+    }, 150);
   });
 })();

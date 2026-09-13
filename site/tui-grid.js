@@ -543,11 +543,13 @@
     probe.remove();
     const ratioW = box.width / 8 / 10;
     const ratioH = box.height / 10;
-    const hostBox = host.getBoundingClientRect();
+    const { maxW, maxH } = viewportBudget();
+    const targetW = Math.max(280, maxW - 24);
+    const targetH = Math.max(240, maxH - 24);
     const fs = Math.max(
-      8,
+      7,
       Math.floor(
-        Math.min(hostBox.width / (cols * ratioW), hostBox.height / (rows * ratioH)) * 0.992,
+        Math.min(targetW / (cols * ratioW), targetH / (rows * ratioH)) * 0.98,
       ),
     );
     const cellW = fs * ratioW;
