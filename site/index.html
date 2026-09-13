@@ -99,7 +99,7 @@
       <p class="judge-legend-title">
         <strong>tero</strong> — a conversational teacher agent for Chilean classrooms
         <span class="judge-legend-motto">tus fuentes, tu criterio</span>
-        <span class="judge-legend-stack">AWS Strands Agents · Amazon Bedrock · OpenTUI</span>
+        <span class="judge-legend-stack">AWS Strands Multi-Agent Graph · OpenTelemetry · Amazon Bedrock · OpenTUI</span>
       </p>
       <p class="judge-legend-body">
         Type a message above and watch the real terminal. It understands the intent:
@@ -170,12 +170,14 @@
       <p>El tero avisa. Tú decides. Vanellus chilensis · queltehue. asistente pedagógico.</p>
       <p>
         Conversa: lee fuentes/, responde lo que le preguntas, propone material
-        nuevo y adapta el existente. Antes de escribir muestra qué va a hacer y
+        nuevo y adapta el existente. Orquestado con Strands Multi-Agent Graph y
+        trazas nativas de OpenTelemetry. Antes de escribir muestra qué va a hacer y
         la vista previa, y espera tu aprobación (y, o «dale» en el hilo). El
         modelo nunca escribe archivos: escribe el host, en derivados/. No toca
         los originales. El modelo de esta sesión es tero-offline: un Strands
         Model scripted, no un Bedrock disfrazado. AgentCore no es el producto.
-        Default README: amazon.nova-lite-v1:0.
+        Default README: amazon.nova-lite-v1:0 (con ModelRouter fallback y soporte
+        para zai.glm-4.7-flash y minimax.minimax-m2.5).
       </p>
       <p>python -m tero demo --offline --yes</p>
       <p>
@@ -184,7 +186,7 @@
       <div class="judge-context" lang="en">
         <p><strong>Agents for Humans AWS Hackathon — Judge Context:</strong></p>
         <p>
-          tero is a conversational teacher agent built on the <strong>AWS Strands Agents SDK</strong> and <strong>Amazon Bedrock</strong> for Chilean K-12 classrooms.
+          tero is a conversational teacher agent built on the <strong>AWS Strands Agents SDK (Multi-Agent Graph &amp; OpenTelemetry)</strong> and <strong>Amazon Bedrock Model Trio</strong> for Chilean K-12 classrooms.
           The model never writes files directly: it explores local dossiers (<code>fuentes/</code>) and queries the official MINEDUC curriculum database (<em>begonia</em>), proposing lesson plans and special education (Decreto 83 NEE) accommodations in memory. The teacher approves conversationally (e.g. saying <em>«dale»</em> or pressing <em>y</em>), and only host-side code writes to <code>derivados/</code>. Protected by Chile's Ley 21.719 student privacy guard.
         </p>
       </div>

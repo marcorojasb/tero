@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "capture": "bun scripts/capture-frames.ts && python3 scripts/rasterize-frames.py && python3 scripts/compose-og.py",
+    "capture": "bun scripts/capture-frames.ts && (${VIRTUAL_ENV:-../.venv}/bin/python scripts/rasterize-frames.py 2>/dev/null || python3 scripts/rasterize-frames.py) && (${VIRTUAL_ENV:-../.venv}/bin/python scripts/compose-og.py 2>/dev/null || python3 scripts/compose-og.py)",
     "capture:live": "python3 scripts/screenshot-frames.py && python3 scripts/compose-og.py",
     "start": "bun src/index.ts",
     "test": "bun test src"

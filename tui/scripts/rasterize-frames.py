@@ -20,18 +20,41 @@ FRAMES = HERE.parents[1] / "site" / "assets" / "tui" / "frames"
 # el sistema y, si falta, donde el usuario instaló la fuente (TERO_TUI_FONT_DIR).
 FONT_DIRS = [
     Path(os.environ["TERO_TUI_FONT_DIR"]) if os.environ.get("TERO_TUI_FONT_DIR") else None,
+    Path.home() / "Library/Fonts",
+    Path("/Library/Fonts"),
+    Path("/System/Library/Fonts"),
     Path("/usr/share/fonts/truetype/jetbrains-mono"),
     Path.home() / ".local/share/fonts/jetbrains-mono",
+    Path("/usr/share/fonts/truetype/dejavu"),
 ]
+
+_FONT_ALIASES: dict[str, tuple[str, ...]] = {
+    "JetBrainsMono-Regular.ttf": (
+        "JetBrainsMono-Regular.ttf",
+        "JetBrainsMonoNerdFont-Regular.ttf",
+        "JetBrainsMonoNLNerdFont-Regular.ttf",
+        "Menlo.ttc",
+        "DejaVuSansMono.ttf",
+    ),
+    "JetBrainsMono-Bold.ttf": (
+        "JetBrainsMono-Bold.ttf",
+        "JetBrainsMonoNerdFont-Bold.ttf",
+        "JetBrainsMonoNLNerdFont-Bold.ttf",
+        "Menlo.ttc",
+        "DejaVuSansMono-Bold.ttf",
+    ),
+}
 
 
 def find_font(name: str) -> Path:
+    candidates = _FONT_ALIASES.get(name, (name,))
     for folder in FONT_DIRS:
         if folder is None:
             continue
-        candidate = folder / name
-        if candidate.is_file():
-            return candidate
+        for candidate_name in candidates:
+            candidate = folder / candidate_name
+            if candidate.is_file():
+                return candidate
     tried = ", ".join(str(f) for f in FONT_DIRS if f)
     raise SystemExit(
         f"falta {name} en {tried}\n"
