@@ -15,9 +15,9 @@ How not to overspend: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 - [ ] AWS Builder ID: <https://profile.aws.amazon.com>
 - [ ] Paste Devpost text: [DEVPOST.md](DEVPOST.md)
 - [ ] Upload diagram: [architecture.png](architecture.png)
-- [ ] Video ≤ 5 min (public YouTube or Vimeo): [VIDEO.md](VIDEO.md)
-- [ ] Live demo: <https://marcorojasb.github.io/tero/> (if 404, enable Pages)
-- [ ] Bonus post: [BUILDER-POST.md](BUILDER-POST.md)
+- [x] Video ≤ 5 min (public YouTube): <https://www.youtube.com/watch?v=bNAf-q34lg8>
+- [x] Live demo: <https://marcorojasb.github.io/tero/> (if 404, enable Pages)
+- [x] Bonus post on Builder Center: <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 
 ## Files
 

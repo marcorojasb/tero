@@ -6,6 +6,10 @@ Built with: **Strands Agents SDK (Python)** + Amazon Bedrock (Nova Lite, GLM 4.7
 
 Live demo: https://marcorojasb.github.io/tero/
 
+Video demo: https://www.youtube.com/watch?v=bNAf-q34lg8
+
+AWS Builder post: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
+
 Repo: https://github.com/marcorojasb/tero
 
 Builder ID: *(the email you used at https://profile.aws.amazon.com)*
@@ -99,8 +103,10 @@ See `docs/hackathon/architecture.png` (upload this to Devpost) and `ARCHITECTURE
 Strands Agents SDK, Amazon Bedrock, Amazon Nova Lite, Amazon Nova, Python, OpenTUI, Bun, AWS IAM, AWS Budgets
 
 ## Try it out
-
-https://marcorojasb.github.io/tero/
+ 
+- Live interactive demo: https://marcorojasb.github.io/tero/
+- Video demo (YouTube): https://www.youtube.com/watch?v=bNAf-q34lg8
+- AWS Builder Center article: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
 
 ```
 python -m tero demo --offline --yes

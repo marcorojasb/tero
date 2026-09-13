@@ -25,8 +25,9 @@ A conversational AI teacher agent for Chilean K-12 classrooms. **Strands Agents*
 
 **[Live demo](https://marcorojasb.github.io/tero/)** (if it 404s on a fresh fork,
 enable it once in [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages),
-source **GitHub Actions**) · **[Judge quickstart](docs/hackathon/JUDGES-EN.md)** ·
-**[Benchmark paper](docs/EVALUATION-PAPER.md)** · MIT
+source **GitHub Actions**) · **[Video demo](https://www.youtube.com/watch?v=bNAf-q34lg8)** ·
+**[Builder post](https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock)** ·
+**[Judge quickstart](docs/hackathon/JUDGES-EN.md)** · **[Benchmark paper](docs/EVALUATION-PAPER.md)** · MIT
 
 ![tero OpenTUI home](site/assets/tero-og.png)
 

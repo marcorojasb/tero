@@ -284,13 +284,15 @@ ruff MIT), compatible with this repo's MIT license.
 
 ---
 
-## 9. Live demo
+## 9. Live demo & Submission links
 
 - **Public page:** <https://marcorojasb.github.io/tero/> — the real OpenTUI,
   virtualized in **one** window. It simulates the conversational scenes (inquiry,
   creation, NEE adaptation, Fila B) and shows the photocopied pages the host writes
   into `derivados/`. The in-browser model is labeled `tero-offline`; it does not
   fake Bedrock.
+- **Video walkthrough (YouTube):** <https://www.youtube.com/watch?v=bNAf-q34lg8>
+- **AWS Builder Center post:** <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 - **Repository:** <https://github.com/marcorojasb/tero> (MIT).
 - **Benchmark paper:** `docs/EVALUATION-PAPER.md`.
 - **Protocol spec:** `docs/CONVERSACIONAL.md`.
