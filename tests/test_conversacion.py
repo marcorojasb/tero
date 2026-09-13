@@ -205,14 +205,6 @@ def test_revision_de_una_edicion_mantiene_el_origen(workspace: Workspace):
     assert propuesta.origen == ruta
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BUG host: `pedir_cambio` sobre una propuesta `adaptar` la convierte en `crear` "
-        "sin origen. `offline._next_action` solo ramifica para intent == 'editar'; "
-        "`_intent` sí devuelve 'adaptar', así que la revisión NEE pierde acción y origen."
-    ),
-)
 def test_revision_de_una_adaptacion_conserva_la_accion(workspace: Workspace):
     origen = crear_y_aprobar(workspace)
     ruta = rel(workspace, origen)

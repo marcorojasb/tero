@@ -70,11 +70,9 @@ class Workspace:
         target = self._safe_join(relative)
         if not target.exists() or not target.is_file():
             raise WorkspaceError(f"Fuente no encontrada: {relative}")
-        if self.is_write_allowed(target) and target.parts[-2:] and "fuentes" not in target.parts:
-            # derivados/borradores are not sources
-            rel = self._relative(target).as_posix()
-            if rel.startswith(("derivados/", "borradores/", ".tero/")):
-                raise WorkspaceError(f"Eso no es una fuente original: {relative}")
+        rel_path = self._relative(target).as_posix()
+        if rel_path.startswith(("derivados/", "borradores/", ".tero/")):
+            raise WorkspaceError(f"Eso no es una fuente original: {relative}")
         if self._sensitive_reason(target):
             raise WorkspaceError(privacy.BLOCKED_MESSAGE, code=privacy.WARNING_CODE)
         return target

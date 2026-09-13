@@ -32,7 +32,7 @@ from tero.evidence import (
     verify_evidence,
 )
 from tero.latex.schemas import enrich_payload_from_markdown, parse_payload_json
-from tero.sanitize import strip_tool_traces_value
+from tero.sanitize import scrub_ficha_text, strip_tool_traces_value
 from tero.types import (
     ArtifactDraft,
     ArtifactType,
@@ -749,8 +749,9 @@ def _draft_from_args(
             continue
         seen.add(key)
         merged.append(checked)
+    cuerpo = scrub_ficha_text(vista_previa_markdown or "")
     schema = parse_payload_json(parsed.value, payload_json)
-    schema = enrich_payload_from_markdown(parsed.value, schema, vista_previa_markdown)
+    schema = enrich_payload_from_markdown(parsed.value, schema, cuerpo)
     schema = strip_tool_traces_value(schema)
     if schema:
         _fill_payload_from_encargo(schema, ctx.encargo)
@@ -758,7 +759,7 @@ def _draft_from_args(
     return ArtifactDraft(
         tipo=parsed,
         titulo=titulo.strip() or parsed.label,
-        cuerpo_markdown=vista_previa_markdown,
+        cuerpo_markdown=cuerpo,
         evidencias=merged,
         payload=schema,
         banco_snapshot=banco_snap,

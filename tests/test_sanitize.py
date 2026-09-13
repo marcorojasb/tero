@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from tero.artifacts import materialize_markdown
 from tero.export import export_latex
 from tero.latex.schemas import repair_payload
@@ -80,15 +78,6 @@ def test_proponer_crear_limpia_el_payload_y_el_archivo_escrito(workspace: Worksp
     assert "cite_evidence" not in md
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BUG host: `proponer_crear`/`proponer_editar` guardan la vista previa sin pasar por "
-        "`scrub_ficha_text`, así que el evento `propuesta` (y `as_dict()['vista_previa']`) "
-        "muestra rastros de tools en pantalla. El salvage sí limpia y el archivo escrito "
-        "también (materialize_markdown scrubea), pero la vista previa no."
-    ),
-)
 def test_la_vista_previa_no_muestra_rastros_de_tools(workspace: Workspace):
     ctx = TurnContext(workspace=workspace, encargo=Encargo(oa="OA 4"))
     tools = {t.tool_name: t for t in build_tools(ctx)}

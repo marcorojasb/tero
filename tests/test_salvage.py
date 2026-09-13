@@ -182,14 +182,6 @@ def test_missing_section_headings_no_se_deja_enganar_por_prosa():
     assert missing_section_headings(ArtifactType.GUIA, "# Guía\n\n## Propósito\nLeer.\n")
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BUG host: el salvage de prosa exige titulares para TODAS las secciones (tolera 1). "
-        "Una ficha real escrita con `## Ítem 1:` / `**Propósito:**` deja 2–3 secciones sin "
-        "titular, así que el host la trata como charla y no la rescata."
-    ),
-)
 @pytest.mark.parametrize(
     ("blob", "tipo"),
     [

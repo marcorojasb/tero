@@ -73,7 +73,7 @@ class OfflineModel(Model):
             if "list_sources" in available and "list_sources" not in called:
                 return {"tool": "list_sources", "input": {}}
             return {"text": _scripted_answer(len(listed))}
-        if intent == "editar":
+        if intent in {"editar", "adaptar"}:
             return self._next_edit_action(messages, available, called, listed, reads)
         if "list_sources" in available and "list_sources" not in called:
             return {"tool": "list_sources", "input": {}}
@@ -256,6 +256,9 @@ def _intent(prompt: str, encargo: Encargo) -> str:
 
 def _accion_from_text(prompt: str) -> str:
     folded = (prompt or "").lower()
+    match = re.search(r"acci[oó]n esperada:\s*(crear|editar|adaptar)", folded)
+    if match:
+        return match.group(1)
     if any(hint in folded for hint in ("nee", "dua", "adapta", "adaptar", "inclusi")):
         return "adaptar"
     return "editar"
@@ -286,7 +289,13 @@ def _artifact_from_messages(messages: Messages) -> str:
 
 
 def _artifact_from_user_text(messages: Messages) -> str:
-    blob = " ".join(_last_user_text(messages).split())
+    user_text = _last_user_text(messages)
+    match = re.search(r"origen:\s*([^\s]+)", user_text, flags=re.IGNORECASE)
+    if match:
+        cleaned = match.group(1).strip(".,;:()[]")
+        if cleaned.startswith(("derivados/", "borradores/")) and cleaned.endswith(".md"):
+            return cleaned
+    blob = " ".join(user_text.split())
     for token in blob.split():
         cleaned = token.strip(".,;:()[]")
         if cleaned.startswith(("derivados/", "borradores/")) and cleaned.endswith(".md"):

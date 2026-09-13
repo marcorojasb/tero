@@ -85,9 +85,21 @@ def parse_evidence_blob(raw: str | list[dict[str, Any]] | None) -> list[Evidence
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError:
-            return [
-                Evidence(path="(sin parsear)", snippet=str(raw)[:240], seccion=""),
-            ]
+            # Rescate: si el modelo truncó el array JSON, intentar extraer los objetos completos
+            salvaged: list[dict[str, Any]] = []
+            for match in re.finditer(r"\{[^{}]*\}", raw):
+                try:
+                    obj = json.loads(match.group(0))
+                    if isinstance(obj, dict) and ("path" in obj or "snippet" in obj):
+                        salvaged.append(obj)
+                except Exception:
+                    continue
+            if salvaged:
+                payload = salvaged
+            else:
+                return [
+                    Evidence(path="(sin parsear)", snippet=str(raw)[:240], seccion=""),
+                ]
     items: list[Evidence] = []
     if not isinstance(payload, list):
         return items

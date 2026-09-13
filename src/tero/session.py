@@ -391,9 +391,11 @@ class TeacherSession:
                 "note": pedido,
             }
         )
+        origen_line = f"ORIGEN: {propuesta.origen}\n" if propuesta.origen else ""
         follow = (
             f"La persona revisó tu propuesta y pide cambios: {pedido}\n"
-            f"ACCIÓN ESPERADA: {propuesta.accion}\n\n"
+            f"ACCIÓN ESPERADA: {propuesta.accion}\n"
+            f"{origen_line}\n"
             f"Propuesta anterior ({propuesta.tipo.label} · {propuesta.titulo}):\n"
             f"{propuesta.vista_previa[:6000]}\n\n"
             "Entrega la versión corregida con proponer_crear o proponer_editar. "

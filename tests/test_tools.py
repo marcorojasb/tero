@@ -93,14 +93,6 @@ def test_read_source_no_deja_leer_derivados(workspace: Workspace):
     assert "no es una fuente original" in str(caught.value)
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BUG host: `Workspace.resolve_source` decide con `target.parts` de la ruta ABSOLUTA, "
-        "así que basta que un directorio padre se llame `fuentes` para que el guard de "
-        "derivados/ se desactive y `read_source` devuelva material derivado como fuente."
-    ),
-)
 def test_read_source_no_deja_leer_derivados_si_un_padre_se_llama_fuentes(tmp_path):
     import shutil
 

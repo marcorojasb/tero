@@ -48,16 +48,24 @@ def missing_headings(tipo: ArtifactType, markdown: str) -> list[str]:
 
 
 def missing_section_headings(tipo: ArtifactType, markdown: str) -> list[str]:
-    """Como `missing_headings`, pero solo mira titulares markdown.
+    """Como `missing_headings`, pero solo mira titulares markdown y destacados de inicio de línea.
 
     `missing_headings` busca substrings en todo el texto, así que una respuesta
     conversacional que *menciona* "inicio, desarrollo y cierre" parecería una ficha.
     Aquí solo cuentan los titulares reales.
     """
-    heads = [
-        match.group(1).strip().lower()
-        for match in re.finditer(r"^#{1,6}\s+(.+)$", markdown, flags=re.MULTILINE)
-    ]
+    heads: list[str] = []
+    for line in (markdown or "").splitlines():
+        line_s = line.strip()
+        m_atx = re.match(r"^#{1,6}\s+(.+)$", line_s)
+        if m_atx:
+            heads.append(m_atx.group(1).strip().lower())
+            continue
+        m_bold = re.match(r"^\*\*([^*#\n]+?)\*\*[:\s]*(.*)$", line_s)
+        if m_bold:
+            heading_name = m_bold.group(1).rstrip(":").strip().lower()
+            rest = m_bold.group(2).strip().lower()
+            heads.append(f"{heading_name} {rest}".strip())
     blob = " | ".join(heads)
     missing: list[str] = []
     for heading in REQUIRED_HEADINGS[tipo]:
@@ -76,9 +84,9 @@ def _heading_variants(heading: str) -> tuple[str, ...]:
         "evaluación": ("evaluación", "evaluacion"),
         "propósito": ("propósito", "proposito", "purpose"),
         "instrucciones": ("instrucciones",),
-        "actividades": ("actividades", "actividad"),
-        "ítems": ("ítems", "items", "preguntas"),
-        "puntaje": ("puntaje", "puntaje total", "puntos"),
+        "actividades": ("actividades", "actividad", "desarrollo"),
+        "ítems": ("ítems", "items", "preguntas", "ítem", "item"),
+        "puntaje": ("puntaje", "puntaje total", "puntos", "pto", "ptos"),
         "criterios": ("criterios", "criterio"),
         "niveles": ("niveles", "nivel"),
         "descriptores": ("descriptores", "descriptor"),
