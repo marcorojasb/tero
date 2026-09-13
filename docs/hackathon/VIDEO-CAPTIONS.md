@@ -28,8 +28,10 @@ reads as a different product.
 | 8 | Photocopied sheet | rendered LaTeX pages | **A page for tomorrow's class** |
 | 9 | Intent c: adapt | `apoyos y criterios NEE`, `origen` | **Adapt for NEE, Decreto 83** |
 | 10 | After adaptation | new file; base untouched | **A new version. The original stays.** |
-| 11 | Live Bedrock take | `amazon.nova-lite-v1:0` | **Live on Amazon Bedrock** |
-| 12 | Close | `tero` · `MIT · github.com/marcorojasb/tero` | **Strands Agents. MIT. Open source.** |
+| 11 | Diagnostics take | `check-aws --all-models` · 3 models ok | **Bedrock Model Trio verified** |
+| 12 | Live Bedrock take | `amazon.nova-lite-v1:0` · `ModelRouter` | **Live on Amazon Bedrock** |
+| 13 | Multi-agent & traces | `Strands Multi-Agent Graph` · OTel | **Multi-Agent Graph & OpenTelemetry** |
+| 14 | Close | `tero` · `MIT · github.com/marcorojasb/tero` | **Strands Agents. MIT. Open source.** |
 
 ## Cover captions
 
@@ -41,8 +43,10 @@ One line each, English, no colon-soup and no sentence fragments:
 | Thesis | `The agent proposes. The teacher decides.` |
 | Privacy | `Student data never reaches the model` |
 | Curriculum | `Grounded in the official MINEDUC bank` |
+| Multi-Agent | `Strands Multi-Agent Graph with Quality Auditing` |
 | Offline take | `Scripted model — not a Bedrock call` |
-| Live take | `Live: amazon.nova-lite-v1:0` |
+| Model Trio | `Bedrock Model Trio: Nova Lite, GLM 4.7, MiniMax` |
+| Live take | `Live: amazon.nova-lite-v1:0 + ModelRouter` |
 | Closing | `Your sources, your judgment` |
 
 ## Avoid

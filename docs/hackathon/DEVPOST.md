@@ -2,7 +2,7 @@
 
 Track: **Professional Agents**
 
-Built with: **Strands Agents SDK (Python)** + Amazon Bedrock (Nova Lite, GLM 4.7 Flash, MiniMax M2.5) + OpenTUI.
+Built with: **Strands Agents SDK (Python, Multi-Agent Graph + OpenTelemetry)** + Amazon Bedrock (Nova Lite, GLM 4.7 Flash, MiniMax M2.5) + OpenTUI.
 
 Live demo: https://marcorojasb.github.io/tero/
 
@@ -45,8 +45,8 @@ Chilean teachers (4°–6° básico in the current catalog) who already have sou
 ### How it works
 
 1. The OpenTUI shell (Bun, `@opentui/core`) talks to `python -m tero bridge` over one JSON object per line.
-2. A **Strands** `Agent` calls host tools only: `list_sources` / `search_sources` / `read_source` / `list_artifacts` / `read_artifact` (sandboxed, SHA-256 indexed), the Chile OA catalog (`list_oa` / `get_oa` / `search_oa`), the official curriculum bank (`buscar_banco` / `leer_item_banco` / `orientaciones_banco`), `cite_evidence`, and the in-memory `proponer_crear` / `proponer_editar`.
-3. Live path: Amazon Bedrock (`amazon.nova-lite-v1:0` by default) in `us-east-1` via `BedrockModel`. Offline path: a real Strands `Model` labeled **`tero-offline`** — scripted on purpose, not a fake Bedrock call.
+2. A **Strands Multi-Agent Graph** (`strands.multiagent.GraphBuilder`) coordinates the turn between a drafting agent (`pedagogical_drafter`) and a quality validation agent (`quality_gate_auditor`), instrumented with native **OpenTelemetry** traces (`StrandsTelemetry`). The agents call host tools only: `list_sources` / `search_sources` / `read_source` / `list_artifacts` / `read_artifact` (sandboxed, SHA-256 indexed), the Chile OA catalog (`list_oa` / `get_oa` / `search_oa`), the official curriculum bank (`buscar_banco` / `leer_item_banco` / `orientaciones_banco`), `cite_evidence`, and the in-memory `proponer_crear` / `proponer_editar`.
+3. Live path: Amazon Bedrock with `ModelRouter` and `FallbackStrategy` (`amazon.nova-lite-v1:0` with failover to `us.amazon.nova-lite-v1:0`, plus `zai.glm-4.7-flash` and `minimax.minimax-m2.5` for multi-model workflows). Offline path: a real Strands `Model` labeled **`tero-offline`** — scripted on purpose, not a fake Bedrock call.
 4. **Nothing is written without explicit human approval.** Approval is conversational: the host classifies the teacher's reply (`tero.approval`) into approve / change / discard / ask, and only `tero.gate.write_approved()` touches disk, only under `derivados/`.
 5. The host salvages prose if the model forgets the tool, caps tool use per turn, verifies every citation against the real file or the bank, and shows non-blocking warnings. Warnings **never block** the teacher.
 6. Export is markdown / docx / LaTeX filled from JSON schemas — the model never emits TeX.
@@ -67,12 +67,13 @@ Amazon Bedrock AgentCore is **not** the product. A managed harness playground ca
 
 ### AWS used
 
-- Amazon Bedrock (`amazon.nova-lite-v1:0`, plus `zai.glm-4.7-flash` and `minimax.minimax-m2.5` for the quality loop) — inference
-- Strands Agents SDK — agent loop and tool orchestration
-- IAM (least privilege `InvokeModel*`)
+- Amazon Bedrock Model Trio (`amazon.nova-lite-v1:0`, `zai.glm-4.7-flash`, `minimax.minimax-m2.5`) with `ModelRouter` and regional fallback
+- Strands Agents SDK — Multi-Agent Graph (`GraphBuilder`), `ModelRouter`, and `StrandsTelemetry` (OpenTelemetry instrumentation)
+- IAM (least privilege `InvokeModel*` policy: `docs/hackathon/iam-bedrock-minimo.json`)
+- CLI model diagnostic tool: `python -m tero check-aws --all-models`
 - Optional: AWS Budgets so Free Tier credits are not a surprise
 
-No Lambda-as-the-agent, no S3-as-the-folder, no multi-agent A2A.
+No Lambda-as-the-agent, no S3-as-the-folder.
 
 ### Run it (offline, no keys)
 
@@ -86,7 +87,7 @@ python -m tero demo --offline --yes
 
 TUI (needs Bun): `python -m tero tui --offline`
 
-Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`. Nova Lite auto-enables on first invoke in us-east-1 (no Model access page).
+Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`. Verify with `python -m tero check-aws --all-models`. Nova Lite auto-enables on first invoke in us-east-1 (no Model access page).
 
 ### Disclosure
 
@@ -100,7 +101,7 @@ See `docs/hackathon/architecture.png` (upload this to Devpost) and `ARCHITECTURE
 
 ## Built with (checkboxes / tags)
 
-Strands Agents SDK, Amazon Bedrock, Amazon Nova Lite, Amazon Nova, Python, OpenTUI, Bun, AWS IAM, AWS Budgets
+Strands Agents SDK, Multi-Agent Graph, OpenTelemetry, Amazon Bedrock, Amazon Nova Lite, Amazon Nova, GLM 4.7 Flash, MiniMax M2.5, Python, OpenTUI, Bun, AWS IAM, AWS Budgets
 
 ## Try it out
  

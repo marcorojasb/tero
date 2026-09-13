@@ -4,7 +4,7 @@
   <rect width="1680" height="880" fill="#070B0C"/>
   <text x="48" y="54" fill="#22D3EE" font-family="Inter, sans-serif" font-size="34" font-weight="700">tero</text>
   <text x="128" y="52" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="20">your sources, your judgment - the agent proposes, the educator decides</text>
-  <text x="48" y="88" fill="#94A8AA" font-family="Inter, sans-serif" font-size="15">One turn: the teacher writes in Spanish, tero reads the folder and the official curriculum bank, Bedrock drafts, the teacher approves - and only then does the host write.</text>
+  <text x="48" y="88" fill="#94A8AA" font-family="Inter, sans-serif" font-size="15">One turn: teacher writes in Spanish, tero reads local sources &amp; MINEDUC bank, Strands Multi-Agent Graph drafts &amp; audits, teacher approves &#8212; only then does host write.</text>
 
   <defs>
     <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#22D3EE"/></marker>
@@ -16,7 +16,7 @@
   <line x1="448" y1="216" x2="552" y2="216" stroke="#22D3EE" stroke-width="3" marker-end="url(#a)"/>
   <text x="464" y="206" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">message</text>
   <line x1="560" y1="272" x2="456" y2="272" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
-  <text x="464" y="296" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">proposal</text>
+  <text x="464" y="296" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">proposal + audit</text>
   <line x1="1080" y1="216" x2="1184" y2="216" stroke="#FB923C" stroke-width="3" marker-end="url(#c)"/>
   <text x="1094" y="206" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">prompt</text>
   <line x1="1192" y1="272" x2="1088" y2="272" stroke="#86EFAC" stroke-width="3" marker-end="url(#b)"/>
@@ -29,26 +29,34 @@
   <text x="72" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;dale&#8221; / y &#8594; approve</text>
   <text x="72" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;no, gracias&#8221; &#8594; discard</text>
   <text x="72" y="282" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">&#8220;mejor para 2&#176; b&#225;sico&#8221; &#8594; revise</text>
-  <rect x="72" y="310" width="126" height="32" rx="8" fill="#14532D"/><text x="84" y="332" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">y  approve</text>
-  <rect x="208" y="310" width="126" height="32" rx="8" fill="#581C1C"/><text x="220" y="332" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="15" font-weight="600">n  discard</text>
-  <text x="72" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Sees the warnings and the full preview first.</text>
+  <rect x="72" y="316" width="112" height="28" rx="6" fill="#14532D"/><text x="84" y="335" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">y  approve</text>
+  <rect x="196" y="316" width="112" height="28" rx="6" fill="#581C1C"/><text x="208" y="335" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">n  discard</text>
+  <text x="72" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Sees warnings, quality audit and preview first.</text>
 
   <rect x="560" y="120" width="520" height="290" rx="16" fill="#0C1214" stroke="#2A3E42"/>
   <rect x="560" y="120" width="6" height="290" fill="#86EFAC"/>
   <text x="584" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">tero  &#183;  Strands Agents</text>
-  <text x="584" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">Reads the folder. Never touches the originals.</text>
-  <text x="584" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Queries the official curriculum bank.</text>
-  <text x="584" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">Proposes in memory: plan / guide / test / rubric.</text>
-  <text x="584" y="282" fill="#86EFAC" font-family="Inter, sans-serif" font-size="17">No write tool exists in the registry.</text>
+  <text x="584" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">Multi-agent Graph (GraphBuilder)</text>
+  <text x="584" y="224" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">&#8226; pedagogical_drafter node</text>
+  <text x="584" y="250" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">&#8226; quality_gate_auditor node</text>
+  <text x="584" y="276" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">StrandsTelemetry (OTel traces)</text>
+  <text x="584" y="302" fill="#86EFAC" font-family="Inter, sans-serif" font-size="16">In-memory proposal gate. Zero write tools.</text>
+  <rect x="584" y="320" width="168" height="28" rx="6" fill="#0F3C50"/><text x="594" y="339" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">Graph Orchestration</text>
+  <rect x="760" y="320" width="116" height="28" rx="6" fill="#1E2D55"/><text x="770" y="339" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">OTel Tracing</text>
+  <text x="584" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Cycle-safe state machine. Reads SHA-checked fuentes/.</text>
 
   <rect x="1192" y="120" width="440" height="290" rx="16" fill="#0C1214" stroke="#2A3E42"/>
   <rect x="1192" y="120" width="6" height="290" fill="#FB923C"/>
-  <text x="1216" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock</text>
-  <text x="1216" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="17">amazon.nova-lite-v1:0</text>
-  <text x="1216" y="226" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">us-east-1 &#183; serverless</text>
-  <text x="1216" y="254" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">infers text only</text>
-  <text x="1216" y="282" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">the folder never leaves the machine</text>
-  <text x="1216" y="310" fill="#94A8AA" font-family="Inter, sans-serif" font-size="17">no keys &#8594; tero-offline (scripted)</text>
+  <text x="1216" y="162" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock (Model Trio)</text>
+  <text x="1216" y="198" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="16">amazon.nova-lite-v1:0 (default router)</text>
+  <text x="1216" y="224" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">zai.glm-4.7-flash (Decreto 83 / NEE)</text>
+  <text x="1216" y="250" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">minimax.minimax-m2.5 (rubrics / tests)</text>
+  <text x="1216" y="276" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">ModelRouter + FallbackStrategy</text>
+  <text x="1216" y="302" fill="#94A8AA" font-family="Inter, sans-serif" font-size="16">no keys &#8594; tero-offline (real Model)</text>
+  <rect x="1216" y="320" width="92" height="28" rx="6" fill="#503214"/><text x="1226" y="339" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">Nova Lite</text>
+  <rect x="1316" y="320" width="118" height="28" rx="6" fill="#46283C"/><text x="1326" y="339" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">GLM 4.7 Flash</text>
+  <rect x="1442" y="320" width="114" height="28" rx="6" fill="#1E3C28"/><text x="1452" y="339" fill="#F4F1DE" font-family="Inter, sans-serif" font-size="13" font-weight="600">MiniMax M2.5</text>
+  <text x="1216" y="372" fill="#94A8AA" font-family="Inter, sans-serif" font-size="13">Infers text only. Local folder never leaves device.</text>
 
   <line x1="820" y1="410" x2="820" y2="492" stroke="#FBBF24" stroke-width="3" marker-end="url(#d)"/>
   <text x="834" y="440" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13">reads fuentes/ (hash)</text>

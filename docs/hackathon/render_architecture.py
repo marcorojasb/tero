@@ -38,28 +38,61 @@ PX, PY, PW, PH = 48, 120, 400, 290
 TX, TY, TW, TH = 560, 120, 520, 290
 AX, AY, AW, AH = 1192, 120, 440, 290
 
-FX, FY, FW, FH = 560, 500, 520, 300   # carpeta de trabajo (host writes here)
-BX, BY, BW, BH = 48, 500, 400, 300    # banco begonia (official curriculum)
+FX, FY, FW, FH = 560, 500, 520, 300  # carpeta de trabajo (host writes here)
+BX, BY, BW, BH = 48, 500, 400, 300  # banco begonia (official curriculum)
 LX, LY, LW, LH = 1192, 500, 440, 300  # privacidad (Ley 21.719)
 
-# Font resolution: Inter/JetBrains when present, DejaVu otherwise.
+# Font resolution: Inter/JetBrains when present, DejaVu or macOS system fonts otherwise.
 _FONT_DIRS = (
+    Path.home() / "Library/Fonts",
+    Path("/Library/Fonts"),
+    Path("/System/Library/Fonts"),
+    Path("/System/Library/Fonts/Supplemental"),
     Path("/usr/share/fonts/truetype/macos"),
     Path("/usr/share/fonts/truetype/jetbrains-mono"),
     Path("/usr/share/fonts/truetype/inter"),
     Path.home() / ".local/share/fonts",
-    Path.home() / "Library/Fonts",
     Path("/usr/share/fonts/truetype/dejavu"),
     Path("/usr/share/fonts"),
 )
 
 _FALLBACKS: dict[str, tuple[str, ...]] = {
-    "Inter-Bold.ttf": ("DejaVuSans-Bold.ttf",),
-    "Inter-SemiBold.ttf": ("DejaVuSans-Bold.ttf",),
-    "Inter-Medium.ttf": ("DejaVuSans-Bold.ttf",),
-    "Inter-Regular.ttf": ("DejaVuSans.ttf",),
-    "JetBrainsMono-Medium.ttf": ("DejaVuSansMono-Bold.ttf",),
-    "JetBrainsMono-Regular.ttf": ("DejaVuSansMono.ttf",),
+    "Inter-Bold.ttf": (
+        "SF-Pro-Text-Bold.otf",
+        "SF-Pro-Display-Bold.otf",
+        "Arial Bold.ttf",
+        "DejaVuSans-Bold.ttf",
+    ),
+    "Inter-SemiBold.ttf": (
+        "SF-Pro-Text-Semibold.otf",
+        "SF-Pro-Display-Semibold.otf",
+        "Arial Bold.ttf",
+        "DejaVuSans-Bold.ttf",
+    ),
+    "Inter-Medium.ttf": (
+        "SF-Pro-Text-Medium.otf",
+        "SF-Pro-Display-Medium.otf",
+        "Arial.ttf",
+        "DejaVuSans-Bold.ttf",
+    ),
+    "Inter-Regular.ttf": (
+        "SF-Pro-Text-Regular.otf",
+        "SF-Pro-Display-Regular.otf",
+        "Arial.ttf",
+        "DejaVuSans.ttf",
+    ),
+    "JetBrainsMono-Medium.ttf": (
+        "JetBrainsMonoNerdFont-Medium.ttf",
+        "JetBrainsMonoNerdFontMono-Medium.ttf",
+        "Menlo.ttc",
+        "DejaVuSansMono-Bold.ttf",
+    ),
+    "JetBrainsMono-Regular.ttf": (
+        "JetBrainsMonoNerdFont-Regular.ttf",
+        "JetBrainsMonoNerdFontMono-Regular.ttf",
+        "Menlo.ttc",
+        "DejaVuSansMono.ttf",
+    ),
 }
 
 
@@ -90,12 +123,18 @@ def card(draw: ImageDraw.ImageDraw, x, y, w, h, accent, title: str) -> None:
     draw.text((x + 24, y + 18), title, font=fnt("Inter-SemiBold.ttf", 24), fill=CREMA)
 
 
-def body(draw: ImageDraw.ImageDraw, x, y, lines: list[tuple[str, tuple[int, int, int]]]) -> None:
+def body(
+    draw: ImageDraw.ImageDraw,
+    x: int,
+    y: int,
+    lines: list[tuple[str, tuple[int, int, int]]],
+    step: int = 26,
+) -> None:
     yy = y
-    font = fnt("Inter-Regular.ttf", 17)
+    font = fnt("Inter-Regular.ttf", 16)
     for text, color in lines:
         draw.text((x, yy), text, font=font, fill=color)
-        yy += 28
+        yy += step
 
 
 def arrow_right(draw: ImageDraw.ImageDraw, x1: int, x2: int, y: int, color) -> None:
@@ -143,14 +182,14 @@ def chips(
     y: int,
     items: list[tuple[str, tuple[int, int, int]]],
 ) -> None:
-    font = fnt("Inter-SemiBold.ttf", 15)
+    font = fnt("Inter-SemiBold.ttf", 13)
     cx = x
     for text, bg in items:
         bbox = draw.textbbox((0, 0), text, font=font)
-        tw = bbox[2] - bbox[0] + 24
-        draw.rounded_rectangle((cx, y, cx + tw, y + 32), 8, fill=bg)
-        draw.text((cx + 12, y + 6), text, font=font, fill=CREMA)
-        cx += tw + 10
+        tw = bbox[2] - bbox[0] + 18
+        draw.rounded_rectangle((cx, y, cx + tw, y + 28), 6, fill=bg)
+        draw.text((cx + 9, y + 5), text, font=font, fill=CREMA)
+        cx += tw + 8
 
 
 def folder_row(
@@ -182,8 +221,8 @@ def render_png() -> Image.Image:
     )
     draw.text(
         (48, 74),
-        "One turn: the teacher writes in Spanish, tero reads the folder and the official curriculum bank, "
-        "Bedrock drafts, the teacher approves — and only then does the host write.",
+        "One turn: teacher writes in Spanish, tero reads local sources & MINEDUC bank, "
+        "Strands Multi-Agent Graph drafts & audits, teacher approves — only then does host write.",
         font=fnt("Inter-Regular.ttf", 15),
         fill=MUTED,
     )
@@ -193,23 +232,24 @@ def render_png() -> Image.Image:
     body(
         draw,
         PX + 24,
-        PY + 62,
+        PY + 58,
         [
             ("Types in natural Spanish", CREMA),
-            ("\"dale\" / y  →  approve", MUTED),
-            ("\"no, gracias\"  →  discard", MUTED),
-            ("\"mejor para 2° básico\" → revise", MUTED),
+            ('"dale" / y  →  approve', MUTED),
+            ('"no, gracias"  →  discard', MUTED),
+            ('"mejor para 2° básico" → revise', MUTED),
         ],
+        step=28,
     )
     chips(
         draw,
         PX + 24,
-        PY + 190,
+        PY + 196,
         [("y  approve", (20, 83, 45)), ("n  discard", (88, 28, 28))],
     )
     draw.text(
-        (PX + 24, PY + 240),
-        "Sees the warnings and the full preview first.",
+        (PX + 24, PY + 246),
+        "Sees warnings, quality audit and preview first.",
         font=fnt("Inter-Regular.ttf", 13),
         fill=MUTED,
     )
@@ -219,28 +259,59 @@ def render_png() -> Image.Image:
     body(
         draw,
         TX + 24,
-        TY + 62,
+        TY + 58,
         [
-            ("Reads the folder. Never touches the originals.", CREMA),
-            ("Queries the official curriculum bank.", MUTED),
-            ("Proposes in memory: plan / guide / test / rubric.", MUTED),
-            ("No write tool exists in the registry.", MENTA),
+            ("Multi-agent Graph (GraphBuilder)", CREMA),
+            ("• pedagogical_drafter node", MUTED),
+            ("• quality_gate_auditor node", MUTED),
+            ("StrandsTelemetry (OTel traces)", MUTED),
+            ("In-memory proposal gate. Zero write tools.", MENTA),
         ],
+        step=26,
+    )
+    chips(
+        draw,
+        TX + 24,
+        TY + 200,
+        [("Graph Orchestration", (15, 60, 80)), ("OTel Tracing", (30, 45, 85))],
+    )
+    draw.text(
+        (TX + 24, TY + 246),
+        "Cycle-safe state machine. Reads SHA-checked fuentes/.",
+        font=fnt("Inter-Regular.ttf", 13),
+        fill=MUTED,
     )
 
     # ---- Column 3: Bedrock
-    card(draw, AX, AY, AW, AH, ORANGE, "Amazon Bedrock")
+    card(draw, AX, AY, AW, AH, ORANGE, "Amazon Bedrock (Model Trio)")
     body(
         draw,
         AX + 24,
-        AY + 62,
+        AY + 58,
         [
-            ("amazon.nova-lite-v1:0", CREMA),
-            ("us-east-1 · serverless", MUTED),
-            ("infers text only", MUTED),
-            ("the folder never leaves the machine", MUTED),
-            ("no keys → tero-offline (scripted)", MUTED),
+            ("amazon.nova-lite-v1:0 (default router)", CREMA),
+            ("zai.glm-4.7-flash (Decreto 83 / NEE)", MUTED),
+            ("minimax.minimax-m2.5 (rubrics / tests)", MUTED),
+            ("ModelRouter + FallbackStrategy", MUTED),
+            ("no keys → tero-offline (real Model)", MUTED),
         ],
+        step=26,
+    )
+    chips(
+        draw,
+        AX + 24,
+        AY + 200,
+        [
+            ("Nova Lite", (80, 50, 20)),
+            ("GLM 4.7 Flash", (70, 40, 60)),
+            ("MiniMax M2.5", (30, 60, 40)),
+        ],
+    )
+    draw.text(
+        (AX + 24, AY + 246),
+        "Infers text only. Local folder never leaves device.",
+        font=fnt("Inter-Regular.ttf", 13),
+        fill=MUTED,
     )
 
     # ---- Row 2: bank (left), folder (center), privacy (right)
@@ -334,7 +405,7 @@ def render_png() -> Image.Image:
     arrow_right(draw, PX + PW, TX, PY + 96, CIAN)
     caption(draw, (PX + PW + 16, PY + 74), "message", MUTED)
     arrow_left(draw, TX, PX + PW, PY + 152, MENTA)
-    caption(draw, (PX + PW + 16, PY + 176), "proposal", MENTA)
+    caption(draw, (PX + PW + 16, PY + 176), "proposal + audit", MENTA)
 
     arrow_right(draw, TX + TW, AX, AY + 96, ORANGE)
     caption(draw, (TX + TW + 14, AY + 74), "prompt", MUTED)
@@ -379,7 +450,7 @@ def render_svg() -> str:
   <rect width="{W}" height="{H}" fill="{fondo}"/>
   <text x="48" y="54" fill="{cian}" font-family="Inter, sans-serif" font-size="34" font-weight="700">tero</text>
   <text x="128" y="52" fill="{crema}" font-family="Inter, sans-serif" font-size="20">your sources, your judgment - the agent proposes, the educator decides</text>
-  <text x="48" y="88" fill="{muted}" font-family="Inter, sans-serif" font-size="15">One turn: the teacher writes in Spanish, tero reads the folder and the official curriculum bank, Bedrock drafts, the teacher approves - and only then does the host write.</text>
+  <text x="48" y="88" fill="{muted}" font-family="Inter, sans-serif" font-size="15">One turn: teacher writes in Spanish, tero reads local sources &amp; MINEDUC bank, Strands Multi-Agent Graph drafts &amp; audits, teacher approves &#8212; only then does host write.</text>
 
   <defs>
     <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="{cian}"/></marker>
@@ -391,7 +462,7 @@ def render_svg() -> str:
   <line x1="{PX + PW}" y1="{PY + 96}" x2="{TX - 8}" y2="{PY + 96}" stroke="{cian}" stroke-width="3" marker-end="url(#a)"/>
   <text x="{PX + PW + 16}" y="{PY + 86}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">message</text>
   <line x1="{TX}" y1="{PY + 152}" x2="{PX + PW + 8}" y2="{PY + 152}" stroke="{menta}" stroke-width="3" marker-end="url(#b)"/>
-  <text x="{PX + PW + 16}" y="{PY + 176}" fill="{menta}" font-family="Inter, sans-serif" font-size="13">proposal</text>
+  <text x="{PX + PW + 16}" y="{PY + 176}" fill="{menta}" font-family="Inter, sans-serif" font-size="13">proposal + audit</text>
   <line x1="{TX + TW}" y1="{AY + 96}" x2="{AX - 8}" y2="{AY + 96}" stroke="{orange}" stroke-width="3" marker-end="url(#c)"/>
   <text x="{TX + TW + 14}" y="{AY + 86}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">prompt</text>
   <line x1="{AX}" y1="{AY + 152}" x2="{TX + TW + 8}" y2="{AY + 152}" stroke="{menta}" stroke-width="3" marker-end="url(#b)"/>
@@ -404,26 +475,34 @@ def render_svg() -> str:
   <text x="{PX + 24}" y="{PY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">&#8220;dale&#8221; / y &#8594; approve</text>
   <text x="{PX + 24}" y="{PY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">&#8220;no, gracias&#8221; &#8594; discard</text>
   <text x="{PX + 24}" y="{PY + 162}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">&#8220;mejor para 2&#176; b&#225;sico&#8221; &#8594; revise</text>
-  <rect x="{PX + 24}" y="{PY + 190}" width="126" height="32" rx="8" fill="{y_bg}"/><text x="{PX + 36}" y="{PY + 212}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">y  approve</text>
-  <rect x="{PX + 160}" y="{PY + 190}" width="126" height="32" rx="8" fill="{n_bg}"/><text x="{PX + 172}" y="{PY + 212}" fill="{crema}" font-family="Inter, sans-serif" font-size="15" font-weight="600">n  discard</text>
-  <text x="{PX + 24}" y="{PY + 252}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">Sees the warnings and the full preview first.</text>
+  <rect x="{PX + 24}" y="{PY + 196}" width="112" height="28" rx="6" fill="{y_bg}"/><text x="{PX + 36}" y="{PY + 215}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">y  approve</text>
+  <rect x="{PX + 148}" y="{PY + 196}" width="112" height="28" rx="6" fill="{n_bg}"/><text x="{PX + 160}" y="{PY + 215}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">n  discard</text>
+  <text x="{PX + 24}" y="{PY + 252}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">Sees warnings, quality audit and preview first.</text>
 
   <rect x="{TX}" y="{TY}" width="{TW}" height="{TH}" rx="16" fill="{panel}" stroke="{line}"/>
   <rect x="{TX}" y="{TY}" width="6" height="{TH}" fill="{menta}"/>
   <text x="{TX + 24}" y="{TY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">tero  &#183;  Strands Agents</text>
-  <text x="{TX + 24}" y="{TY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="17">Reads the folder. Never touches the originals.</text>
-  <text x="{TX + 24}" y="{TY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">Queries the official curriculum bank.</text>
-  <text x="{TX + 24}" y="{TY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">Proposes in memory: plan / guide / test / rubric.</text>
-  <text x="{TX + 24}" y="{TY + 162}" fill="{menta}" font-family="Inter, sans-serif" font-size="17">No write tool exists in the registry.</text>
+  <text x="{TX + 24}" y="{TY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="16">Multi-agent Graph (GraphBuilder)</text>
+  <text x="{TX + 24}" y="{TY + 104}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">&#8226; pedagogical_drafter node</text>
+  <text x="{TX + 24}" y="{TY + 130}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">&#8226; quality_gate_auditor node</text>
+  <text x="{TX + 24}" y="{TY + 156}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">StrandsTelemetry (OTel traces)</text>
+  <text x="{TX + 24}" y="{TY + 182}" fill="{menta}" font-family="Inter, sans-serif" font-size="16">In-memory proposal gate. Zero write tools.</text>
+  <rect x="{TX + 24}" y="{TY + 200}" width="168" height="28" rx="6" fill="#0F3C50"/><text x="{TX + 34}" y="{TY + 219}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">Graph Orchestration</text>
+  <rect x="{TX + 200}" y="{TY + 200}" width="116" height="28" rx="6" fill="#1E2D55"/><text x="{TX + 210}" y="{TY + 219}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">OTel Tracing</text>
+  <text x="{TX + 24}" y="{TY + 252}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">Cycle-safe state machine. Reads SHA-checked fuentes/.</text>
 
   <rect x="{AX}" y="{AY}" width="{AW}" height="{AH}" rx="16" fill="{panel}" stroke="{line}"/>
   <rect x="{AX}" y="{AY}" width="6" height="{AH}" fill="{orange}"/>
-  <text x="{AX + 24}" y="{AY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock</text>
-  <text x="{AX + 24}" y="{AY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="17">amazon.nova-lite-v1:0</text>
-  <text x="{AX + 24}" y="{AY + 106}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">us-east-1 &#183; serverless</text>
-  <text x="{AX + 24}" y="{AY + 134}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">infers text only</text>
-  <text x="{AX + 24}" y="{AY + 162}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">the folder never leaves the machine</text>
-  <text x="{AX + 24}" y="{AY + 190}" fill="{muted}" font-family="Inter, sans-serif" font-size="17">no keys &#8594; tero-offline (scripted)</text>
+  <text x="{AX + 24}" y="{AY + 42}" fill="{crema}" font-family="Inter, sans-serif" font-size="24" font-weight="600">Amazon Bedrock (Model Trio)</text>
+  <text x="{AX + 24}" y="{AY + 78}" fill="{crema}" font-family="Inter, sans-serif" font-size="16">amazon.nova-lite-v1:0 (default router)</text>
+  <text x="{AX + 24}" y="{AY + 104}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">zai.glm-4.7-flash (Decreto 83 / NEE)</text>
+  <text x="{AX + 24}" y="{AY + 130}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">minimax.minimax-m2.5 (rubrics / tests)</text>
+  <text x="{AX + 24}" y="{AY + 156}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">ModelRouter + FallbackStrategy</text>
+  <text x="{AX + 24}" y="{AY + 182}" fill="{muted}" font-family="Inter, sans-serif" font-size="16">no keys &#8594; tero-offline (real Model)</text>
+  <rect x="{AX + 24}" y="{AY + 200}" width="92" height="28" rx="6" fill="#503214"/><text x="{AX + 34}" y="{AY + 219}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">Nova Lite</text>
+  <rect x="{AX + 124}" y="{AY + 200}" width="118" height="28" rx="6" fill="#46283C"/><text x="{AX + 134}" y="{AY + 219}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">GLM 4.7 Flash</text>
+  <rect x="{AX + 250}" y="{AY + 200}" width="114" height="28" rx="6" fill="#1E3C28"/><text x="{AX + 260}" y="{AY + 219}" fill="{crema}" font-family="Inter, sans-serif" font-size="13" font-weight="600">MiniMax M2.5</text>
+  <text x="{AX + 24}" y="{AY + 252}" fill="{muted}" font-family="Inter, sans-serif" font-size="13">Infers text only. Local folder never leaves device.</text>
 
   <line x1="{TX + TW // 2}" y1="{TY + TH}" x2="{TX + TW // 2}" y2="{FY - 8}" stroke="{amber}" stroke-width="3" marker-end="url(#d)"/>
   <text x="{TX + TW // 2 + 14}" y="{TY + TH + 30}" fill="{amber}" font-family="Inter, sans-serif" font-size="13">reads fuentes/ (hash)</text>

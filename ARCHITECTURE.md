@@ -19,32 +19,35 @@ flowchart TB
 
   subgraph Host["python -m tero bridge"]
     JSONL[JSONL stdin/stdout]
-    Agent[Strands Agent]
-    Offline[OfflineModel tero-offline]
-    Bedrock[BedrockModel]
+    Graph["Strands Multi-Agent Graph\n(pedagogical_drafter + quality_gate_auditor)"]
+    Offline["OfflineModel (tero-offline)"]
+    Router["ModelRouter + FallbackStrategy"]
+    Bedrock["Amazon Bedrock Model Trio\n(Nova Lite · GLM 4.7 · MiniMax M2.5)"]
+    Telemetry["StrandsTelemetry (OTel traces)"]
     Tools["read tools: sources, catalog, bank"]
     Begonia["begonia client (read-only HTTP)"]
     Privacy["Ley 21.719 privacy filter"]
     Salvage["Salvage prose or leaked call"]
-    Coerce[Payload schema coercion]
+    Coerce["Payload schema coercion"]
     Gate["Host gate: writes derivados/"]
   end
 
-  subgraph Disk["Working folder"]
+  subgraph Disk["Working folder (System of Record)"]
     Fuentes["fuentes/ (read-only, SHA-256)"]
-    Derivados["derivados/ (approved)"]
+    Derivados["derivados/ (approved only)"]
     Borradores["borradores/ (legacy)"]
   end
 
   Bank["Official MINEDUC bank (13,722 items)"]
 
-  TUI --> JSONL --> Agent
-  Agent --> Offline
-  Agent --> Bedrock
-  Agent --> Tools
-  Agent --> Begonia -.-> Bank
+  TUI --> JSONL --> Graph
+  Graph --> Offline
+  Graph --> Router --> Bedrock
+  Graph --> Telemetry
+  Graph --> Tools
+  Graph --> Begonia -.-> Bank
   Tools --> Privacy --> Fuentes
-  Agent --> Salvage --> Coerce
+  Graph --> Salvage --> Coerce
   Approval --> Gate --> Derivados
 ```
 
@@ -55,13 +58,16 @@ flowchart TB
 2. Missing context is asked in natural language — no wizard, no numbered options.
 3. The agent reads only inside the folder (path sandbox, hash index, privacy
    filter) and consults the official curriculum bank.
-4. It prepares the artifact **in memory**, with citations (`fuentes/...` or
-   `banco:<id>`). Tool use is capped; one activity event per tool call.
-5. Non-blocking warnings are attached. Adaptations always carry
-   `paci_no_oficial`.
-6. The teacher approves conversationally. The **host** writes `derivados/`.
+4. **Strands Multi-Agent Graph** orchestrates the generation:
+   - `pedagogical_drafter`: reads evidence and composes the in-memory proposal.
+   - `quality_gate_auditor`: validates curriculum alignment and Decreto 83 NEE accommodations.
+   - Cycle limits prevent infinite refinement loops.
+5. All operations emit structured OpenTelemetry traces via **`StrandsTelemetry`**.
+6. Non-blocking warnings are attached (`thin_evidence`, `unverified_citation`,
+   `paci_no_oficial`).
+7. The teacher approves conversationally. The **host** writes `derivados/`.
    Adapting creates a new file with `origen:`; the base is untouched.
-7. Originals are re-hashed. A change is a warning, never a rewrite.
+8. Originals are re-hashed. A change is a warning, never a rewrite.
 
 ## Trust boundaries
 
@@ -74,6 +80,7 @@ flowchart TB
 | Fabricated Bedrock in `--offline` | No | `tero-offline` is a real scripted Strands `Model` |
 | Unverified citation | Marked | host checks the file or the bank; `?` badge + warning |
 | Block the teacher's decision | No | warnings inform; approval stays human |
+| Infinite multi-agent cycles | No | `max_cycles=3` strictly enforced by `StrandsMultiAgentGraph` |
 
 ## Stack
 

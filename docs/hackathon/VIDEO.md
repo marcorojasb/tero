@@ -23,13 +23,14 @@ Track: **Professional Agents**.
 
 Show `docs/hackathon/architecture.png`.
 
-- The teacher writes a message; tero (Strands) reads the folder and the official
-  curriculum bank, then **stops with a proposal in memory**
-- Amazon Bedrock (Nova Lite) does the inference; the classroom folder never leaves
-  the machine
-- Three intents: **answer**, **create**, **edit or adapt** (including NEE)
-- Approval writes to `derivados/`; the originals are hashed and untouched
-- One sentence: AgentCore is optional, not the folder.
+- The teacher writes a message in natural Spanish; tero coordinates a **Strands Multi-Agent Graph** (`GraphBuilder`)
+  with a pedagogical drafter and a quality gate auditor.
+- Full OpenTelemetry tracing via **`StrandsTelemetry`** captures graph turns and audits.
+- Amazon Bedrock Model Trio (`amazon.nova-lite-v1:0` with `ModelRouter` fallback, `zai.glm-4.7-flash`,
+  and `minimax.minimax-m2.5`) does text inference; the classroom folder never leaves the machine.
+- Three intents: **answer**, **create**, **edit or adapt** (including Decreto 83 NEE accommodations).
+- In-memory proposal gate: zero write tools in the registry. Host writes to `derivados/` only after teacher approval.
+- Originals in `fuentes/` are SHA-256 hashed and verified intact.
 
 ## 1:10–3:10 — working demo (offline, honest)
 
@@ -56,17 +57,24 @@ Cut to the TUI (`python -m tero tui --offline`):
 
 Show `git status` or a hash: `fuentes/` unchanged.
 
-## 3:10–4:00 — live Bedrock (if it works)
+## 3:10–4:00 — live Bedrock & Model Trio (if keys are available)
 
+Fast diagnostics in the terminal:
+```bash
+python -m tero check-aws --all-models
+```
+Show all 3 Bedrock models passing live in seconds (Nova Lite, GLM 4.7 Flash, MiniMax M2.5).
+
+Then launch the live agent:
 ```bash
 python -m tero tui
 ```
 
-Same loop, now labeled **Amazon Nova Lite** (`amazon.nova-lite-v1:0`). Mention
-the benchmark: 5 models tested across 4 pedagogical journeys; Nova Lite 100% at a
-~10 s mean, `zai.glm-4.7-flash` equally reliable and fastest on tool calls,
-`minimax.minimax-m2.5` the best prose and rubrics. If it fails, do **not**
-pretend. Stay on offline and say Bedrock is the live path in the README.
+Same loop, now powered live by **Amazon Nova Lite** (`amazon.nova-lite-v1:0`) with
+`ModelRouter` automatic regional failover. Mention the benchmark: 5 models tested across
+4 pedagogical journeys; Nova Lite 100% at ~10 s mean, `zai.glm-4.7-flash` strictly adhering
+to Decreto 83 NEE schema, and `minimax.minimax-m2.5` producing rich rubrics. If keys fail,
+do **not** pretend. Stay on offline and say Bedrock is the live path in the README.
 
 Optional 10 s: the official curriculum bank answering with real MINEDUC item ids.
 

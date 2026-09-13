@@ -69,23 +69,37 @@ Drop `--yes` for the interactive gate. The scripted model is labeled `tero-offli
 it does not fake Bedrock.
 
 Track B — live Bedrock: `cp .env.example .env`, set `TERO_OFFLINE=0` and your AWS
-credentials, then `python -m tero tui`. Default model `amazon.nova-lite-v1:0` in
-`us-east-1`; no Model access page, serverless models self-enable on first invoke.
+credentials, then test credentials and models with `python -m tero check-aws --all-models`.
+Default model `amazon.nova-lite-v1:0` in `us-east-1` (with automatic fallback to `us.amazon.nova-lite-v1:0`
+via `ModelRouter`); no Model access page, serverless models self-enable on first invoke.
+Then launch: `python -m tero tui`.
 
 TUI needs [Bun](https://bun.sh): `python -m tero tui --offline`.
 Keys: `y` approve · `n` discard · `r` retry · `?` help · `[` `]` evidence ·
 `/export md|docx|latex`.
 
-## Models
+## Multi-Agent Architecture & Bedrock Trio
+
+tero uses **Strands Multi-Agent Graph** (`strands.multiagent.GraphBuilder`) with native
+**OpenTelemetry tracing** (`StrandsTelemetry`):
+
+1. **`pedagogical_drafter` node:** reads sources and bank, drafts in-memory artifacts.
+2. **`quality_gate_auditor` node:** verifies curriculum coverage and Decreto 83 criteria.
+3. **`ModelRouter` + `FallbackStrategy`:** routes inference and handles regional failover.
 
 Benchmarked on Bedrock across four pedagogical journeys
 ([method and numbers](docs/EVALUATION-PAPER.md)):
 
 | Model | Success | Mean latency | Use |
 | --- | :---: | :---: | :--- |
-| `amazon.nova-lite-v1:0` | 100% | 10.0 s | Default: serverless, cheapest, densest official citations |
-| `zai.glm-4.7-flash` | 100% | 10.6 s | Fastest tool calling, strictest Decreto 83 schema |
-| `minimax.minimax-m2.5` | 100% | 39.5 s | Richest classroom prose and rubrics |
+| `amazon.nova-lite-v1:0` | 100% | 10.0 s | Default router: serverless, cheapest, densest official citations |
+| `zai.glm-4.7-flash` | 100% | 10.6 s | Fastest tool calling, strictest Decreto 83 NEE schema |
+| `minimax.minimax-m2.5` | 100% | 39.5 s | Richest classroom prose, reading passages and rubrics |
+
+Verify live AWS connectivity and the model trio anytime:
+```bash
+python -m tero check-aws --all-models
+```
 
 ## Grounding and privacy
 
@@ -102,9 +116,9 @@ Benchmarked on Bedrock across four pedagogical journeys
 ## Verify
 
 ```bash
-pytest                                        # 359 passed, 1 skipped, 7 xfailed
+pytest                                        # 380 passed, 1 skipped, 0 xfailed (100% green)
 ruff check src tests && ruff format --check src tests
-cd tui && bun install && bun test src         # 50 pass
+cd tui && bun install && bun test src         # 50 passed
 ```
 
 ## Layout
