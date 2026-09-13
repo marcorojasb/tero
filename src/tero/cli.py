@@ -70,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
         help="JSON schema (Nova Lite) en vez de inferir desde markdown.",
     )
 
+    check = sub.add_parser(
+        "check-aws",
+        help="Verifica credenciales de AWS, STS y conectividad con Amazon Bedrock.",
+    )
+    _add_common(check)
+
     args = parser.parse_args(argv)
     if args.cmd == "demo":
         return cmd_demo(args)
@@ -81,6 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_init(args.dest)
     if args.cmd == "export":
         return cmd_export(args)
+    if args.cmd == "check-aws":
+        return cmd_check_aws(args)
     return 1
 
 
@@ -308,3 +316,11 @@ def cmd_export(args: argparse.Namespace) -> int:
     if pdf.exists():
         print(f"pdf: {pdf}", flush=True)
     return 0
+
+
+def cmd_check_aws(args: argparse.Namespace) -> int:
+    from tero.check_aws import run_check_aws
+
+    settings = _settings(args)
+    return run_check_aws(settings)
+
