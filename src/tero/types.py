@@ -210,6 +210,14 @@ class Propuesta:
     def vista_previa(self) -> str:
         return self.draft.cuerpo_markdown
 
+    @property
+    def evidencias(self) -> list[Evidence]:
+        return self.draft.evidencias
+
+    @property
+    def warnings(self) -> list[WarningItem]:
+        return self.draft.warnings
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "accion": self.accion,
