@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:24,152
+tero es un agente docente conversacional: propone en memoria y nunca escribe sin tu aprobación.
+
+2
+00:00:24,352 --> 00:00:46,751
+Grafo Multi-Agente con Strands Agents y compuerta estricta: cero escritura sin aprobación.
+
+3
+00:00:46,951 --> 00:01:02,247
+Intención a: responder e interactuar. Consulta fuentes y responde sin tocar el disco.
+
+4
+00:01:02,448 --> 00:01:16,951
+Intención b: crear material nuevo. Citas textuales verificadas contra tus fuentes locales.
+
+5
+00:01:17,152 --> 00:01:31,655
+Tú apruebas con 'y' o 'dale'. El host escribe en derivados y entrega la fotocopia lista.
+
+6
+00:01:31,855 --> 00:01:49,455
+Intención c: adaptación a NEE con Decreto 83. Tu material original se mantiene intacto.
+
+7
+00:01:49,655 --> 00:02:10,304
+Trío de modelos en Bedrock: Nova Lite, GLM 4.7 y MiniMax, más modelo tero-offline.
+
+8
+00:02:10,503 --> 00:02:25,872
+tero · Tu aula, tus fuentes, tu criterio. Código abierto bajo licencia MIT.
