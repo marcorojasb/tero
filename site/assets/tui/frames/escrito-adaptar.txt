@@ -1,7 +1,7 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · listo · 2 fuentes                                                                                                              │
 │ [ tarea: adaptar (NEE) · evaluación ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                     │
-│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia (1/2) ──────────────╮│
 ││ tú  › Adapta la evaluación del cóndor para un    ││ adaptar (NEE) · evaluación — Evaluación adaptad█ ││ ▸ 1/2  ✓ en archivo            ││
 ││ estudiante con dislexia.                         ││ — El cóndor y el huemul                        █ ││   fuentes/cuento-el-condor-y-  ││
 ││                                                  ││ Misma prueba con apoyos NEE: tiempo extendido, █ ││ el-huemul.md                   ││
@@ -11,14 +11,14 @@
 ││ tú  › Sí, y deja el texto más grande cuando se   ││ cambios                                        █ ││   2/2  ?  fuentes/bases-oa-    ││
 ││ exporte.                                         ││   · Agrega tiempo extendido y apoyos NEE       █ ││ lenguaje-4b.md                 ││
 ││                                                  ││   · Reescribe los enunciados en dos pasos      █ ││     OA 4                       ││
-││ ·  escrito · adaptar · derivados/20260911-       ││   · Suma pauta de corrección con criterios     █ ││                                ││
+││ ·   escrito · adaptar · derivados/20260911-      ││   · Suma pauta de corrección con criterios     █ ││                                ││
 ││ 101800-evaluacion-condor-adaptada-4d7b31.md      ││ apoyos y criterios NEE                         ▀ ││                                ││
 ││                                                  ││   · Tiempo extendido (50% más)                   ││                                ││
 ││                                                  ││   · Enunciados en dos pasos, sin doble negación  ││                                ││
 ││                                                  ││   · Texto ampliado al exportar                   ││                                ││
 ││                                                  ││ escrito · adaptar (NEE)                          ││                                ││
 ││                                                  ││ derivados/20260911-101800-evaluacion-condor-     ││                                ││
-││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ vista previa · markdown (14 líneas)              ││                                ││
 ││                                                  ││ ---                                              ││                                ││
 ││                                                  ││ tipo: evaluacion                                 ││                                ││
 ││                                                  ││ accion: adaptar                                  ││                                ││

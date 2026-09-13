@@ -1,7 +1,7 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · tu decisión · 3 fuentes                                                                                                        │
 │ [ tarea: crear · evaluación ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                             │
-│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia (1/2) ──────────────╮│
 ││ tú  › Prepara una evaluación de comprensión      ││ crear · evaluación — Evaluación de comprensión   ││ ▸ 1/2  ✓ en archivo            ││
 ││ lectora para 4° básico.                          ││ lectora — El cóndor y el huemul                  ││   fuentes/cuento-el-condor-y-  ││
 ││                                                  ││ Prueba de 45 min con selección múltiple,         ││ el-huemul.md                   ││
@@ -18,7 +18,7 @@
 ││                                                  ││                                                  ││                                ││
 ││                                                  ││                                                  ││                                ││
 ││                                                  ││                                                  ││                                ││
-││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ vista previa · markdown (16 líneas)              ││                                ││
 ││                                                  ││ ---                                            █ ││                                ││
 ││                                                  ││ tipo: evaluacion                               █ ││                                ││
 ││                                                  ││ curso: 4° básico                               █ ││                                ││

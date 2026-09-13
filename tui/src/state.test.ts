@@ -476,6 +476,18 @@ describe("evidencia y foco", () => {
     const b = handleHotkey(a.state, "tab")
     expect(b.kind).toBe("state")
     if (b.kind === "state") expect(b.state.focusPanel).toBe("hilo")
+
+    // Ciclo inverso con backtab y shift+tab
+    const back = handleHotkey(state, "backtab")
+    if (back.kind === "state") expect(back.state.focusPanel).toBe("hilo")
+    const shift = handleHotkey(state, "shift+tab")
+    if (shift.kind === "state") expect(shift.state.focusPanel).toBe("hilo")
+
+    // El pie de página adapta su sugerencia al panel activo en conversación
+    const conv = { ...state, screen: "conversacion" as const }
+    expect(footerFor({ ...conv, focusPanel: "propuesta" })).toContain("vista previa")
+    expect(footerFor({ ...conv, focusPanel: "evidencia" })).toContain("cita")
+    expect(footerFor({ ...conv, focusPanel: "hilo" })).toContain("hilo")
   })
 
   test("? abre la ayuda y esc la cierra", () => {

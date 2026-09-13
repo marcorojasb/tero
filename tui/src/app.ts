@@ -112,7 +112,26 @@ export async function launch(opts: LaunchOptions): Promise<void> {
     }
     if (!state.help && (name === "pageup" || name === "pagedown")) {
       key.preventDefault?.()
-      shell.scrollThread(name === "pageup" ? -5 : 5)
+      const delta = name === "pageup" ? -5 : 5
+      if (state.focusPanel === "propuesta") {
+        shell.scrollPreview(delta)
+      } else if (state.focusPanel === "evidencia") {
+        shell.scrollEvidence(delta)
+      } else {
+        shell.scrollThread(delta)
+      }
+      return
+    }
+    if (!state.help && !shell.input.value && (name === "up" || name === "down") && key.shift) {
+      key.preventDefault?.()
+      const delta = name === "up" ? -2 : 2
+      if (state.focusPanel === "propuesta") {
+        shell.scrollPreview(delta)
+      } else if (state.focusPanel === "evidencia") {
+        shell.scrollEvidence(delta)
+      } else {
+        shell.scrollThread(delta)
+      }
       return
     }
     // While there is text in the input, the keyboard belongs to the person:

@@ -47,6 +47,8 @@ export type Shell = {
   setPlaceholder: (text: string) => void
   scrollHelp: (delta: number) => void
   scrollThread: (delta: number) => void
+  scrollPreview: (delta: number) => void
+  scrollEvidence: (delta: number) => void
 }
 
 export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => void): Shell {
@@ -431,9 +433,11 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     left.borderColor = state.focusPanel === "hilo" ? theme.borderFocus : theme.border
     center.borderColor = state.focusPanel === "propuesta" ? theme.borderFocus : theme.border
     right.borderColor = state.focusPanel === "evidencia" ? theme.borderFocus : theme.border
+    const evidCount = state.card?.evidencias.length ?? 0
+    const evidBadge = evidCount > 1 ? ` (${state.evidenceIndex + 1}/${evidCount})` : evidCount === 1 ? " (1)" : ""
     left.title = state.focusPanel === "hilo" ? " ▸ conversación " : " conversación "
     center.title = state.focusPanel === "propuesta" ? " ▸ propuesta " : " propuesta "
-    right.title = state.focusPanel === "evidencia" ? " ▸ evidencia " : " evidencia "
+    right.title = state.focusPanel === "evidencia" ? ` ▸ evidencia${evidBadge} ` : ` evidencia${evidBadge} `
     left.titleColor = state.focusPanel === "hilo" ? theme.borderFocus : theme.muted
     center.titleColor = state.focusPanel === "propuesta" ? theme.borderFocus : theme.muted
     right.titleColor = state.focusPanel === "evidencia" ? theme.borderFocus : theme.muted
@@ -444,7 +448,14 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     cardHeadScroll.height = state.compact ? 10 : 16
     cardHeadText.content = state.card ? renderCardHead(state) : ""
 
-    previewText.content = state.card?.vista_previa ?? ""
+    const previewContent = state.card?.vista_previa ?? ""
+    previewText.content = previewContent
+    if (hasCard) {
+      const pLines = previewContent ? previewContent.split("\n").length : 0
+      previewLabel.content = pLines > 1 ? `vista previa · markdown (${pLines} líneas)` : "vista previa · markdown"
+    } else {
+      previewLabel.content = "vista previa · markdown"
+    }
     previewLabel.visible = hasCard
     previewScroll.visible = hasCard
 
@@ -542,6 +553,20 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
         /* ignore if not scrollable yet */
       }
     },
+    scrollPreview: (delta: number) => {
+      try {
+        previewScroll.scrollBy(delta)
+      } catch {
+        /* ignore if not scrollable yet */
+      }
+    },
+    scrollEvidence: (delta: number) => {
+      try {
+        evidenceScroll.scrollBy(delta)
+      } catch {
+        /* ignore if not scrollable yet */
+      }
+    },
   }
 }
 
@@ -588,17 +613,17 @@ function renderThread(state: AppState): string {
   const rows: string[] = []
   for (const m of state.messages) {
     if (m.role === "persona") {
-      rows.push(`tú  › ${indentBody(m.text)}`, "")
+      rows.push(`tú  › ${indentBody(m.text, 6)}`, "")
       continue
     }
     if (m.role === "host") {
-      rows.push(`·  ${m.text}${m.path ? ` · ${m.path}` : ""}`, "")
+      rows.push(`·   ${m.text}${m.path ? ` · ${m.path}` : ""}`, "")
       continue
     }
-    rows.push(`tero › ${indentBody(m.text)}`, "")
+    rows.push(`tero › ${indentBody(m.text, 7)}`, "")
   }
   if (state.streaming) {
-    rows.push(`tero › ${indentBody(state.streaming)}▌`)
+    rows.push(`tero › ${indentBody(state.streaming, 7)}▌`)
   } else if (state.thinking) {
     rows.push(`${spinnerGlyph(state.spinnerFrame)} ${state.thinkingLabel || "pensando…"}`)
   }
@@ -608,8 +633,9 @@ function renderThread(state: AppState): string {
   return rows.join("\n").trimEnd()
 }
 
-function indentBody(text: string): string {
-  return text.replace(/\n/g, "\n      ")
+function indentBody(text: string, spaces = 6): string {
+  const pad = " ".repeat(spaces)
+  return text.replace(/\n/g, `\n${pad}`)
 }
 
 function renderActivity(state: AppState): string {

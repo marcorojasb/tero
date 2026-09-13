@@ -12,7 +12,7 @@
 ││                                            │                                                │
 ││                                            │                                                │
 ││                                            │                                                │
-││ vista previa · markdown                    │                                                │
+││ vista previa · markdown (16 líneas)        │                                                │
 ││ ---                                      ▀ │                                                │
 ││ tipo: evaluacion                           │                                                │
 ││ curso: 4° básico                           │                                                │

@@ -645,9 +645,10 @@ function applyContext(state: AppState, field: keyof Encargo, value: string): Loc
 }
 
 export function handleHotkey(state: AppState, key: string): LocalAction {
-  if (key === "tab") {
+  if (key === "tab" || key === "backtab" || key === "shift+tab") {
     const idx = FOCUS_PANELS.indexOf(state.focusPanel)
-    const focusPanel = FOCUS_PANELS[(idx + 1) % FOCUS_PANELS.length] ?? "hilo"
+    const step = key === "backtab" || key === "shift+tab" ? -1 : 1
+    const focusPanel = FOCUS_PANELS[(idx + step + FOCUS_PANELS.length) % FOCUS_PANELS.length] ?? "hilo"
     return { kind: "state", state: { ...state, focusPanel } }
   }
   if (key === "?") {
@@ -793,7 +794,13 @@ export function footerFor(state: AppState): string {
   // Las acciones de decisión viven en la franja: el pie queda callado.
   if (decisionStrip(state)) return ""
   if (state.screen === "home") return "Enter envía  ·  ? ayuda  ·  /salir"
-  return "/export  ·  Tab  ·  PgUp/PgDn hilo  ·  ? ayuda"
+  const panelHint =
+    state.focusPanel === "propuesta"
+      ? "PgUp/PgDn vista previa"
+      : state.focusPanel === "evidencia"
+        ? "[ ] / PgUp/PgDn cita"
+        : "PgUp/PgDn hilo"
+  return `/export  ·  Tab panel  ·  ${panelHint}  ·  ? ayuda`
 }
 
 export function helpFor(state: AppState): string {

@@ -1,7 +1,7 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · tu decisión · 2 fuentes                                                                                                        │
 │ [ tarea: adaptar (NEE) · evaluación ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                     │
-│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia ────────────────────╮│
+│╭─ conversación ───────────────────────────────────╮╭─ ▸ propuesta ────────────────────────────────────╮╭─ evidencia (1/2) ──────────────╮│
 ││ tú  › Adapta la evaluación del cóndor para un    ││ adaptar (NEE) · evaluación — Evaluación adaptada ││ ▸ 1/2  ✓ en archivo            ││
 ││ estudiante con dislexia.                         ││ — El cóndor y el huemul                          ││   fuentes/cuento-el-condor-y-  ││
 ││                                                  ││ Misma prueba con apoyos NEE: tiempo extendido,   ││ el-huemul.md                   ││
@@ -18,7 +18,7 @@
 ││                                                  ││   · Texto ampliado al exportar                   ││                                ││
 ││                                                  ││                                                  ││                                ││
 ││                                                  ││                                                  ││                                ││
-││                                                  ││ vista previa · markdown                          ││                                ││
+││                                                  ││ vista previa · markdown (14 líneas)              ││                                ││
 ││                                                  ││ ---                                              ││                                ││
 ││                                                  ││ tipo: evaluacion                                 ││                                ││
 ││                                                  ││ accion: adaptar                                  ││                                ││
