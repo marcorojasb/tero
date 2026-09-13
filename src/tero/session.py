@@ -38,13 +38,25 @@ EmitFn = Callable[[dict[str, Any]], None]
 def make_model(settings: Settings, encargo: Encargo):
     if settings.offline:
         return OfflineModel(encargo, model_id="tero-offline")
-    from strands.models import BedrockModel
+    from strands.models import BedrockModel, FallbackStrategy, ModelRouter
 
-    return BedrockModel(
+    primary = BedrockModel(
         model_id=settings.model_id,
         region_name=settings.region,
         temperature=settings.temperature,
     )
+    if settings.model_id == "amazon.nova-lite-v1:0":
+        cross_region = BedrockModel(
+            model_id="us.amazon.nova-lite-v1:0",
+            region_name=settings.region,
+            temperature=settings.temperature,
+        )
+        return ModelRouter(
+            models=[primary, cross_region],
+            strategy=FallbackStrategy(),
+            max_switches=1,
+        )
+    return primary
 
 
 def _is_retryable_stream_error(exc: BaseException) -> bool:
@@ -214,6 +226,7 @@ class TeacherSession:
                 text,
                 fallback_tipo=self.encargo.tipo,
                 evidencias=list(self.ctx.evidence),
+                workspace=self.workspace,
             )
             if propuesta is not None:
                 self._warn(
