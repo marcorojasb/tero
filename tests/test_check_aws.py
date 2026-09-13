@@ -102,3 +102,42 @@ def test_cli_check_aws_subcommand(capsys):
         assert code == 1
         captured = capsys.readouterr()
         assert "diagnóstico de conexión a AWS" in captured.out
+
+
+def test_check_aws_all_models_mock(capsys):
+    with patch("boto3.Session") as mock_session_cls:
+        mock_session = MagicMock()
+        mock_session.get_credentials.return_value = MagicMock(method="env")
+
+        mock_sts = MagicMock()
+        mock_sts.get_caller_identity.return_value = {
+            "Account": "123456789012",
+            "Arn": "arn:aws:iam::123456789012:user/profesor",
+        }
+
+        mock_bedrock = MagicMock()
+        mock_bedrock.converse.return_value = {
+            "usage": {"inputTokens": 5, "outputTokens": 2},
+        }
+
+        def mock_client(service, **kwargs):
+            if service == "sts":
+                return mock_sts
+            if service == "bedrock-runtime":
+                return mock_bedrock
+            return MagicMock()
+
+        mock_session.client.side_effect = mock_client
+        mock_session_cls.return_value = mock_session
+
+        settings = Settings(offline=False)
+        code = run_check_aws(settings, all_models=True)
+        assert code == 0
+
+        captured = capsys.readouterr()
+        assert "✓ Credenciales detectadas" in captured.out
+        assert "trio documentado" in captured.out
+        assert "amazon.nova-lite-v1:0" in captured.out
+        assert "zai.glm-4.7-flash" in captured.out
+        assert "minimax.minimax-m2.5" in captured.out
+        assert "✓ Conexión completa y verificada" in captured.out

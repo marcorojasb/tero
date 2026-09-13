@@ -74,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
         "check-aws",
         help="Verifica credenciales de AWS, STS y conectividad con Amazon Bedrock.",
     )
+    check.add_argument(
+        "--all-models",
+        action="store_true",
+        help="Evalúa los 3 modelos documentados (Nova Lite, GLM 4.7 Flash, MiniMax M2.5).",
+    )
     _add_common(check)
 
     args = parser.parse_args(argv)
@@ -322,5 +327,4 @@ def cmd_check_aws(args: argparse.Namespace) -> int:
     from tero.check_aws import run_check_aws
 
     settings = _settings(args)
-    return run_check_aws(settings)
-
+    return run_check_aws(settings, all_models=getattr(args, "all_models", False))
