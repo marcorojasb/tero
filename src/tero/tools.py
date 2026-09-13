@@ -982,6 +982,24 @@ def _cite_evidence(ctx: TurnContext):
         if blocked:
             return blocked
         ctx._emit({"type": "activity", "tool": "cite_evidence", "state": "start", "detail": path})
+        if is_banco_path(path):
+            ident = banco_item_id(path)
+            canonical = f"banco:{ident}"
+            verified = ident in ctx.banco_ids
+            item = Evidence(path=canonical, snippet=snippet, seccion=seccion, verified=verified)
+            ctx.evidence.append(item)
+            ctx._emit(
+                {
+                    "type": "activity",
+                    "tool": "cite_evidence",
+                    "state": "end",
+                    "detail": f"{'✓' if verified else '?'} {seccion or canonical}",
+                }
+            )
+            return json.dumps(
+                {"ok": True, "n": len(ctx.evidence), "verified": verified, "path": canonical},
+                ensure_ascii=False,
+            )
         try:
             payload = ctx.workspace.read_source(path)
         except Exception as exc:
