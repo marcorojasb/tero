@@ -60,12 +60,17 @@ def salvage_propuesta_from_text(
     *,
     fallback_tipo: ArtifactType | None = None,
     evidencias: list[Evidence] | None = None,
+    workspace: Any = None,
 ) -> Propuesta | None:
     """Arma la propuesta que el modelo dejó como texto en vez de llamar a la tool."""
     draft = salvage_draft_from_text(text, fallback_tipo=fallback_tipo, evidencias=evidencias)
     if draft is None:
         return None
     accion, origen, resumen, cambios, notas_nee = _proposal_meta_from_text(text)
+    if workspace is not None and accion in {"editar", "adaptar"} and origen:
+        root = getattr(workspace, "root", None)
+        if root and not (root / origen).is_file():
+            return None
     return Propuesta(
         accion=accion,
         draft=draft,

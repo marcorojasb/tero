@@ -195,28 +195,25 @@ def test_las_fichas_reales_escritas_en_prosa_siguen_rescatandose(blob: str, tipo
     assert propuesta.draft.tipo is tipo
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BUG host: `salvage_propuesta_from_text` no valida `ruta_origen`, así que una edición "
-        "filtrada como texto puede aprobarse con un `origen:` que no existe en la carpeta "
-        "(la tool `proponer_editar` sí lo valida y devuelve origen_no_encontrado)."
-    ),
-)
 def test_una_edicion_rescatada_con_origen_inexistente_no_deberia_escribirse(workspace: Workspace):
+    from tero.errors import WorkspaceError
+
     blob = (
         'proponer_editar(\n  ruta_origen="derivados/inventado.md",\n  accion="editar",\n'
         '  tipo="guia",\n  titulo="Guía fantasma",\n  resumen="r",\n'
         '  vista_previa_markdown="## Propósito\\nLeer.\\n## Instrucciones\\nx\\n'
         '## Actividades\\ny\\n## Cierre\\nz\\n",\n)\n'
     )
+    # Si se pasa el workspace, el salvage no acepta una propuesta con origen inexistente
+    assert salvage_propuesta_from_text(blob, workspace=workspace) is None
+
+    # Y si llegara una propuesta desanclada, write_approved se niega a escribirla
     propuesta = salvage_propuesta_from_text(blob)
     assert propuesta is not None
-    resultado = write_approved(
-        workspace=workspace, encargo=open_session(workspace).encargo, propuesta=propuesta
-    )
-    assert resultado.path is not None
-    assert (workspace.root / propuesta.origen).is_file()
+    with pytest.raises(WorkspaceError, match="no encontrado"):
+        write_approved(
+            workspace=workspace, encargo=open_session(workspace).encargo, propuesta=propuesta
+        )
 
 
 def test_salvage_ignora_prosa_sin_forma_de_ficha():

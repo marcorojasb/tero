@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tero.artifacts import artifact_filename, materialize_markdown, write_accepted
+from tero.errors import WorkspaceError
 from tero.types import Encargo, Propuesta
 from tero.workspace import Workspace
 
@@ -30,6 +31,10 @@ def write_approved(
     `editar` y `adaptar` también escriben un archivo nuevo: el material de origen
     queda intacto y la fila nueva declara `origen:` en el front matter.
     """
+    if propuesta.accion in {"editar", "adaptar"} and propuesta.origen:
+        origen_path = workspace.root / propuesta.origen
+        if not origen_path.is_file():
+            raise WorkspaceError(f"Material de origen no encontrado: {propuesta.origen}")
     markdown = materialize_markdown(encargo, propuesta)
     filename = artifact_filename(propuesta.draft.tipo, propuesta.draft.titulo)
     path = write_accepted(workspace, filename, markdown)
