@@ -381,15 +381,22 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     } else {
       headerLine.content = `${shortModel(state.model)} · ${phase}${sources}${dirty}${think}`
     }
+
+    const taskChip = state.card
+      ? `[ tarea: ${accionLabel(state.card.accion)} · ${state.card.tipo_label || state.card.tipo || "material"} ]`
+      : ""
     if (showChips(state)) {
-      chipLine.content = chips(state.encargo)
+      const cList = chips(state.encargo)
         .map((c) => `[ ${clipChip(c)} ]`)
         .join("  ")
+      chipLine.content = taskChip ? `${taskChip}  ${cList}` : cList
+    } else if (taskChip) {
+      chipLine.content = taskChip
     } else {
       chipLine.content = state.screen === "home" ? "" : "[ sin contexto — /curso /asignatura /oa ]"
     }
     root.bottomTitle = state.carpeta ? ` ${shortPath(state.carpeta)} ` : ""
-    const chipsVisible = showChips(state) || state.screen !== "home"
+    const chipsVisible = showChips(state) || Boolean(taskChip) || state.screen !== "home"
     chipLine.visible = chipsVisible
     header.height = chipsVisible ? 2 : 1
 
@@ -427,12 +434,16 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     left.title = state.focusPanel === "hilo" ? " ▸ conversación " : " conversación "
     center.title = state.focusPanel === "propuesta" ? " ▸ propuesta " : " propuesta "
     right.title = state.focusPanel === "evidencia" ? " ▸ evidencia " : " evidencia "
+    left.titleColor = state.focusPanel === "hilo" ? theme.borderFocus : theme.muted
+    center.titleColor = state.focusPanel === "propuesta" ? theme.borderFocus : theme.muted
+    right.titleColor = state.focusPanel === "evidencia" ? theme.borderFocus : theme.muted
 
     threadText.content = renderThread(state)
     activityText.content = renderActivity(state)
 
     cardHeadScroll.height = state.compact ? 10 : 16
     cardHeadText.content = state.card ? renderCardHead(state) : ""
+
     previewText.content = state.card?.vista_previa ?? ""
     previewLabel.visible = hasCard
     previewScroll.visible = hasCard
@@ -445,7 +456,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
     decisionText.content = strip
     if (state.cardStatus === "pendiente") {
       decisionBar.borderColor = theme.ok
-      decisionBar.title = " aprobación "
+      decisionBar.title = " ▸ ACCIÓN REQUERIDA · Aprobación "
       decisionBar.titleColor = theme.ok
     } else if (state.cardStatus === "escrito") {
       decisionBar.borderColor = theme.ok
@@ -461,7 +472,7 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       decisionBar.titleColor = theme.accent
     } else if (state.phase === "error") {
       decisionBar.borderColor = theme.err
-      decisionBar.title = " error "
+      decisionBar.title = " ▸ ACCIÓN REQUERIDA · Error "
       decisionBar.titleColor = theme.err
     }
 
@@ -478,18 +489,33 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
       footer.content = foot ? ` ${state.statusLine}     ${foot}` : ` ${state.statusLine}`
     }
     const awaiting = state.cardStatus === "pendiente" && hasCard
-    promptRow.title = state.help
-      ? " ayuda "
-      : awaiting
-        ? " tu decisión "
-        : state.screen === "home"
-          ? " pregunta "
-          : " mensaje "
-    promptRow.borderColor = awaiting
-      ? theme.ok
-      : state.phase === "error"
-        ? theme.err
-        : theme.borderFocus
+    if (state.help) {
+      promptRow.title = " ayuda "
+      promptRow.titleColor = theme.accent
+      promptRow.borderColor = theme.accent
+    } else if (awaiting) {
+      promptRow.title = " ▸ ACCIÓN REQUERIDA · Pulsa [y] aprobar o [n] descartar "
+      promptRow.titleColor = theme.ok
+      promptRow.borderColor = theme.ok
+    } else if (state.phase === "error") {
+      promptRow.title = state.retryable
+        ? " ▸ ACCIÓN REQUERIDA · Pulsa [r] para reintentar "
+        : " ▸ ERROR "
+      promptRow.titleColor = theme.err
+      promptRow.borderColor = theme.err
+    } else if (state.thinking) {
+      promptRow.title = " · tero está respondiendo… "
+      promptRow.titleColor = theme.muted
+      promptRow.borderColor = theme.border
+    } else if (state.screen === "home") {
+      promptRow.title = " pregunta "
+      promptRow.titleColor = theme.muted
+      promptRow.borderColor = theme.borderFocus
+    } else {
+      promptRow.title = " ▸ TU TURNO · Escribe y pulsa Enter "
+      promptRow.titleColor = theme.borderFocus
+      promptRow.borderColor = theme.borderFocus
+    }
     input.placeholder = placeholderFor(state)
 
     if (state.help) input.blur()

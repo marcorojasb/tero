@@ -1,6 +1,6 @@
 ╭─ tero ───────────────────────────────────────────────────────────────────────────────────────╮
 │ offline · tu decisión · 3 fuentes                                                            │
-│ [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ]  [ evaluacion ]                │
+│ [ tarea: crear · evaluación ]  [ 4° básico ]  [ Lenguaje ]  [ cuento ]  [ OA 4 ]  [ 45 min ] │
 │╭─ ▸ propuesta ──────────────────────────────╮                                                │
 ││ crear · evaluación — Evaluación de         │                                                │
 ││ comprensión lectora — El cóndor y el       │                                                │
@@ -20,10 +20,10 @@
 ││                                            │                                                │
 ││ ## Selección múltiple                      │                                                │
 │╰────────────────────────────────────────────╯                                                │
-│╭─ aprobación ───────────────────────────────────────────────────────────────────────────────╮│
+│╭─ ▸ ACCIÓN REQUERIDA · Aprobación ──────────────────────────────────────────────────────────╮│
 ││ ¿escribo el archivo?   [y] aprobar   [n] descartar   ·  o escribe tu decisión abajo   evid ││
 │╰────────────────────────────────────────────────────────────────────────────────────────────╯│
-│╭─ tu decisión ──────────────────────────────────────────────────────────────────────────────╮│
+│╭─ ▸ ACCIÓN REQUERIDA · Pulsa [y] aprobar o [n] descartar ───────────────────────────────────╮│
 ││ y aprueba · n descarta · o escribe tu decisión…                                            ││
 │╰────────────────────────────────────────────────────────────────────────────────────────────╯│
 │ tu decisión: y aprueba · n descarta · o escribe                                              │

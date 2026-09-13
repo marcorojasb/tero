@@ -114,12 +114,15 @@ export const PHASE_LABEL: Record<Phase, string> = {
 
 export const TOOL_LABEL: Record<string, string> = {
   list_sources: "fuentes",
+  list_artifacts: "derivados",
+  read_artifact: "leer derivado",
   search_sources: "buscar",
   read_source: "leer",
   list_oa: "OA lista",
   get_oa: "OA",
   search_oa: "OA busca",
   cite_evidence: "cita",
+  proponer: "propuesta",
   proponer_crear: "propuesta",
   proponer_editar: "propuesta",
   host: "host",

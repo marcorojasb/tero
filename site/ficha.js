@@ -407,9 +407,9 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
       cols: state.cols,
       rows: state.rows,
       header,
-      chips: p ? ["4° básico", "Lenguaje", p.tipo_label] : ["4° básico", "Lenguaje", "LEN-4B-OA04"],
+      chips: p ? [`tarea: ${p.accion || "crear"} · ${p.tipo_label}`, "4° básico", "Lenguaje"] : ["4° básico", "Lenguaje", "LEN-4B-OA04"],
       path: "~/tero",
-      promptTitle: p && p.status === "pendiente" ? "tu decisión" : state.frame === "home" ? "pregunta" : "mensaje",
+      promptTitle: p && p.status === "pendiente" ? "▸ ACCIÓN REQUERIDA · Pulsa [y] aprobar o [n] descartar" : state.frame === "home" ? "pregunta" : "▸ TU TURNO · Escribe y pulsa Enter",
       placeholder: p && p.status === "pendiente"
         ? "y aprueba · n descarta · o escribe tu decisión…"
         : state.frame === "home"
@@ -425,7 +425,7 @@ La TUI nunca escribe archivos: escribe el host, y solo tras aprobar.
       evidence,
       warnings,
       gate,
-      gateTitle: " aprobación ",
+      gateTitle: p && p.status === "pendiente" ? "▸ ACCIÓN REQUERIDA · Aprobación" : " aprobación ",
       help: state.help ? HELP : "",
       focus: state.focus,
       tagline: "tus fuentes, tu criterio",
