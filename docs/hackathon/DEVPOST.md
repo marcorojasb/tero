@@ -7,7 +7,7 @@ Built with: **Strands Agents SDK (Python, Multi-Agent Graph + OpenTelemetry)** +
 Live demo: https://marcorojasb.github.io/tero/
 
 Video demo (YouTube): https://www.youtube.com/watch?v=bNAf-q34lg8
-Official HD Demos (English & Spanish): embedded in the live demo at https://marcorojasb.github.io/tero/ (Spanish: 2:33, English: 2:32, with full WebVTT subtitles)
+Official HD Demos (English & Spanish): embedded in the live demo at https://marcorojasb.github.io/tero/ (Spanish: 3:08, English: 3:07, with full WebVTT subtitles)
 
 AWS Builder post: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
 
@@ -114,7 +114,7 @@ Strands Agents SDK, Multi-Agent Graph, OpenTelemetry, Amazon Bedrock, Amazon Nov
 
 ## Try it out
  
-- Live interactive demo: https://marcorojasb.github.io/tero/ (with embedded HD video player in English & Spanish: Spanish 2:33, English 2:32)
+- Live interactive demo: https://marcorojasb.github.io/tero/ (with embedded HD video player in English & Spanish: Spanish 3:08, English 3:07)
 - Video demo (YouTube): https://www.youtube.com/watch?v=bNAf-q34lg8
 - AWS Builder Center article: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
 

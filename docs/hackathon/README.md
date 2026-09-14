@@ -16,7 +16,7 @@ How not to overspend: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 - [ ] Paste Devpost text: [DEVPOST.md](DEVPOST.md)
 - [ ] Upload diagram: [architecture.png](architecture.png)
 - [x] Video ≤ 5 min (public YouTube): <https://www.youtube.com/watch?v=bNAf-q34lg8>
-- [x] Official Full HD Demos (Spanish 2:33, English 2:32): embedded on live landing with WebVTT subtitles (`site/assets/video/`)
+- [x] Official Full HD Demos (Spanish 3:08, English 3:07): embedded on live landing with WebVTT subtitles (`site/assets/video/`)
 - [x] Live demo: <https://marcorojasb.github.io/tero/> (if 404, enable Pages)
 - [x] Bonus post on Builder Center: <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 

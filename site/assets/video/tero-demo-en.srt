@@ -1,35 +1,115 @@
 1
-00:00:00,000 --> 00:00:16,830
-tero · Your classroom, your sources, your judgment. Proposes in memory, teacher decides.
+00:00:00,649 --> 00:00:05,653
+tero · the conversational teacher agent for Chilean classrooms
 
 2
-00:00:17,030 --> 00:00:34,843
-Privacy by design: student data never leaves the local machine or touches cloud models.
+00:00:05,854 --> 00:00:12,586
+tomorrow's photocopy, from your own folder · the agent proposes, the teacher decides
 
 3
-00:00:35,043 --> 00:00:52,881
-Strands Multi-Agent Graph on Amazon Bedrock with curriculum auditing and in-memory approval gate.
+00:00:13,886 --> 00:00:21,458
+your folder is the single source of truth
 
 4
-00:00:53,081 --> 00:01:08,159
-Intent A: answers questions and inspects local folder without touching disk.
+00:00:21,658 --> 00:00:27,502
+Ley 21.719: student data never touches the cloud
 
 5
-00:01:08,359 --> 00:01:23,341
-Intent B: in-memory proposal card with verified citations against your local sources.
+00:00:27,702 --> 00:00:32,969
+nothing is written without your explicit approval
 
 6
-00:01:23,542 --> 00:01:37,251
-You approve with 'y' or 'dale'. The host materializes the file and delivers the classroom photocopy.
+00:00:34,369 --> 00:00:40,813
+Multi-Agent Graph · Strands Agents · Amazon Bedrock
 
 7
-00:01:37,451 --> 00:01:54,450
-Intent C: special education adaptation under Decreto 83. Original file remains byte-identical.
+00:00:41,013 --> 00:00:46,857
+pedagogical drafter + curriculum quality auditor
 
 8
-00:01:54,650 --> 00:02:17,048
-Amazon Bedrock Model Trio verified live, plus tero-offline model for air-gapped classrooms.
+00:00:47,057 --> 00:00:56,261
+Model Trio + OpenTelemetry traces on every turn
 
 9
-00:02:17,247 --> 00:02:32,566
-tero · Your classroom, your sources, your judgment. Open source under the MIT license.
+00:00:56,461 --> 00:01:00,865
+zero write tools · the folder never leaves
+
+10
+00:01:02,365 --> 00:01:05,713
+ask in natural Spanish, no menus
+
+11
+00:01:05,913 --> 00:01:11,973
+precise answers · zero files written
+
+12
+00:01:13,474 --> 00:01:17,013
+“Prepara una evaluación de comprensión lectora para 4° básico”
+
+13
+00:01:17,213 --> 00:01:25,601
+in-memory proposal · citations verified against your sources
+
+14
+00:01:25,801 --> 00:01:28,429
+warnings inform · they never block
+
+15
+00:01:29,929 --> 00:01:34,861
+approve with [y] or “dale” · nothing is written before
+
+16
+00:01:35,061 --> 00:01:41,361
+the host writes to derivados/ and compiles to LaTeX
+
+17
+00:01:42,862 --> 00:01:49,713
+every material, cryptographically sealed in your name
+
+18
+00:01:49,914 --> 00:01:58,253
+sources + derivative + model + trace hashes · .tero/decisiones/
+
+19
+00:01:58,453 --> 00:02:05,473
+verify-seal · integrity verified in seconds
+
+20
+00:02:06,974 --> 00:02:10,777
+“Adapta la evaluación del cóndor para un estudiante con dislexia”
+
+21
+00:02:10,977 --> 00:02:19,774
+Decreto 83: access supports first, objectives later
+
+22
+00:02:19,973 --> 00:02:26,370
+new version with origin · the original stays intact
+
+23
+00:02:27,770 --> 00:02:31,310
+check-aws live · Amazon Bedrock Model Trio
+
+24
+00:02:31,510 --> 00:02:41,218
+Nova Lite · GLM 4.7 Flash · MiniMax M2.5
+
+25
+00:02:41,418 --> 00:02:48,678
+tero-offline: real Strands, never faking a cloud call
+
+26
+00:02:50,078 --> 00:02:53,786
+tero gives Sunday afternoons back to teachers
+
+27
+00:02:53,986 --> 00:02:56,614
+every material, signed in your name
+
+28
+00:02:56,814 --> 00:03:02,610
+MIT · open source · Agents for Humans Hackathon by AWS
+
+29
+00:03:02,810 --> 00:03:06,134
+tero · your classroom, your sources, your judgment

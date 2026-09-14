@@ -300,7 +300,7 @@ ruff MIT), compatible with this repo's MIT license.
   into `derivados/`. The in-browser model is labeled `tero-offline`; it does not
   fake Bedrock.
 - **Video walkthrough (YouTube):** <https://www.youtube.com/watch?v=bNAf-q34lg8>
-- **Official 1080p HD Video Demos (English & Spanish):** Embedded directly with interactive modal and synced captions on <https://marcorojasb.github.io/tero/>, or downloadable in `site/assets/video/tero-demo-en.mp4` (English, 2:32) and `site/assets/video/tero-demo-es.mp4` (Spanish, 2:33) with full WebVTT subtitles.
+- **Official 1080p HD Video Demos (English & Spanish):** Embedded directly with interactive modal and synced captions on <https://marcorojasb.github.io/tero/>, or downloadable in `site/assets/video/tero-demo-en.mp4` (English, 3:07) and `site/assets/video/tero-demo-es.mp4` (Spanish, 3:08) with full WebVTT subtitles.
 - **AWS Builder Center post:** <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 - **Repository:** <https://github.com/marcorojasb/tero> (MIT).
 - **Benchmark paper:** `docs/EVALUATION-PAPER.md`.

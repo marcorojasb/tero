@@ -1,35 +1,115 @@
 1
-00:00:00,000 --> 00:00:20,118
-tero · Tu aula, tus fuentes, tu criterio. El agente propone, el docente decide.
+00:00:00,649 --> 00:00:05,509
+tero · el agente docente conversacional para la sala chilena
 
 2
-00:00:20,318 --> 00:00:34,123
-Privacidad por diseño (Ley 21.719): datos de estudiantes nunca tocan el modelo.
+00:00:05,710 --> 00:00:13,449
+la fotocopia de mañana, desde tu carpeta · el agente propone, el profesor decide
 
 3
-00:00:34,323 --> 00:00:51,825
-Grafo Multi-Agente Strands en Amazon Bedrock con auditoría curricular y compuerta en memoria.
+00:00:14,750 --> 00:00:21,890
+Tu carpeta es la única fuente de verdad
 
 4
-00:00:52,025 --> 00:01:09,359
-Intención A: responde preguntas e inspecciona la carpeta sin tocar el disco.
+00:00:22,089 --> 00:00:28,318
+Ley 21.719: los datos nunca tocan la nube
 
 5
-00:01:09,560 --> 00:01:24,829
-Intención B: propuesta en memoria con citas textuales verificadas contra tus fuentes.
+00:00:28,518 --> 00:00:33,138
+Nada se escribe sin tu aprobación explícita
 
 6
-00:01:25,030 --> 00:01:40,611
-Tú apruebas con 'y' o 'dale'. El host materializa el archivo y entrega la fotocopia lista.
+00:00:34,538 --> 00:00:40,334
+Grafo Multi-Agente · Strands Agents · Amazon Bedrock
 
 7
-00:01:40,811 --> 00:01:59,250
-Intención C: adaptación NEE bajo Decreto 83. Tu archivo original permanece intacto.
+00:00:40,534 --> 00:00:46,714
+Redactor pedagógico + auditor de calidad curricular
 
 8
-00:01:59,450 --> 00:02:18,104
-Amazon Bedrock Model Trio verificado en vivo, más modelo tero-offline sin conexión.
+00:00:46,914 --> 00:00:55,374
+Model Trio + trazas OpenTelemetry en cada turno
 
 9
-00:02:18,304 --> 00:02:33,237
-tero · Tu aula, tus fuentes, tu criterio. Código abierto bajo licencia MIT.
+00:00:55,574 --> 00:01:00,698
+Cero herramientas de escritura · la carpeta nunca sale
+
+10
+00:01:02,198 --> 00:01:06,386
+Pregunta en español natural, sin menús
+
+11
+00:01:06,586 --> 00:01:13,678
+Responde con exactitud · no escribe ningún archivo
+
+12
+00:01:15,178 --> 00:01:19,318
+«Prepara una evaluación de comprensión lectora para 4° básico»
+
+13
+00:01:19,518 --> 00:01:26,898
+Propuesta en memoria · citas verificadas contra tus fuentes
+
+14
+00:01:27,098 --> 00:01:30,302
+Los avisos informan · nunca bloquean
+
+15
+00:01:31,802 --> 00:01:37,094
+Apruebas con [y] o diciendo «dale» · nada se escribe antes
+
+16
+00:01:37,294 --> 00:01:42,898
+El host escribe en derivados/ y compila a LaTeX
+
+17
+00:01:44,398 --> 00:01:51,322
+cada material, sellado criptográficamente a tu nombre
+
+18
+00:01:51,522 --> 00:01:59,310
+hash de fuentes + derivado + modelo + traza · .tero/decisiones/
+
+19
+00:01:59,510 --> 00:02:06,434
+verify-seal · integridad verificada en segundos
+
+20
+00:02:07,934 --> 00:02:11,906
+«Adapta la evaluación del cóndor para un estudiante con dislexia»
+
+21
+00:02:12,106 --> 00:02:20,062
+Decreto 83: primero apoyos de acceso, después los objetivos
+
+22
+00:02:20,262 --> 00:02:27,234
+Versión nueva con origen · el original queda intacto
+
+23
+00:02:28,634 --> 00:02:32,654
+check-aws en vivo · Amazon Bedrock Model Trio
+
+24
+00:02:32,854 --> 00:02:41,842
+Nova Lite · GLM 4.7 Flash · MiniMax M2.5
+
+25
+00:02:42,042 --> 00:02:48,798
+tero-offline: Strands real, sin fingir llamadas a la nube
+
+26
+00:02:50,198 --> 00:02:53,594
+tero devuelve la tarde del domingo a quien enseña
+
+27
+00:02:53,794 --> 00:02:57,046
+cada material, firmado a tu nombre
+
+28
+00:02:57,246 --> 00:03:02,994
+MIT · código abierto · Hackathon Agents for Humans de AWS
+
+29
+00:03:03,194 --> 00:03:06,590
+tero · tu aula, tus fuentes, tu criterio
