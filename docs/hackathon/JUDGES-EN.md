@@ -300,6 +300,7 @@ ruff MIT), compatible with this repo's MIT license.
   into `derivados/`. The in-browser model is labeled `tero-offline`; it does not
   fake Bedrock.
 - **Video walkthrough (YouTube):** <https://www.youtube.com/watch?v=bNAf-q34lg8>
+- **Official 1080p HD Video Demos (English & Spanish):** Embedded directly with interactive modal and synced captions on <https://marcorojasb.github.io/tero/>, or downloadable in `site/assets/video/tero-demo-en.mp4` (English, 2:32) and `site/assets/video/tero-demo-es.mp4` (Spanish, 2:33) with full WebVTT subtitles.
 - **AWS Builder Center post:** <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 - **Repository:** <https://github.com/marcorojasb/tero> (MIT).
 - **Benchmark paper:** `docs/EVALUATION-PAPER.md`.
@@ -322,7 +323,7 @@ This section maps tero's architecture directly to the official hackathon evaluat
 - **Resilient Bedrock Model Routing:** Employs `ModelRouter` with `FallbackStrategy` (`src/tero/session.py`) to ensure seamless failover across regions (e.g. `amazon.nova-lite-v1:0` to `us.amazon.nova-lite-v1:0`).
 - **Zero-Write Sandboxed Tool Registry:** The model's tool schema contains **no write tools**. Material is prepared exclusively in memory; host-side gate code (`src/tero/gate.py`) verifies human approval and source integrity before writing to `derivados/`.
 - **System of Record & SHA-256 Integrity:** Local source files (`fuentes/`) are hashed upon indexation; every write re-fingerprints originals to ensure they remain byte-identical.
-- **Full Test Suite & Zero XFAILS:** 380 automated tests (including multi-model Bedrock tests and Decreto 83 NEE edge cases) passing with **0 xfails** and **100% green** CI, plus 50/50 OpenTUI tests.
+- **Full Test Suite & Zero XFAILS:** 390 automated tests (including multi-teacher persona tests, adversarial security harness, multi-model Bedrock tests, and Decreto 83 NEE edge cases) passing with **0 xfails** and **100% green** CI, plus 50/50 OpenTUI tests.
 - **Fast Model Trio Diagnostics:** CLI command `python -m tero check-aws --all-models` verifies credentials, IAM permissions, and all 3 documented Bedrock models in seconds.
 
 ### Criterion 2: Potential Value

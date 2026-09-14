@@ -930,7 +930,21 @@ Dibuja qué le respondió el cóndor al huemul.`,
 
   // Atajos globales
   document.addEventListener("keydown", (ev) => {
+    const videoOverlay = $("video-overlay");
+    if (videoOverlay && !videoOverlay.hidden) {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeVideoModal();
+      }
+      return;
+    }
+
     const inPrompt = ev.target && ev.target.id === "prompt";
+    if (!inPrompt && (ev.key === "v" || ev.key === "V")) {
+      ev.preventDefault();
+      openVideoModal("es");
+      return;
+    }
     if (ev.key === "?" && (!inPrompt || !promptInput.value)) {
       ev.preventDefault();
       state.help = !state.help;
@@ -986,6 +1000,123 @@ Dibuja qué le respondió el cóndor al huemul.`,
       showPage(state.page + 1);
     }
   });
+
+  // ── Controlador del reproductor de video oficial (ES / EN) ──
+  const videoOverlay = $("video-overlay");
+  const videoPlayer = $("main-video-player");
+  const videoSource = $("video-source");
+  const videoSubtitles = $("video-subtitles");
+  const videoClose = $("video-modal-close");
+  const langEsBtn = $("video-lang-es");
+  const langEnBtn = $("video-lang-en");
+  const videoTitle = $("video-modal-title");
+
+  const VIDEOS = {
+    es: {
+      src: "./assets/video/tero-demo-es.mp4",
+      vtt: "./assets/video/tero-demo-es.vtt",
+      title: "tero — Demo Oficial (Español)",
+    },
+    en: {
+      src: "./assets/video/tero-demo-en.mp4",
+      vtt: "./assets/video/tero-demo-en.vtt",
+      title: "tero — Official Demo (English)",
+    },
+  };
+
+  let currentVideoLang = "es";
+
+  function setVideoLanguage(lang, preserveTime = true) {
+    if (!VIDEOS[lang]) return;
+    currentVideoLang = lang;
+    const info = VIDEOS[lang];
+    const prevTime = preserveTime && videoPlayer ? videoPlayer.currentTime : 0;
+    const wasPlaying = videoPlayer && !videoPlayer.paused;
+
+    if (langEsBtn && langEnBtn) {
+      langEsBtn.classList.toggle("active", lang === "es");
+      langEnBtn.classList.toggle("active", lang === "en");
+    }
+    if (videoTitle) {
+      videoTitle.textContent = info.title;
+    }
+    if (videoSource && videoPlayer) {
+      videoSource.src = info.src;
+      if (videoSubtitles) {
+        videoSubtitles.src = info.vtt;
+        videoSubtitles.srclang = lang;
+      }
+      videoPlayer.load();
+      if (prevTime > 0) {
+        const onMeta = () => {
+          try {
+            videoPlayer.currentTime = Math.min(prevTime, videoPlayer.duration || prevTime);
+          } catch (_) {}
+          videoPlayer.removeEventListener("loadedmetadata", onMeta);
+        };
+        videoPlayer.addEventListener("loadedmetadata", onMeta);
+      }
+      if (wasPlaying) {
+        videoPlayer.play().catch(() => {});
+      }
+      setTimeout(() => {
+        try {
+          if (videoPlayer.textTracks && videoPlayer.textTracks[0]) {
+            videoPlayer.textTracks[0].mode = "showing";
+          }
+        } catch (_) {}
+      }, 50);
+    }
+  }
+
+  function openVideoModal(lang = "es") {
+    if (!videoOverlay || !videoPlayer) return;
+    setVideoLanguage(lang, false);
+    videoOverlay.hidden = false;
+    videoPlayer.play().catch(() => {});
+    if (videoClose) videoClose.focus();
+  }
+
+  function closeVideoModal() {
+    if (!videoOverlay || !videoPlayer) return;
+    videoPlayer.pause();
+    videoOverlay.hidden = true;
+    if (promptInput) promptInput.focus();
+  }
+
+  if (videoClose) {
+    videoClose.addEventListener("click", closeVideoModal);
+  }
+  if (videoOverlay) {
+    videoOverlay.addEventListener("click", (e) => {
+      if (e.target === videoOverlay) closeVideoModal();
+    });
+  }
+  if (langEsBtn) {
+    langEsBtn.addEventListener("click", () => setVideoLanguage("es", true));
+  }
+  if (langEnBtn) {
+    langEnBtn.addEventListener("click", () => setVideoLanguage("en", true));
+  }
+
+  const btnVideoOpen = $("btn-video-open");
+  if (btnVideoOpen) {
+    btnVideoOpen.addEventListener("click", () => openVideoModal("es"));
+  }
+  const linkVideoEs = $("link-video-es");
+  if (linkVideoEs) {
+    linkVideoEs.addEventListener("click", (e) => {
+      e.preventDefault();
+      openVideoModal("es");
+    });
+  }
+  const linkVideoEn = $("link-video-en");
+  if (linkVideoEn) {
+    linkVideoEn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openVideoModal("en");
+    });
+  }
 
   // Botones de acciones rápidas (chips)
   document.querySelectorAll("[data-run]").forEach((btn) => {

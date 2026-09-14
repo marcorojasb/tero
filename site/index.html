@@ -89,6 +89,7 @@
           <button type="button" class="action-btn" data-run="planificar" title="Intención b: Crear planificación">📋 b) Planificación 45 min</button>
           <button type="button" class="action-btn" data-run="evaluar" title="Intención b: Crear evaluación con pauta">📝 b) Evaluación con pauta</button>
           <button type="button" class="action-btn" data-run="adaptar" title="Intención c: Adaptación a NEE Decreto 83">♿ c) Adaptación NEE (Decreto 83)</button>
+          <button type="button" class="action-btn action-btn-video" id="btn-video-open" title="Ver video oficial del proyecto en HD (Español / English)">🎬 Video Demo [v]</button>
           <button type="button" class="action-btn action-btn-alt" data-run="help" title="Ayuda contextual">❓ Ayuda</button>
           <button type="button" class="action-btn action-btn-alt" data-run="reset" title="Reiniciar sesión">🔄 Reiniciar</button>
         </div>
@@ -114,9 +115,9 @@
         The terminal is in Spanish because tero is built for Chilean teachers.
         <a href="https://github.com/marcorojasb/tero">Source, docs &amp; judge guide →</a>
         &nbsp;·&nbsp;
-        <a href="./assets/video/tero-demo-es.mp4" target="_blank" rel="noopener">Demo Video (Español) ▶</a>
+        <a href="#video-modal" id="link-video-es" title="Ver demo oficial en español">Demo Video (Español) ▶</a>
         &nbsp;·&nbsp;
-        <a href="./assets/video/tero-demo-en.mp4" target="_blank" rel="noopener">Demo Video (English) ▶</a>
+        <a href="#video-modal" id="link-video-en" title="Watch official demo video in English">Demo Video (English) ▶</a>
       </p>
     </footer>
 
@@ -195,6 +196,57 @@
         </p>
       </div>
     </section>
+
+    <!-- Modal reproductor de video oficial (Español / English) -->
+    <div class="video-overlay" id="video-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="video-modal-title">
+      <div class="video-card">
+        <div class="video-header">
+          <div class="video-title-wrap">
+            <span class="video-badge">HD 1080p</span>
+            <h2 class="video-title" id="video-modal-title">tero — Demo Oficial (Español)</h2>
+          </div>
+          <div class="video-lang-switch" role="group" aria-label="Seleccionar idioma del video">
+            <button type="button" class="video-lang-btn active" id="video-lang-es" data-lang="es">
+              🇨🇱 Español (2:33)
+            </button>
+            <button type="button" class="video-lang-btn" id="video-lang-en" data-lang="en">
+              🇺🇸 English (2:32)
+            </button>
+          </div>
+          <button type="button" class="video-close-btn" id="video-modal-close" title="Cerrar reproductor [Esc]" aria-label="Cerrar reproductor">✕</button>
+        </div>
+        <div class="video-player-frame">
+          <video
+            id="main-video-player"
+            controls
+            playsinline
+            preload="metadata"
+          >
+            <source id="video-source" src="./assets/video/tero-demo-es.mp4" type="video/mp4" />
+            <track
+              id="video-subtitles"
+              label="Subtítulos"
+              kind="subtitles"
+              srclang="es"
+              src="./assets/video/tero-demo-es.vtt"
+              default
+            />
+            Tu navegador no soporta reproducción de video HTML5.
+          </video>
+        </div>
+        <div class="video-footer">
+          <p class="video-meta">
+            AWS Strands Agents · Multi-Agent Graph · OpenTelemetry · Amazon Bedrock · OpenTUI
+          </p>
+          <div class="video-direct-links">
+            <span>Descarga directa:</span>
+            <a href="./assets/video/tero-demo-es.mp4" target="_blank" rel="noopener" download>MP4 Español</a>
+            ·
+            <a href="./assets/video/tero-demo-en.mp4" target="_blank" rel="noopener" download>MP4 English</a>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="./tui-grid.js?v=conversacional"></script>
     <script src="./ficha.js?v=conversacional"></script>
