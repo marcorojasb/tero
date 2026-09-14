@@ -239,3 +239,4 @@ fixtures/**/.tero/
 .ruff_cache/
 .coverage
 htmlcov/
+.video_agent/
