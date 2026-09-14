@@ -709,6 +709,22 @@ def export_latex(
     else:
         data = extract_payload_from_markdown(body, tipo=art_tipo or None, meta=meta)
     tex = render_latex(data, tipo=str(data.get("tipo") or art_tipo or "guia"))
+    if source.exists() and body:
+        from tero.ledger import extract_seal_from_markdown
+
+        seal_info = extract_seal_from_markdown(body)
+        if seal_info.get("seal_id"):
+            seal_id = seal_info["seal_id"]
+            stamp_tex = (
+                f"\n\\vspace{{1.5em}}\n"
+                f"\\noindent\\hrulefill\\\\\n"
+                f"\\noindent\\footnotesize\\textit{{Material co-creado y certificado bajo criterio docente \\textperiodcentered{{}} Tero Decisional Seal ID: \\texttt{{{seal_id}}}}}\n"
+            )
+            if "\\end{document}" in tex:
+                tex = tex.replace("\\end{document}", f"{stamp_tex}\n\\end{{document}}")
+            else:
+                tex = f"{tex}\n{stamp_tex}"
+
     dest = Path(dest)
     if dest.suffix.lower() != ".tex":
         dest = dest.with_suffix(".tex")

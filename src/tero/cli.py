@@ -81,6 +81,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_common(check)
 
+    verify_seal_cmd = sub.add_parser(
+        "verify-seal",
+        help="Verifica la integridad criptográfica del Sello Docente y el ledger de procedencia.",
+    )
+    verify_seal_cmd.add_argument(
+        "file", type=Path, help="Ruta al archivo .md (en derivados/ o carpeta)."
+    )
+    verify_seal_cmd.add_argument(
+        "--carpeta",
+        type=Path,
+        default=None,
+        help="Carpeta de trabajo (default: detectada del archivo).",
+    )
+
     args = parser.parse_args(argv)
     if args.cmd == "demo":
         return cmd_demo(args)
@@ -94,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_export(args)
     if args.cmd == "check-aws":
         return cmd_check_aws(args)
+    if args.cmd == "verify-seal":
+        return cmd_verify_seal(args)
     return 1
 
 
@@ -213,6 +229,10 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
     if result is not None and result.path is not None:
         print(f"\nescrito: {result.path}", flush=True)
+        if result.seal:
+            say(
+                f"  sello docente: {result.seal.seal_id} (criterio humano aprobado · registrado en .tero/decisiones/)"
+            )
         after = workspace.fingerprint_sources()
         if after != before:
             print(
@@ -221,6 +241,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
             )
             return 1
         print("Originales intactos.", flush=True)
+        say(f"  {session.usage_tracker.get_summary()['banner']}")
         print("listo.", flush=True)
         return 0
     if session.pending_propuesta is not None:
@@ -328,3 +349,46 @@ def cmd_check_aws(args: argparse.Namespace) -> int:
 
     settings = _settings(args)
     return run_check_aws(settings, all_models=getattr(args, "all_models", False))
+
+
+def cmd_verify_seal(args: argparse.Namespace) -> int:
+    """Verifica criptográficamente el sello docente y procedencia de un artefacto."""
+    target_file = Path(args.file).expanduser().resolve()
+    if not target_file.exists():
+        print(f"✗ Archivo no encontrado: {target_file}", file=sys.stderr)
+        return 1
+
+    carpeta_dir = args.carpeta
+    if carpeta_dir is None:
+        if target_file.parent.name in {"derivados", "borradores"}:
+            carpeta_dir = target_file.parent.parent
+        else:
+            carpeta_dir = target_file.parent
+
+    workspace = Workspace(carpeta_dir)
+    result = workspace.verify_seal(target_file)
+
+    if result.valid:
+        print("✓ Sello Criptográfico de Criterio Docente: VÁLIDO")
+        print(f"  Seal ID         : {result.seal_id}")
+        criterio = result.details.get("criterio", "humano_aprobado")
+        dec_type = result.details.get("decision_type", "conversational_approval")
+        print(f"  Criterio        : {criterio} ({dec_type})")
+        print(f"  Modelo          : {result.details.get('model_id')}")
+        print(f"  Trace ID        : {result.details.get('trace_id')}")
+        print(f"  Fecha (UTC)     : {result.details.get('timestamp')}")
+        print(f"  Artefacto       : {result.details.get('artifact_path')} (integridad verificada)")
+        print(
+            f"  Fuentes         : {result.details.get('sources_checked')} fuente(s) original(es) verificada(s) sin alteración"
+        )
+        note = result.details.get("approval_note")
+        if note:
+            print(f'  Nota docente    : "{note}"')
+        return 0
+
+    print("✗ Sello Criptográfico de Criterio Docente: INVÁLIDO", file=sys.stderr)
+    print(f"  Motivo: {result.message}", file=sys.stderr)
+    for check_name, passed in result.checks.items():
+        state = "✓" if passed else "✗"
+        print(f"    {state} {check_name}", file=sys.stderr)
+    return 1

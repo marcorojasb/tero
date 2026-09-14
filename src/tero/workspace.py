@@ -49,6 +49,8 @@ class Workspace:
         (self.root / "borradores").mkdir(exist_ok=True)
         (self.root / ".tero").mkdir(exist_ok=True)
         (self.root / ".tero" / "transcripciones").mkdir(exist_ok=True)
+        (self.root / ".tero" / "decisiones").mkdir(exist_ok=True)
+        (self.root / ".tero" / "ledger").mkdir(exist_ok=True)
         self._datos_sensibles = datos_sensibles
         # Caché por ruta y (mtime, tamaño): list_sources corre varias veces por turno.
         self._sensitive_cache: dict[str, tuple[tuple[int, int], str | None]] = {}
@@ -231,6 +233,12 @@ class Workspace:
             if len(hits) >= limit:
                 break
         return hits
+
+    def verify_seal(self, relative_or_path: str | Path):
+        """Verifica la integridad criptográfica del sello docente en un artefacto."""
+        from tero.ledger import verify_seal as _verify_seal
+
+        return _verify_seal(self, relative_or_path)
 
     def _iter_source_files(self) -> Iterable[Path]:
         """Fuentes admitidas. Las sensibles quedan fuera: no se leen ni se envían."""

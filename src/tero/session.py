@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from strands import Agent
+from strands.models import FallbackStrategy, RoutingCandidate, RoutingContext
 
 from tero import privacy
 from tero.begonia import BegoniaClient
 from tero.config import Settings
+from tero.cost import SessionUsageTracker
 from tero.encargo_sync import source_domain_warning, sync_encargo_from_prompt
 from tero.errors import TeroError, humanize_exception
 from tero.evidence import collect_warnings, propuesta_warnings
@@ -25,6 +27,7 @@ from tero.offline import OfflineModel
 from tero.prompts import system_prompt
 from tero.salvage import salvage_propuesta_from_text
 from tero.sanitize import strip_thinking_tags
+from tero.telemetry import get_current_trace_id, record_frugal_cost_metric
 from tero.tools import DRAFT_AGENT_TURNS, DRAFT_TOOL_BUDGET, TurnContext, build_tools
 from tero.transcript import TranscriptLog
 from tero.types import Encargo, Propuesta, ProtocolPhase, Turn
@@ -35,10 +38,32 @@ _MAX_PROMPT = 8000
 EmitFn = Callable[[dict[str, Any]], None]
 
 
+class TelemetricFallbackStrategy(FallbackStrategy):
+    """FallbackStrategy que registra failovers multi-región y emite telemetría."""
+
+    async def select(self, context: RoutingContext, **kwargs: Any) -> RoutingCandidate | None:
+        candidate = await super().select(context, **kwargs)
+        if context.attempts and any(attempt.exception is not None for attempt in context.attempts):
+            last_failed = next(
+                (att for att in reversed(context.attempts) if att.exception is not None), None
+            )
+            from_cand = (
+                getattr(last_failed.candidate, "model", last_failed.candidate)
+                if last_failed
+                else "unknown"
+            )
+            to_cand = getattr(candidate, "model", candidate) if candidate else "none"
+            err = last_failed.exception if last_failed else "error desconocido"
+            from tero.telemetry import record_router_failover_span
+
+            record_router_failover_span(str(from_cand), str(to_cand), err)
+        return candidate
+
+
 def make_model(settings: Settings, encargo: Encargo):
     if settings.offline:
         return OfflineModel(encargo, model_id="tero-offline")
-    from strands.models import BedrockModel, FallbackStrategy, ModelRouter
+    from strands.models import BedrockModel, ModelRouter
 
     primary = BedrockModel(
         model_id=settings.model_id,
@@ -53,7 +78,19 @@ def make_model(settings: Settings, encargo: Encargo):
         )
         return ModelRouter(
             models=[primary, cross_region],
-            strategy=FallbackStrategy(),
+            strategy=TelemetricFallbackStrategy(),
+            max_switches=1,
+        )
+    if settings.model_id in {"zai.glm-4.7-flash", "minimax.minimax-m2.5"}:
+        secondary_region = "us-west-2" if settings.region == "us-east-1" else "us-east-1"
+        secondary = BedrockModel(
+            model_id=settings.model_id,
+            region_name=secondary_region,
+            temperature=settings.temperature,
+        )
+        return ModelRouter(
+            models=[primary, secondary],
+            strategy=TelemetricFallbackStrategy(),
             max_switches=1,
         )
     return primary
@@ -103,6 +140,7 @@ class TeacherSession:
         self.last_prompt: str = ""
         self.last_artifact: Path | None = None
         self.pending_propuesta: Propuesta | None = None
+        self.usage_tracker = SessionUsageTracker()
         self._stream_buf: list[str] = []
         self._delta_buf: str = ""
         self._last_tool_activity: tuple[str, str] | None = None
@@ -219,7 +257,33 @@ class TeacherSession:
     def _run_turn(self, turn: Turn, prompt: str) -> None:
         self._set_phase("pensando")
         self.emit({"type": "status", "phase": "pensando", "detail": "pensando", "step": "turn"})
-        text = strip_thinking_tags(self._call_model(prompt))
+        raw_text, token_counts = self._call_model(prompt)
+        text = strip_thinking_tags(raw_text)
+
+        # Frugal Architect: contabilidad y transparencia de tokens / costo en USD
+        active_model = "tero-offline" if self.settings.offline else self.settings.model_id
+        turn_usage = self.usage_tracker.record_turn(
+            active_model,
+            token_counts.get("input_tokens", 0),
+            token_counts.get("output_tokens", 0),
+        )
+        turn.usage = turn_usage.as_dict()
+        record_frugal_cost_metric(
+            active_model,
+            turn_usage.input_tokens,
+            turn_usage.output_tokens,
+            turn_usage.cost_usd,
+            self.usage_tracker.total_cost_usd,
+        )
+        self.emit(
+            {
+                "type": "cost",
+                "turn_id": turn.id,
+                "turn": turn_usage.as_dict(),
+                "session": self.usage_tracker.get_summary(),
+            }
+        )
+
         propuesta = self.ctx.pending_propuesta
         if propuesta is None:
             propuesta = salvage_propuesta_from_text(
@@ -248,15 +312,16 @@ class TeacherSession:
         self._set_phase("idle")
         self.emit({"type": "respuesta", "id": turn.id, "texto": text})
 
-    def _call_model(self, prompt: str) -> str:
+    def _call_model(self, prompt: str) -> tuple[str, dict[str, int]]:
         """Corre el agente una vez; reintenta solo si Bedrock corta el stream."""
         self._stream_buf = []
         self._delta_buf = ""
         self._last_tool_activity = None
         self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
         agent = self._agent_for()
+        agent_res = None
         try:
-            agent(prompt, limits={"turns": DRAFT_AGENT_TURNS})
+            agent_res = agent(prompt, limits={"turns": DRAFT_AGENT_TURNS})
         except Exception as exc:  # noqa: BLE001 — Bedrock stream/ToolUse flakiness
             self._flush_delta()
             if not _is_retryable_stream_error(exc):
@@ -274,9 +339,18 @@ class TeacherSession:
             self._last_tool_activity = None
             self.ctx.reset_tool_budget(DRAFT_TOOL_BUDGET)
             agent = self._agent_for()
-            agent(prompt, limits={"turns": DRAFT_AGENT_TURNS})
+            agent_res = agent(prompt, limits={"turns": DRAFT_AGENT_TURNS})
         self._flush_delta()
-        return "".join(self._stream_buf).strip()
+
+        usage_counts = {"input_tokens": 0, "output_tokens": 0}
+        if not self.settings.offline and agent_res is not None:
+            metrics = getattr(agent_res, "metrics", None)
+            accum = getattr(metrics, "accumulated_usage", {}) if metrics else {}
+            if isinstance(accum, dict):
+                usage_counts["input_tokens"] = int(accum.get("inputTokens") or 0)
+                usage_counts["output_tokens"] = int(accum.get("outputTokens") or 0)
+
+        return "".join(self._stream_buf).strip(), usage_counts
 
     def _finish_with_proposal(self, turn: Turn, propuesta: Propuesta) -> None:
         propuesta.draft.warnings = collect_warnings(
@@ -312,11 +386,15 @@ class TeacherSession:
             }
         )
         before = self.workspace.fingerprint_sources()
+        trace_id = get_current_trace_id()
+        model_id = "tero-offline" if self.settings.offline else self.settings.model_id
         result = write_approved(
             workspace=self.workspace,
             encargo=self.encargo,
             propuesta=propuesta,
             note=note,
+            model_id=model_id,
+            trace_id=trace_id,
         )
         after = self.workspace.fingerprint_sources()
         if turn is not None:
@@ -327,12 +405,14 @@ class TeacherSession:
             self.last_artifact = result.path
         self.pending_propuesta = None
         self.ctx.pending_propuesta = None
+        seal_id = result.seal.seal_id if result.seal else None
         self.emit(
             {
                 "type": "aprobacion",
                 "id": turn.id if turn else "",
                 "decision": "aprobar",
                 "note": note,
+                "seal_id": seal_id,
             }
         )
         self.emit(
@@ -341,6 +421,7 @@ class TeacherSession:
                 "id": turn.id if turn else "",
                 "path": str(result.path) if result.path else None,
                 "accion": propuesta.accion,
+                "seal_id": seal_id,
             }
         )
         if after != before:

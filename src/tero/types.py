@@ -255,9 +255,10 @@ class Turn:
     aprobada: bool = False
     artifact_path: str | None = None
     peticiones: list[str] = field(default_factory=list)
+    usage: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "id": self.id,
             "prompt": self.prompt,
             "phase": self.phase,
@@ -267,3 +268,6 @@ class Turn:
             "artifact_path": self.artifact_path,
             "peticiones": list(self.peticiones),
         }
+        if self.usage is not None:
+            data["usage"] = self.usage
+        return data

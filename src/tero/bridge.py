@@ -127,6 +127,7 @@ class Bridge:
                     "datos_sensibles": self.session.datos_sensibles_resumen(),
                     "sessions": _recent_sessions(self.workspace),
                     "curriculum": catalog_summary(),
+                    "cost": self.session.usage_tracker.get_summary(),
                     "transcript": str(self.session.transcript.path),
                 }
             )
