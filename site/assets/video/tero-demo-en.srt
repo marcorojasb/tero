@@ -1,0 +1,35 @@
+1
+00:00:00,000 --> 00:00:16,830
+tero · Your classroom, your sources, your judgment. Proposes in memory, teacher decides.
+
+2
+00:00:17,030 --> 00:00:34,843
+Privacy by design: student data never leaves the local machine or touches cloud models.
+
+3
+00:00:35,043 --> 00:00:52,881
+Strands Multi-Agent Graph on Amazon Bedrock with curriculum auditing and in-memory approval gate.
+
+4
+00:00:53,081 --> 00:01:08,159
+Intent A: answers questions and inspects local folder without touching disk.
+
+5
+00:01:08,359 --> 00:01:23,341
+Intent B: in-memory proposal card with verified citations against your local sources.
+
+6
+00:01:23,542 --> 00:01:37,251
+You approve with 'y' or 'dale'. The host materializes the file and delivers the classroom photocopy.
+
+7
+00:01:37,451 --> 00:01:54,450
+Intent C: special education adaptation under Decreto 83. Original file remains byte-identical.
+
+8
+00:01:54,650 --> 00:02:17,024
+Amazon Bedrock Model Trio verified live, plus tero-offline model for air-gapped classrooms.
+
+9
+00:02:17,224 --> 00:02:32,542
+tero · Your classroom, your sources, your judgment. Open source under the MIT license.

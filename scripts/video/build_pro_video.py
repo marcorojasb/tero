@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -61,6 +62,53 @@ COLOR_WARN = (201, 162, 39)     # #c9a227 (avisos / fotocopias)
 COLOR_ERR = (224, 108, 117)     # #e06c75 (error)
 COLOR_TEXT = (216, 222, 233)    # #d8dee9 (texto principal)
 COLOR_MUTED = (122, 132, 144)   # #7a8490 (texto secundario)
+
+# Silueta oficial del Queltehue (Vanellus chilensis) trazada de perfil (OpenTUI)
+HOME_BIRD = [
+    "      ▄▄▄▄▄      ▄▄▄▄▄   ",
+    "    ▄████████  ▀▀▀▀▀▀▀▀▀▀",
+    "  ▀▀▀▀███████            ",
+    "       ██████            ",
+    "       ██████▄           ",
+    "       ███████▄          ",
+    "      ██████████▄        ",
+    "      █████████████▄     ",
+    "      ███████████████▄   ",
+    "       ▀███████████████▄ ",
+    "          ▀▀█████████████",
+    "            ███  ▀▀██████",
+    "            █ █      ▀▀██",
+    "            ▀ ▀          ",
+]
+
+
+def render_bird_graphic(width: int = 340, height: int = 380, color: tuple[int, int, int] = COLOR_ACCENT) -> Image.Image:
+    """Renderiza la silueta oficial del Queltehue con supersampling geométrico suave."""
+    scale = 8
+    cell_w = 16 * scale
+    cell_h = 32 * scale
+    cols = max(len(line) for line in HOME_BIRD)
+    rows = len(HOME_BIRD)
+    hi_w = cols * cell_w
+    hi_h = rows * cell_h
+    hi_img = Image.new("RGBA", (hi_w, hi_h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(hi_img)
+    rgba = color + (255,) if len(color) == 3 else color
+    for r, line in enumerate(HOME_BIRD):
+        for c, char in enumerate(line):
+            x0 = c * cell_w
+            y0 = r * cell_h
+            x1 = x0 + cell_w
+            y1 = y0 + cell_h
+            ymid = y0 + cell_h // 2
+            if char == "█":
+                d.rectangle([x0, y0, x1, y1], fill=rgba)
+            elif char == "▀":
+                d.rectangle([x0, y0, x1, ymid], fill=rgba)
+            elif char == "▄":
+                d.rectangle([x0, ymid, x1, y1], fill=rgba)
+    return hi_img.resize((width, height), Image.Resampling.LANCZOS)
+
 
 
 def create_top_bar(draw: ImageDraw.ImageDraw, badge_text: str = "", step_title: str = ""):
@@ -257,7 +305,7 @@ SCENES = [
         "badge": "Intención C",
         "title": "Adaptación Curricular NEE (Decreto 83/2015)",
         "speech": (
-            "Para educación especial y programas P-I-E, tero aplica el Decreto 83. "
+            "Para necesidades educativas especiales y programas pie, tero aplica el Decreto 83. "
             "Prioriza adecuaciones de acceso antes de modificar objetivos de aprendizaje. "
             "Genera una versión nueva en derivados con trazabilidad completa, "
             "manteniendo tu material original cien por ciento intacto."
@@ -274,7 +322,7 @@ SCENES = [
             "En vivo, el trío de modelos de Bedrock: "
             "Amazon Nova Lite para velocidad extrema y bajo costo, GLM 4.7 para apego curricular, "
             "y MiniMax para rúbricas profundas. "
-            "Y para escuelas rurales sin internet, el modelo tero-offline garantiza una experiencia pedagógica idéntica."
+            "Y para escuelas rurales sin internet, el modelo tero offline garantiza una experiencia pedagógica idéntica."
         ),
         "subtitle": "Amazon Bedrock Model Trio verificado en vivo, más modelo tero-offline sin conexión.",
         "type": "bedrock_diagnostics",
@@ -302,35 +350,44 @@ def render_scene_base(scene: dict, frame_idx: int, total_frames: int) -> Image.I
     stype = scene["type"]
 
     if stype == "hero_branding":
-        # Apertura de alto impacto con Queltehue en alta resolución
-        mark_path = SITE_ASSETS / "tero-mark-1024.png"
-        if mark_path.exists():
-            mark = Image.open(mark_path).crop((180, 80, 840, 940))
-            mark = mark.resize((350, 457), Image.Resampling.LANCZOS)
-            canvas.paste(mark, (320, 310))
+        # Card contenedor estilizado para el Queltehue oficial de OpenTUI
+        card_x, card_y, card_w, card_h = 240, 200, 440, 560
+        draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
+        draw.line([card_x + 16, card_y + 2, card_x + card_w - 16, card_y + 2], fill=COLOR_ACCENT, width=2)
+
+        font_card_lbl = get_font(14, bold=True)
+        draw.text((card_x + 24, card_y + 18), "VANELLUS CHILENSIS · QUELTEHUE", fill=COLOR_MUTED, font=font_card_lbl)
+        draw.line([card_x + 24, card_y + 44, card_x + card_w - 24, card_y + 44], fill=COLOR_BORDER_SOFT, width=1)
+
+        bird = render_bird_graphic(width=340, height=380, color=COLOR_ACCENT)
+        bx = card_x + (card_w - bird.width) // 2
+        by = card_y + 60 + (card_h - 60 - bird.height) // 2
+        canvas.paste(bird, (bx, by), bird)
 
         font_hero_title = get_font(108, bold=True)
-        font_hero_motto = get_font(40, bold=True)
-        font_hero_sub = get_font(24, bold=False)
-        font_badge = get_font(16, bold=True)
+        font_hero_motto = get_font(38, bold=True)
+        font_hero_sub = get_font(23, bold=False)
+        font_badge = get_font(15, bold=True)
 
-        draw.text((740, 340), "tero", fill=COLOR_ACCENT, font=font_hero_title)
-        draw.text((740, 480), "tus fuentes, tu criterio", fill=COLOR_TEXT, font=font_hero_motto)
-        draw.text((740, 550), "El agente docente conversacional para el aula chilena", fill=COLOR_MUTED, font=font_hero_sub)
+        tx = 740
+        draw.text((tx, 250), "tero", fill=COLOR_ACCENT, font=font_hero_title)
+        draw.text((tx, 390), "tus fuentes, tu criterio", fill=COLOR_TEXT, font=font_hero_motto)
+        draw.text((tx, 455), "El agente docente conversacional para el aula chilena", fill=COLOR_MUTED, font=font_hero_sub)
+        draw.text((tx, 495), "Propone en memoria · Avisos a la vista · Tú decides", fill=COLOR_OK, font=font_hero_sub)
 
         badges = [
             ("AWS Bedrock", COLOR_WARN),
             ("Strands Multi-Agent Graph", COLOR_ACCENT),
             ("OpenTUI", (188, 140, 255)),
-            ("Track: Professional Agents", COLOR_OK)
+            ("Track: Professional Agents", COLOR_OK),
         ]
-        bx = 740
+        bx_pos = tx
         for b_text, b_color in badges:
             bbox = font_badge.getbbox(b_text)
             bw = (bbox[2] - bbox[0]) + 24
-            draw.rounded_rectangle([bx, 630, bx + bw, 670], radius=8, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
-            draw.text((bx + 12, 642), b_text, fill=b_color, font=font_badge)
-            bx += bw + 16
+            draw.rounded_rectangle([bx_pos, 580, bx_pos + bw, 620], radius=8, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
+            draw.text((bx_pos + 12, 591), b_text, fill=b_color, font=font_badge)
+            bx_pos += bw + 16
 
     elif stype == "split_principles_home":
         create_top_bar(draw, scene["badge"], scene["title"])
@@ -645,7 +702,7 @@ def build_pro_landing_video():
     # Guardar archivos de subtítulos SRT y VTT
     srt_content = "\n".join(srt_entries)
     OUTPUT_SRT.write_text(srt_content, encoding="utf-8")
-    vtt_content = "WEBVTT\n\n" + srt_content.replace(",", ".")
+    vtt_content = "WEBVTT\n\n" + re.sub(r"(\d{2}:\d{2}:\d{2}),(\d{3})", r"\1.\2", srt_content)
     OUTPUT_VTT.write_text(vtt_content, encoding="utf-8")
     print(f"\n📝 Subtítulos oficiales guardados en:\n   - {OUTPUT_SRT}\n   - {OUTPUT_VTT}")
 
