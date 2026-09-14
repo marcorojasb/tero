@@ -550,6 +550,23 @@ describe("chrome sin el flujo viejo", () => {
     expect(error).toContain("no pude leer")
     expect(error).toContain("/retry")
   })
+
+  test("evento cost actualiza costBanner para transparencia de costos", () => {
+    let state = initialState(encargo)
+    expect(state.costBanner).toBe("")
+
+    state = applyHostEvent(state, {
+      type: "cost",
+      turn_id: "t1",
+      turn: { model_id: "amazon.nova-lite-v1:0", total_tokens: 1200, cost_usd: 0.0002 },
+      session: {
+        banner: "Costo estimado sesión: $0.0002 USD · Frugal Architecture",
+        total_tokens: 1200,
+        total_cost_usd: 0.0002,
+      },
+    })
+    expect(state.costBanner).toBe("Costo estimado sesión: $0.0002 USD · Frugal Architecture")
+  })
 })
 
   test("la ayuda nombra la tesis y no el flujo retirado", () => {

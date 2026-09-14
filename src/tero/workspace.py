@@ -39,8 +39,8 @@ PDF_SUFFIX = ".pdf"
 
 
 class Workspace:
-    def __init__(self, root: Path, *, datos_sensibles: str | None = None) -> None:
-        self.root = root.expanduser().resolve()
+    def __init__(self, root: Path | str, *, datos_sensibles: str | None = None) -> None:
+        self.root = Path(root).expanduser().resolve()
         if not self.root.exists():
             raise WorkspaceError(f"La carpeta de trabajo no existe: {self.root}")
         if not self.root.is_dir():

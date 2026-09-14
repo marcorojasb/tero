@@ -151,21 +151,23 @@ def extract_seal_from_markdown(markdown: str) -> dict[str, str]:
     """Extrae las claves del sello docente presentes en el front matter o pie."""
     seal_data: dict[str, str] = {}
 
-    # Buscar en front matter
-    fm_match = re.search(
-        r"^sello_docente:\s*\n"
-        r"(?:[ \t]+seal_id:\s*(?P<seal_id>[^\n]+)\n)?"
-        r"(?:[ \t]+timestamp:\s*['\"]?(?P<timestamp>[^'\"\n]+)['\"]?\n)?"
-        r"(?:[ \t]+hash_fuentes:\s*(?P<hash_fuentes>[^\n]+)\n)?"
-        r"(?:[ \t]+hash_derivado:\s*(?P<hash_derivado>[^\n]+)\n)?"
-        r"(?:[ \t]+criterio:\s*(?P<criterio>[^\n]+)\n)?",
+    # Buscar en front matter: bloque sello_docente con líneas indentadas en cualquier orden
+    sd_match = re.search(
+        r"^sello_docente:\s*\r?\n((?:[ \t]+[^\r\n]+\r?\n?)*)",
         markdown,
         re.MULTILINE,
     )
-    if fm_match:
-        for k, v in fm_match.groupdict().items():
-            if v:
-                seal_data[k] = v.strip().strip("\"'")
+    if sd_match:
+        for line in sd_match.group(1).splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if ":" in line:
+                k, _, v = line.partition(":")
+                k = k.strip()
+                v = v.strip().strip("\"'")
+                if k and v:
+                    seal_data[k] = v
 
     # Buscar también en pie si no vino en front matter
     if "seal_id" not in seal_data:
@@ -182,15 +184,17 @@ def extract_seal_from_markdown(markdown: str) -> dict[str, str]:
 def strip_seal_from_markdown(markdown: str) -> str:
     """Quita el bloque sello_docente y el footer stamp para recalcular hash_derivado."""
     cleaned = re.sub(
-        r"sello_docente:\n(?:[ \t]+[a-zA-Z0-9_]+:[^\n]*\n)*",
+        r"sello_docente:\s*\r?\n(?:[ \t]+[^\r\n]*\r?\n)*",
         "",
         markdown,
     )
     cleaned = re.sub(
-        r"\n\n---\n\*Material co-creado y certificado bajo criterio docente · Tero Decisional Seal ID:[^\n\*]+\*\n*",
+        r"\r?\n\r?\n---\r?\n\*Material co-creado y certificado bajo criterio docente · Tero Decisional Seal ID:[^\r\n\*]+\*\r?\n*",
         "",
         cleaned,
     )
+    # Si el front matter original no existía y quedó vacío (---\n---), retirarlo limpiamente
+    cleaned = re.sub(r"^---\s*\r?\n---\s*\r?\n\r?\n?", "", cleaned)
     return cleaned
 
 
@@ -273,22 +277,26 @@ def verify_seal(workspace: Workspace, artifact_path: Path | str) -> SealVerifica
             message=f"El sello {seal_id} no está registrado en el ledger de decisiones (.tero/decisiones/).",
         )
 
-    # 1. Front matter coincide con ledger
+    # 1. Front matter coincide con ledger (todas las claves requeridas deben estar presentes)
     frontmatter_matches = True
-    for key in ("timestamp", "hash_fuentes", "hash_derivado", "criterio"):
+    for key in ("seal_id", "timestamp", "hash_fuentes", "hash_derivado", "criterio"):
         val = seal_meta.get(key)
         expected = getattr(ledger_seal, key, "")
-        if val and expected and val != expected:
+        if not val or val != expected:
             frontmatter_matches = False
             break
 
-    # 2. Integridad del artefacto: unsealed hash o file hash
+    # 2. Integridad del artefacto: unsealed hash (con tolerancia a saltos de línea LF/CRLF) o file hash
     unsealed = strip_seal_from_markdown(content)
+    unsealed_norm = unsealed.replace("\r\n", "\n")
     computed_derivado = hashlib.sha256(unsealed.encode("utf-8")).hexdigest()
+    computed_derivado_norm = hashlib.sha256(unsealed_norm.encode("utf-8")).hexdigest()
     current_file_sha256 = sha256_file(target)
 
-    artifact_intact = computed_derivado == ledger_seal.hash_derivado or (
-        bool(ledger_seal.file_sha256) and current_file_sha256 == ledger_seal.file_sha256
+    artifact_intact = (
+        computed_derivado == ledger_seal.hash_derivado
+        or computed_derivado_norm == ledger_seal.hash_derivado
+        or (bool(ledger_seal.file_sha256) and current_file_sha256 == ledger_seal.file_sha256)
     )
 
     # 3. Integridad de las fuentes originales

@@ -497,7 +497,8 @@ export function mountShell(renderer: CliRenderer, onSubmit: (value: string) => v
 
     {
       const foot = footerFor(state)
-      footer.content = foot ? ` ${state.statusLine}     ${foot}` : ` ${state.statusLine}`
+      const cost = state.costBanner ? `  ·  ${state.costBanner}` : ""
+      footer.content = foot ? ` ${state.statusLine}${cost}     ${foot}` : ` ${state.statusLine}${cost}`
     }
     const awaiting = state.cardStatus === "pendiente" && hasCard
     if (state.help) {

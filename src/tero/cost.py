@@ -24,8 +24,10 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "us.amazon.nova-pro-v1:0": (0.80, 3.20),
     # Trío documentado: GLM 4.7 Flash (Zhipu AI en Bedrock)
     "zai.glm-4.7-flash": (0.06, 0.24),
+    "us.zai.glm-4.7-flash": (0.06, 0.24),
     # Trío documentado: MiniMax M2.5 en Bedrock
     "minimax.minimax-m2.5": (0.30, 1.20),
+    "us.minimax.minimax-m2.5": (0.30, 1.20),
     # Modo sin red: estrictamente 0 tokens y $0.00 USD
     "tero-offline": (0.0, 0.0),
 }

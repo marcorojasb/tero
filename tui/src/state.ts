@@ -60,6 +60,8 @@ export type AppState = {
   oaHint: string
   /** Correlativo local para ids de mensajes del hilo. */
   seq: number
+  /** Transparencia de costos Frugal Architecture (Werner Vogels). */
+  costBanner: string
 }
 
 export function initialState(encargo: Encargo): AppState {
@@ -101,6 +103,7 @@ export function initialState(encargo: Encargo): AppState {
     oaOptions: [],
     oaHint: "",
     seq: 0,
+    costBanner: "",
   }
 }
 
@@ -188,6 +191,10 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
       if (Array.isArray(event.sessions)) {
         next.recentSessions = event.sessions as RecentSession[]
       }
+      if (event.cost && typeof event.cost === "object") {
+        const c = event.cost as Record<string, unknown>
+        if (c.banner) next.costBanner = String(c.banner)
+      }
       appendTranscript(next, event.transcript)
       if (!next.started) {
         next.phase = "idle"
@@ -196,6 +203,13 @@ export function applyHostEvent(state: AppState, event: HostEvent): AppState {
           : "escribe lo que necesitas"
       }
       break
+    case "cost": {
+      if (event.session && typeof event.session === "object") {
+        const s = event.session as Record<string, unknown>
+        if (s.banner) next.costBanner = String(s.banner)
+      }
+      break
+    }
     case "status": {
       const phase = normalizePhase(event.phase)
       if (phase) next.phase = phase

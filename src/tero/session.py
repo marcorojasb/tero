@@ -41,18 +41,38 @@ EmitFn = Callable[[dict[str, Any]], None]
 class TelemetricFallbackStrategy(FallbackStrategy):
     """FallbackStrategy que registra failovers multi-región y emite telemetría."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_selected_candidate: RoutingCandidate | None = None
+
     async def select(self, context: RoutingContext, **kwargs: Any) -> RoutingCandidate | None:
         candidate = await super().select(context, **kwargs)
+        self.last_selected_candidate = candidate
         if context.attempts and any(attempt.exception is not None for attempt in context.attempts):
             last_failed = next(
                 (att for att in reversed(context.attempts) if att.exception is not None), None
             )
+            c_from_name = getattr(last_failed.candidate, "name", None)
             from_cand = (
-                getattr(last_failed.candidate, "model", last_failed.candidate)
+                (
+                    c_from_name
+                    if isinstance(c_from_name, str) and c_from_name
+                    else getattr(last_failed.candidate, "model", last_failed.candidate)
+                )
                 if last_failed
                 else "unknown"
             )
-            to_cand = getattr(candidate, "model", candidate) if candidate else "none"
+
+            c_to_name = getattr(candidate, "name", None)
+            to_cand = (
+                (
+                    c_to_name
+                    if isinstance(c_to_name, str) and c_to_name
+                    else getattr(candidate, "model", candidate)
+                )
+                if candidate
+                else "none"
+            )
             err = last_failed.exception if last_failed else "error desconocido"
             from tero.telemetry import record_router_failover_span
 
@@ -63,7 +83,7 @@ class TelemetricFallbackStrategy(FallbackStrategy):
 def make_model(settings: Settings, encargo: Encargo):
     if settings.offline:
         return OfflineModel(encargo, model_id="tero-offline")
-    from strands.models import BedrockModel, ModelRouter
+    from strands.models import BedrockModel, ModelRouter, RoutingCandidate
 
     primary = BedrockModel(
         model_id=settings.model_id,
@@ -76,8 +96,14 @@ def make_model(settings: Settings, encargo: Encargo):
             region_name=settings.region,
             temperature=settings.temperature,
         )
+        cand_primary = RoutingCandidate(
+            model=primary, name=f"{settings.model_id} ({settings.region})"
+        )
+        cand_cross = RoutingCandidate(
+            model=cross_region, name=f"us.amazon.nova-lite-v1:0 ({settings.region})"
+        )
         return ModelRouter(
-            models=[primary, cross_region],
+            models=[cand_primary, cand_cross],
             strategy=TelemetricFallbackStrategy(),
             max_switches=1,
         )
@@ -88,8 +114,14 @@ def make_model(settings: Settings, encargo: Encargo):
             region_name=secondary_region,
             temperature=settings.temperature,
         )
+        cand_primary = RoutingCandidate(
+            model=primary, name=f"{settings.model_id} ({settings.region})"
+        )
+        cand_secondary = RoutingCandidate(
+            model=secondary, name=f"{settings.model_id} ({secondary_region})"
+        )
         return ModelRouter(
-            models=[primary, secondary],
+            models=[cand_primary, cand_secondary],
             strategy=TelemetricFallbackStrategy(),
             max_switches=1,
         )

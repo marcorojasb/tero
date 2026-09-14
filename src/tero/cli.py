@@ -94,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Carpeta de trabajo (default: detectada del archivo).",
     )
+    verify_seal_cmd.add_argument(
+        "--json",
+        action="store_true",
+        help="Salida estructurada en JSON para automatización y CI.",
+    )
 
     args = parser.parse_args(argv)
     if args.cmd == "demo":
@@ -367,6 +372,12 @@ def cmd_verify_seal(args: argparse.Namespace) -> int:
 
     workspace = Workspace(carpeta_dir)
     result = workspace.verify_seal(target_file)
+
+    if getattr(args, "json", False):
+        import json
+
+        print(json.dumps(result.as_dict(), indent=2, ensure_ascii=False))
+        return 0 if result.valid else 1
 
     if result.valid:
         print("✓ Sello Criptográfico de Criterio Docente: VÁLIDO")

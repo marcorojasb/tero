@@ -13,9 +13,12 @@ from tero.ledger import (
     create_decisional_seal,
     inject_seal_into_markdown,
     save_seal,
+    verify_seal,
 )
 from tero.types import Encargo, Propuesta
 from tero.workspace import Workspace
+
+__all__ = ["WriteResult", "verify_seal", "write_approved"]
 
 
 @dataclass
@@ -51,12 +54,13 @@ def write_approved(
     filename = artifact_filename(propuesta.draft.tipo, propuesta.draft.titulo)
 
     # Crear el sello criptográfico de criterio docente
+    tipo_str = getattr(propuesta.draft.tipo, "value", str(propuesta.draft.tipo))
     seal = create_decisional_seal(
         workspace=workspace,
         unsealed_markdown=unsealed_markdown,
         accion=propuesta.accion,
         titulo=propuesta.draft.titulo,
-        tipo=propuesta.draft.tipo.value,
+        tipo=tipo_str,
         note=note,
         model_id=model_id,
         trace_id=trace_id,

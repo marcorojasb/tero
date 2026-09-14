@@ -28,13 +28,15 @@ def test_pricing_rates_and_calculation():
     # 10,000 * 0.06 / 1M = 0.0006; 2,000 * 0.24 / 1M = 0.00048; total = 0.00108
     assert cost_nova == pytest.approx(0.00108, rel=1e-4)
 
-    # GLM 4.7 Flash
+    # Trío documentado: GLM 4.7 Flash (Zhipu AI en Bedrock)
     assert MODEL_PRICING["zai.glm-4.7-flash"] == (0.06, 0.24)
+    assert MODEL_PRICING["us.zai.glm-4.7-flash"] == (0.06, 0.24)
     cost_glm = calculate_cost("zai.glm-4.7-flash", 1_000_000, 1_000_000)
     assert cost_glm == pytest.approx(0.30, rel=1e-4)
 
-    # MiniMax M2.5
+    # Trío documentado: MiniMax M2.5 en Bedrock
     assert MODEL_PRICING["minimax.minimax-m2.5"] == (0.30, 1.20)
+    assert MODEL_PRICING["us.minimax.minimax-m2.5"] == (0.30, 1.20)
     cost_minimax = calculate_cost("minimax.minimax-m2.5", 100_000, 50_000)
     # 100k * 0.30 / 1M = 0.03; 50k * 1.20 / 1M = 0.06; total = 0.09
     assert cost_minimax == pytest.approx(0.09, rel=1e-4)
@@ -116,12 +118,16 @@ def test_multi_region_auto_hedging_model_router():
         router_nova = make_model(settings_nova, encargo)
         assert isinstance(router_nova, ModelRouter)
         assert isinstance(router_nova._strategy, TelemetricFallbackStrategy)
+        assert router_nova.candidates[0].name == "amazon.nova-lite-v1:0 (us-east-1)"
+        assert router_nova.candidates[1].name == "us.amazon.nova-lite-v1:0 (us-east-1)"
 
         # 2. GLM 4.7 Flash
         settings_glm = Settings(offline=False, model_id="zai.glm-4.7-flash", region="us-east-1")
         router_glm = make_model(settings_glm, encargo)
         assert isinstance(router_glm, ModelRouter)
         assert isinstance(router_glm._strategy, TelemetricFallbackStrategy)
+        assert router_glm.candidates[0].name == "zai.glm-4.7-flash (us-east-1)"
+        assert router_glm.candidates[1].name == "zai.glm-4.7-flash (us-west-2)"
 
         # 3. MiniMax M2.5
         settings_minimax = Settings(
@@ -130,6 +136,8 @@ def test_multi_region_auto_hedging_model_router():
         router_minimax = make_model(settings_minimax, encargo)
         assert isinstance(router_minimax, ModelRouter)
         assert isinstance(router_minimax._strategy, TelemetricFallbackStrategy)
+        assert router_minimax.candidates[0].name == "minimax.minimax-m2.5 (us-east-1)"
+        assert router_minimax.candidates[1].name == "minimax.minimax-m2.5 (us-west-2)"
 
 
 def test_telemetric_fallback_strategy_failover_span():

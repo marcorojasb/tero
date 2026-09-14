@@ -220,3 +220,147 @@ def test_latex_export_includes_certified_stamp(workspace: Workspace, tmp_path):
     content = dest_tex.read_text(encoding="utf-8")
     assert "Tero Decisional Seal ID" in content
     assert resultado.seal.seal_id in content
+
+
+def test_unsealed_markdown_without_frontmatter_recovers_losslessly(workspace: Workspace):
+    """Prueba que artefactos sin front matter original se recuperan idénticamente al despojar el sello."""
+    raw_md = "# Actividad de Aula Directa\n\n1. Leer el cuento.\n2. Dialogar en grupos.\n"
+    seal = create_decisional_seal(
+        workspace=workspace,
+        unsealed_markdown=raw_md,
+        accion="crear",
+        titulo="Actividad Directa",
+        tipo="actividad",
+        note="Aprobada sin frontmatter",
+    )
+    sealed = inject_seal_into_markdown(raw_md, seal)
+    assert "sello_docente:" in sealed
+
+    # Despojo debe restaurar byte a byte
+    stripped = strip_seal_from_markdown(sealed)
+    assert stripped == raw_md
+    assert hashlib.sha256(stripped.encode("utf-8")).hexdigest() == seal.hash_derivado
+
+
+def test_extract_seal_with_arbitrary_key_ordering_and_comments():
+    """El parser de sello en front matter debe ser insensible al orden de claves y tolerar comentarios."""
+    md = """---
+tipo: guia
+sello_docente:
+  # Comentario explicativo
+  criterio: humano_aprobado
+  hash_fuentes: 111222333
+  seal_id: tero-seal-abc999
+  timestamp: "2026-09-13T22:00:00Z"
+  hash_derivado: 444555666
+---
+# Contenido
+"""
+    extracted = extract_seal_from_markdown(md)
+    assert extracted.get("seal_id") == "tero-seal-abc999"
+    assert extracted.get("criterio") == "humano_aprobado"
+    assert extracted.get("hash_fuentes") == "111222333"
+    assert extracted.get("hash_derivado") == "444555666"
+    assert extracted.get("timestamp") == "2026-09-13T22:00:00Z"
+
+
+def test_tampered_frontmatter_missing_required_key_fails_verification(workspace: Workspace):
+    """Si se altera el front matter eliminando claves requeridas del sello, debe fallar."""
+    encargo = Encargo(curso="4° básico", tipo=ArtifactType.GUIA)
+    propuesta = Propuesta(
+        accion="crear",
+        draft=ArtifactDraft(
+            tipo=ArtifactType.GUIA,
+            titulo="Guía Completa",
+            cuerpo_markdown="# Guía\n## Contenido\nTexto\n",
+        ),
+    )
+    res = write_approved(workspace=workspace, encargo=encargo, propuesta=propuesta)
+    assert res.path is not None
+    assert workspace.verify_seal(res.path).valid is True
+
+    # Eliminar hash_fuentes del front matter
+    text = res.path.read_text(encoding="utf-8")
+    tampered = "\n".join(line for line in text.splitlines() if "hash_fuentes:" not in line)
+    res.path.write_text(tampered + "\n", encoding="utf-8")
+
+    verif = workspace.verify_seal(res.path)
+    assert verif.valid is False
+    assert verif.checks["frontmatter_matches"] is False
+
+
+def test_cli_verify_seal_json_output(workspace: Workspace, capsys):
+    """La bandera --json debe retornar un JSON estructurado para herramientas y CI."""
+    import json
+
+    encargo = Encargo(curso="4° básico", tipo=ArtifactType.ACTIVIDAD)
+    propuesta = Propuesta(
+        accion="crear",
+        draft=ArtifactDraft(
+            tipo=ArtifactType.ACTIVIDAD,
+            titulo="Actividad JSON",
+            cuerpo_markdown="# Actividad\n## Pasos\nUno\n",
+        ),
+    )
+    res = write_approved(workspace=workspace, encargo=encargo, propuesta=propuesta)
+    assert res.path is not None
+
+    code = main(["verify-seal", str(res.path), "--carpeta", str(workspace.root), "--json"])
+    assert code == 0
+    cap = capsys.readouterr()
+    data = json.loads(cap.out)
+    assert data["valid"] is True
+    assert data["seal_id"] == res.seal.seal_id
+    assert data["checks"]["ledger_exists"] is True
+
+
+def test_gate_verify_seal_reexport_and_workspace_str_path(workspace: Workspace):
+    """Workspace debe aceptar rutas como str y gate debe reexportar verify_seal."""
+    from tero.gate import verify_seal as gate_verify_seal
+
+    ws_str = Workspace(str(workspace.root))
+    encargo = Encargo(curso="4° básico", tipo=ArtifactType.GUIA)
+    propuesta = Propuesta(
+        accion="crear",
+        draft=ArtifactDraft(
+            tipo=ArtifactType.GUIA,
+            titulo="Guía Str Path",
+            cuerpo_markdown="# Guía\n## Texto\nHola\n",
+        ),
+    )
+    res = write_approved(workspace=ws_str, encargo=encargo, propuesta=propuesta)
+    verif = gate_verify_seal(ws_str, res.path)
+    assert verif.valid is True
+
+
+def test_export_docx_omits_frontmatter_and_includes_stamp(workspace: Workspace, tmp_path):
+    """export_docx no debe volcar metadatos YAML en el cuerpo y debe dar estilo al sello."""
+    from docx import Document
+
+    from tero.export import export_docx
+
+    encargo = Encargo(curso="4° básico", tipo=ArtifactType.GUIA)
+    propuesta = Propuesta(
+        accion="crear",
+        draft=ArtifactDraft(
+            tipo=ArtifactType.GUIA,
+            titulo="Guía Docx",
+            cuerpo_markdown="# Guía Docx\n\nTexto pedagógico limpio.\n",
+        ),
+    )
+    res = write_approved(workspace=workspace, encargo=encargo, propuesta=propuesta)
+    assert res.path is not None
+
+    docx_dest = tmp_path / "guia.docx"
+    export_docx(res.path, docx_dest)
+    assert docx_dest.is_file()
+
+    doc = Document(docx_dest)
+    paras = [p.text for p in doc.paragraphs if p.text]
+    # No deben figurar los encabezados YAML en el cuerpo
+    assert not any("generado_por:" in p for p in paras)
+    assert not any("sello_docente:" in p for p in paras)
+    assert not any("hash_derivado:" in p for p in paras)
+    # Debe figurar el contenido y el sello
+    assert any("Texto pedagógico limpio" in p for p in paras)
+    assert any("Material co-creado y certificado bajo criterio docente" in p for p in paras)

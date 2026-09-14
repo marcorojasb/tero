@@ -32,8 +32,27 @@ def export_docx(source: Path, dest: Path) -> Path:
     style.font.name = "Calibri"
     style.font.size = Pt(11)
     in_code = False
-    for raw_line in markdown.splitlines():
+    in_frontmatter = False
+    frontmatter_closed = False
+    lines = markdown.splitlines()
+
+    first_non_empty = next((line.strip() for line in lines if line.strip()), "")
+    has_leading_fm = first_non_empty.startswith("---")
+
+    for raw_line in lines:
         line = raw_line.rstrip()
+        if has_leading_fm and not frontmatter_closed:
+            if line.startswith("---"):
+                if not in_frontmatter:
+                    in_frontmatter = True
+                    continue
+                else:
+                    in_frontmatter = False
+                    frontmatter_closed = True
+                    continue
+            if in_frontmatter:
+                continue
+
         if line.startswith("```"):
             in_code = not in_code
             continue
@@ -42,6 +61,16 @@ def export_docx(source: Path, dest: Path) -> Path:
             continue
         if line.startswith("---"):
             continue
+
+        # Sello docente certificado al pie
+        if "Material co-creado y certificado bajo criterio docente" in line:
+            clean_stamp = line.strip().strip("*_")
+            p = document.add_paragraph()
+            run = p.add_run(clean_stamp)
+            run.italic = True
+            run.font.size = Pt(9.5)
+            continue
+
         heading = re.match(r"^(#{1,3})\s+(.*)$", line)
         if heading:
             level = min(len(heading.group(1)), 3)
