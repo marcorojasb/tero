@@ -26,7 +26,9 @@ def stamp() -> dict[str, str]:
     info = {
         "sha": sha or "local",
         "short": short,
-        "ref": os.environ.get("GITHUB_REF_NAME") or _git("rev-parse", "--abbrev-ref", "HEAD") or "dev",
+        "ref": os.environ.get("GITHUB_REF_NAME")
+        or _git("rev-parse", "--abbrev-ref", "HEAD")
+        or "dev",
         "date": datetime.now(UTC).strftime("%Y-%m-%d"),
         "source": "github-actions" if os.environ.get("GITHUB_SHA") else "local",
     }

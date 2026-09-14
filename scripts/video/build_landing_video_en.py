@@ -51,17 +51,17 @@ def get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFont
 
 
 # Official tero brand palette (brand.json and styles.css)
-COLOR_BG = (11, 13, 16)          # #0b0d10 (deep background)
-COLOR_PANEL = (18, 21, 26)       # #12151a (primary panel)
-COLOR_PANEL_ALT = (22, 26, 32)   # #161a20 (secondary panel)
-COLOR_BORDER = (76, 86, 106)     # #4c566a (standard border)
-COLOR_BORDER_SOFT = (61, 68, 80) # #3d4450 (soft border)
-COLOR_ACCENT = (130, 170, 255)   # #82aaff (tero focal blue/cyan)
-COLOR_OK = (158, 206, 106)       # #9ece6a (approved / verified)
-COLOR_WARN = (201, 162, 39)      # #c9a227 (photocopy / notices)
-COLOR_ERR = (224, 108, 117)      # #e06c75 (error)
-COLOR_TEXT = (216, 222, 233)     # #d8dee9 (primary text)
-COLOR_MUTED = (122, 132, 144)    # #7a8490 (secondary text)
+COLOR_BG = (11, 13, 16)  # #0b0d10 (deep background)
+COLOR_PANEL = (18, 21, 26)  # #12151a (primary panel)
+COLOR_PANEL_ALT = (22, 26, 32)  # #161a20 (secondary panel)
+COLOR_BORDER = (76, 86, 106)  # #4c566a (standard border)
+COLOR_BORDER_SOFT = (61, 68, 80)  # #3d4450 (soft border)
+COLOR_ACCENT = (130, 170, 255)  # #82aaff (tero focal blue/cyan)
+COLOR_OK = (158, 206, 106)  # #9ece6a (approved / verified)
+COLOR_WARN = (201, 162, 39)  # #c9a227 (photocopy / notices)
+COLOR_ERR = (224, 108, 117)  # #e06c75 (error)
+COLOR_TEXT = (216, 222, 233)  # #d8dee9 (primary text)
+COLOR_MUTED = (122, 132, 144)  # #7a8490 (secondary text)
 
 # Official Vanellus chilensis silhouette from OpenTUI
 HOME_BIRD = [
@@ -82,7 +82,9 @@ HOME_BIRD = [
 ]
 
 
-def render_bird_graphic(width: int = 340, height: int = 380, color: tuple[int, int, int] = COLOR_ACCENT) -> Image.Image:
+def render_bird_graphic(
+    width: int = 340, height: int = 380, color: tuple[int, int, int] = COLOR_ACCENT
+) -> Image.Image:
     """Renders the official Queltehue silhouette with terminal scanlines and connected crest."""
     scale = 8
     cell_w = 16 * scale
@@ -132,20 +134,28 @@ def create_top_bar(draw: ImageDraw.ImageDraw, badge_text: str = "", step_title: 
     for label, color in reversed(badges):
         bbox = font_badge.getbbox(label)
         bw = (bbox[2] - bbox[0]) + 20
-        cur_x -= (bw + 12)
-        draw.rounded_rectangle([cur_x, 16, cur_x + bw, 46], radius=6, outline=color, fill=COLOR_PANEL_ALT, width=1)
+        cur_x -= bw + 12
+        draw.rounded_rectangle(
+            [cur_x, 16, cur_x + bw, 46], radius=6, outline=color, fill=COLOR_PANEL_ALT, width=1
+        )
         draw.text((cur_x + 10, 21), label, fill=color, font=font_badge)
 
     # Center scene indicator
     if badge_text or step_title:
-        title_full = f"{badge_text.upper()}  |  {step_title}" if badge_text and step_title else (badge_text or step_title)
+        title_full = (
+            f"{badge_text.upper()}  |  {step_title}"
+            if badge_text and step_title
+            else (badge_text or step_title)
+        )
         bbox = font_sub.getbbox(title_full)
         tw = bbox[2] - bbox[0]
         tx = (1920 - tw) // 2
         draw.text((tx, 22), title_full, fill=COLOR_TEXT, font=font_sub)
 
 
-def render_audio_bars(draw: ImageDraw.ImageDraw, frame_idx: int, center_x: int = 960, base_y: int = 950):
+def render_audio_bars(
+    draw: ImageDraw.ImageDraw, frame_idx: int, center_x: int = 960, base_y: int = 950
+):
     """Dynamic audio equalizer reacting to narration cadence."""
     num_bars = 24
     bar_width = 6
@@ -172,7 +182,13 @@ def render_subtitles_card(draw: ImageDraw.ImageDraw, text: str, progress: float,
     box_x = (1920 - box_w) // 2
     box_y = 962
 
-    draw.rounded_rectangle([box_x, box_y, box_x + box_w, box_y + box_h], radius=8, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
+    draw.rounded_rectangle(
+        [box_x, box_y, box_x + box_w, box_y + box_h],
+        radius=8,
+        fill=COLOR_PANEL,
+        outline=COLOR_BORDER,
+        width=2,
+    )
     draw.line([box_x + 12, box_y + 2, box_x + box_w - 12, box_y + 2], fill=COLOR_ACCENT, width=2)
 
     words = text.split()
@@ -346,12 +362,29 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
 
     if stype == "hero_branding":
         card_x, card_y, card_w, card_h = 240, 200, 440, 560
-        draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
-        draw.line([card_x + 16, card_y + 2, card_x + card_w - 16, card_y + 2], fill=COLOR_ACCENT, width=2)
+        draw.rounded_rectangle(
+            [card_x, card_y, card_x + card_w, card_y + card_h],
+            radius=16,
+            fill=COLOR_PANEL,
+            outline=COLOR_BORDER,
+            width=2,
+        )
+        draw.line(
+            [card_x + 16, card_y + 2, card_x + card_w - 16, card_y + 2], fill=COLOR_ACCENT, width=2
+        )
 
         font_card_lbl = get_font(14, bold=True)
-        draw.text((card_x + 24, card_y + 18), "VANELLUS CHILENSIS · QUELTEHUE", fill=COLOR_MUTED, font=font_card_lbl)
-        draw.line([card_x + 24, card_y + 44, card_x + card_w - 24, card_y + 44], fill=COLOR_BORDER_SOFT, width=1)
+        draw.text(
+            (card_x + 24, card_y + 18),
+            "VANELLUS CHILENSIS · QUELTEHUE",
+            fill=COLOR_MUTED,
+            font=font_card_lbl,
+        )
+        draw.line(
+            [card_x + 24, card_y + 44, card_x + card_w - 24, card_y + 44],
+            fill=COLOR_BORDER_SOFT,
+            width=1,
+        )
 
         bird = render_bird_graphic(width=340, height=380, color=COLOR_ACCENT)
         bx = card_x + (card_w - bird.width) // 2
@@ -362,7 +395,12 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
         motto_t = "The tero alerts · You decide"
         m_bbox = font_motto_small.getbbox(motto_t)
         m_w = m_bbox[2] - m_bbox[0]
-        draw.text((card_x + (card_w - m_w) // 2, card_y + card_h - 38), motto_t, fill=COLOR_MUTED, font=font_motto_small)
+        draw.text(
+            (card_x + (card_w - m_w) // 2, card_y + card_h - 38),
+            motto_t,
+            fill=COLOR_MUTED,
+            font=font_motto_small,
+        )
 
         font_hero_title = get_font(108, bold=True)
         font_hero_motto = get_font(38, bold=True)
@@ -372,8 +410,18 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
         tx = 740
         draw.text((tx, 250), "tero", fill=COLOR_ACCENT, font=font_hero_title)
         draw.text((tx, 390), "your sources, your judgment", fill=COLOR_TEXT, font=font_hero_motto)
-        draw.text((tx, 455), "The conversational teacher agent for K-12 classrooms", fill=COLOR_MUTED, font=font_hero_sub)
-        draw.text((tx, 495), "Proposes in memory · Notices in view · Teacher decides", fill=COLOR_OK, font=font_hero_sub)
+        draw.text(
+            (tx, 455),
+            "The conversational teacher agent for K-12 classrooms",
+            fill=COLOR_MUTED,
+            font=font_hero_sub,
+        )
+        draw.text(
+            (tx, 495),
+            "Proposes in memory · Notices in view · Teacher decides",
+            fill=COLOR_OK,
+            font=font_hero_sub,
+        )
 
         badges = [
             ("AWS Bedrock", COLOR_WARN),
@@ -385,28 +433,56 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
         for b_text, b_color in badges:
             bbox = font_badge.getbbox(b_text)
             bw = (bbox[2] - bbox[0]) + 24
-            draw.rounded_rectangle([bx_pos, 580, bx_pos + bw, 620], radius=8, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
+            draw.rounded_rectangle(
+                [bx_pos, 580, bx_pos + bw, 620],
+                radius=8,
+                fill=COLOR_PANEL,
+                outline=COLOR_BORDER,
+                width=2,
+            )
             draw.text((bx_pos + 12, 591), b_text, fill=b_color, font=font_badge)
             bx_pos += bw + 16
 
     elif stype == "split_principles_home":
         create_top_bar(draw, scene["badge"], scene["title"])
         lx, ly, lw, lh = 60, 90, 880, 840
-        draw.rounded_rectangle([lx, ly, lx + lw, ly + lh], radius=12, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2)
+        draw.rounded_rectangle(
+            [lx, ly, lx + lw, ly + lh], radius=12, fill=COLOR_PANEL, outline=COLOR_BORDER, width=2
+        )
         draw.line([lx + 20, ly + 68, lx + lw - 20, ly + 68], fill=COLOR_BORDER_SOFT, width=1)
 
         font_h1 = get_font(30, bold=True)
         font_b_title = get_font(21, bold=True)
         font_b_desc = get_font(19, bold=False)
 
-        draw.text((lx + 32, ly + 24), "PRINCIPLES OF THE TEACHER ASSISTANT", fill=COLOR_ACCENT, font=font_h1)
+        draw.text(
+            (lx + 32, ly + 24),
+            "PRINCIPLES OF THE TEACHER ASSISTANT",
+            fill=COLOR_ACCENT,
+            font=font_h1,
+        )
 
         points = [
-            ("Tomorrow's classroom photocopy:", "Created directly from your local folder with real stories, worksheets, and OAs."),
-            ("Strict privacy by construction:", "Zero student health records, grades, or personal identifiers ever touch the cloud."),
-            ("Zero direct write tools:", "The agent proposes strictly in memory. Nothing touches disk without authorization."),
-            ("The educator decides:", "Only explicit teacher approval [y / 'dale'] authorizes materializing the file."),
-            ("Immediate classroom delivery:", "Compiles to LaTeX and delivers printed photocopies ready for tomorrow morning."),
+            (
+                "Tomorrow's classroom photocopy:",
+                "Created directly from your local folder with real stories, worksheets, and OAs.",
+            ),
+            (
+                "Strict privacy by construction:",
+                "Zero student health records, grades, or personal identifiers ever touch the cloud.",
+            ),
+            (
+                "Zero direct write tools:",
+                "The agent proposes strictly in memory. Nothing touches disk without authorization.",
+            ),
+            (
+                "The educator decides:",
+                "Only explicit teacher approval [y / 'dale'] authorizes materializing the file.",
+            ),
+            (
+                "Immediate classroom delivery:",
+                "Compiles to LaTeX and delivers printed photocopies ready for tomorrow morning.",
+            ),
         ]
         py = ly + 100
         for b_title, b_desc in points:
@@ -423,7 +499,13 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted = fit_and_pad(home_img, rw, rh)
             fx = rx + (rw - fitted.width) // 2
             fy = ry + (rh - fitted.height) // 2
-            draw.rounded_rectangle([fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4], radius=8, fill=(0, 0, 0), outline=COLOR_ACCENT, width=2)
+            draw.rounded_rectangle(
+                [fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4],
+                radius=8,
+                fill=(0, 0, 0),
+                outline=COLOR_ACCENT,
+                width=2,
+            )
             canvas.paste(fitted, (fx, fy), fitted)
 
     elif stype == "architecture":
@@ -434,7 +516,13 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted = fit_and_pad(arch_img, 1800, 830)
             fx = (1920 - fitted.width) // 2
             fy = 90 + (840 - fitted.height) // 2
-            draw.rounded_rectangle([fx - 6, fy - 6, fx + fitted.width + 6, fy + fitted.height + 6], radius=10, fill=COLOR_PANEL, outline=COLOR_ACCENT, width=2)
+            draw.rounded_rectangle(
+                [fx - 6, fy - 6, fx + fitted.width + 6, fy + fitted.height + 6],
+                radius=10,
+                fill=COLOR_PANEL,
+                outline=COLOR_ACCENT,
+                width=2,
+            )
             canvas.paste(fitted, (fx, fy), fitted)
 
     elif stype == "tui_interactive":
@@ -446,7 +534,13 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted = fit_and_pad(tui_img, 1800, 830)
             fx = (1920 - fitted.width) // 2
             fy = 90 + (840 - fitted.height) // 2
-            draw.rounded_rectangle([fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4], radius=8, fill=(0, 0, 0), outline=COLOR_BORDER, width=2)
+            draw.rounded_rectangle(
+                [fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4],
+                radius=8,
+                fill=(0, 0, 0),
+                outline=COLOR_BORDER,
+                width=2,
+            )
             canvas.paste(fitted, (fx, fy), fitted)
 
             p_text = scene.get("prompt_text", "")
@@ -459,9 +553,17 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
                 p_box_h = 44
                 px = (1920 - p_box_w) // 2
                 py = fy + fitted.height - 58
-                draw.rounded_rectangle([px, py, px + p_box_w, py + p_box_h], radius=6, fill=COLOR_PANEL, outline=COLOR_ACCENT, width=2)
+                draw.rounded_rectangle(
+                    [px, py, px + p_box_w, py + p_box_h],
+                    radius=6,
+                    fill=COLOR_PANEL,
+                    outline=COLOR_ACCENT,
+                    width=2,
+                )
                 font_prompt = get_font(18, bold=False)
-                draw.text((px + 16, py + 12), f"▸ {typed_str}{cursor}", fill=COLOR_TEXT, font=font_prompt)
+                draw.text(
+                    (px + 16, py + 12), f"▸ {typed_str}{cursor}", fill=COLOR_TEXT, font=font_prompt
+                )
 
     elif stype == "split_terminal_worksheet":
         create_top_bar(draw, scene["badge"], scene["title"])
@@ -471,7 +573,13 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted_l = fit_and_pad(esc_img, 980, 840)
             lx = 60 + (980 - fitted_l.width) // 2
             ly = 90 + (840 - fitted_l.height) // 2
-            draw.rounded_rectangle([lx - 4, ly - 4, lx + fitted_l.width + 4, ly + fitted_l.height + 4], radius=8, fill=(0, 0, 0), outline=COLOR_OK, width=2)
+            draw.rounded_rectangle(
+                [lx - 4, ly - 4, lx + fitted_l.width + 4, ly + fitted_l.height + 4],
+                radius=8,
+                fill=(0, 0, 0),
+                outline=COLOR_OK,
+                width=2,
+            )
             canvas.paste(fitted_l, (lx, ly), fitted_l)
 
         hoja_path = HOJAS_DIR / "guia-sistemas" / "p1.png"
@@ -480,7 +588,13 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted_r = fit_and_pad(hoja_img, 760, 840)
             rx = 1080 + (760 - fitted_r.width) // 2
             ry = 90 + (840 - fitted_r.height) // 2
-            draw.rounded_rectangle([rx - 6, ry - 6, rx + fitted_r.width + 6, ry + fitted_r.height + 6], radius=6, fill=(245, 245, 240), outline=COLOR_WARN, width=2)
+            draw.rounded_rectangle(
+                [rx - 6, ry - 6, rx + fitted_r.width + 6, ry + fitted_r.height + 6],
+                radius=6,
+                fill=(245, 245, 240),
+                outline=COLOR_WARN,
+                width=2,
+            )
             canvas.paste(fitted_r, (rx, ry), fitted_r)
 
     elif stype == "tui_single":
@@ -492,44 +606,104 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
             fitted = fit_and_pad(tui_img, 1800, 830)
             fx = (1920 - fitted.width) // 2
             fy = 90 + (840 - fitted.height) // 2
-            draw.rounded_rectangle([fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4], radius=8, fill=(0, 0, 0), outline=COLOR_BORDER, width=2)
+            draw.rounded_rectangle(
+                [fx - 4, fy - 4, fx + fitted.width + 4, fy + fitted.height + 4],
+                radius=8,
+                fill=(0, 0, 0),
+                outline=COLOR_BORDER,
+                width=2,
+            )
             canvas.paste(fitted, (fx, fy), fitted)
 
     elif stype == "bedrock_diagnostics":
         create_top_bar(draw, scene["badge"], scene["title"])
         box_x, box_y, box_w, box_h = 180, 110, 1560, 800
-        draw.rounded_rectangle([box_x, box_y, box_x + box_w, box_y + box_h], radius=12, fill=COLOR_PANEL, outline=COLOR_ACCENT, width=2)
+        draw.rounded_rectangle(
+            [box_x, box_y, box_x + box_w, box_y + box_h],
+            radius=12,
+            fill=COLOR_PANEL,
+            outline=COLOR_ACCENT,
+            width=2,
+        )
 
         font_term_title = get_font(30, bold=True)
         font_mono = get_font(21, bold=False)
         font_mono_bold = get_font(21, bold=True)
 
-        draw.text((box_x + 40, box_y + 40), "LIVE DIAGNOSTICS: AMAZON BEDROCK MODEL TRIO", fill=COLOR_ACCENT, font=font_term_title)
-        draw.text((box_x + 40, box_y + 85), "$ python -m tero check-aws --all-models", fill=COLOR_MUTED, font=font_mono)
-        draw.line([box_x + 40, box_y + 125, box_x + box_w - 40, box_y + 125], fill=COLOR_BORDER, width=1)
+        draw.text(
+            (box_x + 40, box_y + 40),
+            "LIVE DIAGNOSTICS: AMAZON BEDROCK MODEL TRIO",
+            fill=COLOR_ACCENT,
+            font=font_term_title,
+        )
+        draw.text(
+            (box_x + 40, box_y + 85),
+            "$ python -m tero check-aws --all-models",
+            fill=COLOR_MUTED,
+            font=font_mono,
+        )
+        draw.line(
+            [box_x + 40, box_y + 125, box_x + box_w - 40, box_y + 125], fill=COLOR_BORDER, width=1
+        )
 
         models_data = [
-            ("✓ amazon.nova-lite-v1:0", "1.04s", "Primary Model: extreme speed and minimal operational cost"),
-            ("✓ zai.glm-4.7-flash", "0.33s", "Curriculum & Special Ed: strict adherence to Decreto 83 schemas"),
-            ("✓ minimax.minimax-m2.5", "9.72s", "Pedagogical Depth: comprehensive rubrics and evaluation grids"),
-            ("✓ tero-offline", "<10ms", "Offline & Rural Classrooms: 100% auditable, reproducible Strands model"),
+            (
+                "✓ amazon.nova-lite-v1:0",
+                "1.04s",
+                "Primary Model: extreme speed and minimal operational cost",
+            ),
+            (
+                "✓ zai.glm-4.7-flash",
+                "0.33s",
+                "Curriculum & Special Ed: strict adherence to Decreto 83 schemas",
+            ),
+            (
+                "✓ minimax.minimax-m2.5",
+                "9.72s",
+                "Pedagogical Depth: comprehensive rubrics and evaluation grids",
+            ),
+            (
+                "✓ tero-offline",
+                "<10ms",
+                "Offline & Rural Classrooms: 100% auditable, reproducible Strands model",
+            ),
         ]
 
         my = box_y + 160
         for m_name, m_lat, m_desc in models_data:
             draw.text((box_x + 44, my), m_name, fill=COLOR_OK, font=font_mono_bold)
-            draw.rounded_rectangle([box_x + 420, my - 2, box_x + 515, my + 28], radius=4, fill=COLOR_PANEL_ALT, outline=COLOR_ACCENT)
+            draw.rounded_rectangle(
+                [box_x + 420, my - 2, box_x + 515, my + 28],
+                radius=4,
+                fill=COLOR_PANEL_ALT,
+                outline=COLOR_ACCENT,
+            )
             draw.text((box_x + 435, my + 3), m_lat, fill=COLOR_ACCENT, font=font_mono_bold)
             draw.text((box_x + 540, my + 3), m_desc, fill=COLOR_TEXT, font=font_mono)
             my += 72
 
-        draw.rectangle([box_x + 44, my + 15, box_x + box_w - 44, my + 80], fill=COLOR_PANEL_ALT, outline=COLOR_BORDER_SOFT)
-        draw.text((box_x + 64, my + 36), "Result: 5 models benchmarked across 4 real teaching journeys. Zero data leakage.", fill=COLOR_MUTED, font=font_mono)
+        draw.rectangle(
+            [box_x + 44, my + 15, box_x + box_w - 44, my + 80],
+            fill=COLOR_PANEL_ALT,
+            outline=COLOR_BORDER_SOFT,
+        )
+        draw.text(
+            (box_x + 64, my + 36),
+            "Result: 5 models benchmarked across 4 real teaching journeys. Zero data leakage.",
+            fill=COLOR_MUTED,
+            font=font_mono,
+        )
 
     elif stype == "closing_hero":
         create_top_bar(draw, scene["badge"], scene["title"])
         box_x, box_y, box_w, box_h = 240, 120, 1440, 780
-        draw.rounded_rectangle([box_x, box_y, box_x + box_w, box_y + box_h], radius=14, fill=COLOR_PANEL, outline=COLOR_ACCENT, width=2)
+        draw.rounded_rectangle(
+            [box_x, box_y, box_x + box_w, box_y + box_h],
+            radius=14,
+            fill=COLOR_PANEL,
+            outline=COLOR_ACCENT,
+            width=2,
+        )
 
         font_c_title = get_font(44, bold=True)
         font_c_sub = get_font(28, bold=False)
@@ -546,9 +720,23 @@ def render_scene_base_en(scene: dict, frame_idx: int, total_frames: int) -> Imag
         draw.text((cx - w2 // 2, box_y + 165), t2, fill=COLOR_ACCENT, font=font_c_sub)
 
         code_box_y = box_y + 260
-        draw.rectangle([box_x + 80, code_box_y, box_x + box_w - 80, code_box_y + 120], fill=COLOR_BG, outline=COLOR_BORDER)
-        draw.text((box_x + 110, code_box_y + 26), "git clone https://github.com/marcorojasb/tero", fill=COLOR_ACCENT, font=font_c_code)
-        draw.text((box_x + 110, code_box_y + 68), "pip install -e '.[dev]' && python -m tero tui --offline", fill=COLOR_OK, font=font_c_code)
+        draw.rectangle(
+            [box_x + 80, code_box_y, box_x + box_w - 80, code_box_y + 120],
+            fill=COLOR_BG,
+            outline=COLOR_BORDER,
+        )
+        draw.text(
+            (box_x + 110, code_box_y + 26),
+            "git clone https://github.com/marcorojasb/tero",
+            fill=COLOR_ACCENT,
+            font=font_c_code,
+        )
+        draw.text(
+            (box_x + 110, code_box_y + 68),
+            "pip install -e '.[dev]' && python -m tero tui --offline",
+            fill=COLOR_OK,
+            font=font_c_code,
+        )
 
         t3 = "MIT License · 100% Python & OpenTUI · Hackathon AWS Agents for Humans"
         w3 = font_c_sub.getbbox(t3)[2] - font_c_sub.getbbox(t3)[0]
@@ -573,31 +761,60 @@ def synthesize_audio_scene_en(scene: dict, temp_dir: Path) -> tuple[Path, float]
     padded_audio = temp_dir / f"audio_{scene['id']}.mp3"
 
     cmd = [
-        sys.executable, "-m", "edge_tts",
-        "--voice", "en-US-AndrewNeural",
-        "--rate", "+2%",
-        "--text", scene["speech"],
-        "--write-media", str(raw_audio),
+        sys.executable,
+        "-m",
+        "edge_tts",
+        "--voice",
+        "en-US-AndrewNeural",
+        "--rate",
+        "+2%",
+        "--text",
+        scene["speech"],
+        "--write-media",
+        str(raw_audio),
     ]
     subprocess.run(cmd, check=True, capture_output=True)
 
     pad_cmd = [
-        "ffmpeg", "-y",
-        "-i", str(raw_audio),
-        "-af", "apad=pad_dur=0.35",
-        "-c:a", "libmp3lame",
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(raw_audio),
+        "-af",
+        "apad=pad_dur=0.35",
+        "-c:a",
+        "libmp3lame",
         str(padded_audio),
     ]
     subprocess.run(pad_cmd, check=True, capture_output=True)
 
-    probe = subprocess.run([
-        "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(padded_audio)
-    ], check=True, capture_output=True, text=True)
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(padded_audio),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     duration = float(probe.stdout.strip())
     return padded_audio, duration
 
 
-def render_scene_to_video_en(scene: dict, audio_path: Path, duration: float, scene_idx: int, total_scenes: int, temp_dir: Path) -> Path:
+def render_scene_to_video_en(
+    scene: dict,
+    audio_path: Path,
+    duration: float,
+    scene_idx: int,
+    total_scenes: int,
+    temp_dir: Path,
+) -> Path:
     """Renders scene frames with Ken Burns, audio bars, and synchronized subtitles."""
     clip_mp4 = temp_dir / f"clip_{scene['id']}.mp4"
     fps = 30
@@ -606,22 +823,38 @@ def render_scene_to_video_en(scene: dict, audio_path: Path, duration: float, sce
     base_img = render_scene_base_en(scene, 0, total_frames)
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y",
-        "-f", "rawvideo",
-        "-vcodec", "rawvideo",
-        "-s", "1920x1080",
-        "-pix_fmt", "rgb24",
-        "-r", str(fps),
-        "-i", "-",
-        "-i", str(audio_path),
-        "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "18",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-ar", "44100",
-        "-ac", "2",
-        "-b:a", "192k",
+        "ffmpeg",
+        "-y",
+        "-f",
+        "rawvideo",
+        "-vcodec",
+        "rawvideo",
+        "-s",
+        "1920x1080",
+        "-pix_fmt",
+        "rgb24",
+        "-r",
+        str(fps),
+        "-i",
+        "-",
+        "-i",
+        str(audio_path),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-b:a",
+        "192k",
         "-shortest",
         str(clip_mp4),
     ]
@@ -681,7 +914,9 @@ def build_pro_landing_video_en():
         accumulated_time += duration
 
         print("   🎥 Rendering cinematic motion and encoding H.264 Full HD...")
-        clip_path = render_scene_to_video_en(scene, audio_path, duration, idx, total_scenes, temp_dir)
+        clip_path = render_scene_to_video_en(
+            scene, audio_path, duration, idx, total_scenes, temp_dir
+        )
         clips.append(clip_path)
 
     # Save SRT and VTT subtitle files
@@ -698,28 +933,48 @@ def build_pro_landing_video_en():
         for c in clips:
             f.write(f"file '{c.resolve()}'\n")
 
-    subprocess.run([
-        "ffmpeg", "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(concat_list),
-        "-c", "copy",
-        str(OUTPUT_MP4),
-    ], check=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_list),
+            "-c",
+            "copy",
+            str(OUTPUT_MP4),
+        ],
+        check=True,
+    )
 
     shutil.rmtree(temp_dir, ignore_errors=True)
 
     # Validate output with ffprobe
-    probe = subprocess.run([
-        "ffprobe", "-v", "error", "-show_entries", "format=duration,size", "-of", "json", str(OUTPUT_MP4)
-    ], check=True, capture_output=True, text=True)
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration,size",
+            "-of",
+            "json",
+            str(OUTPUT_MP4),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     info = json.loads(probe.stdout)
     dur = float(info["format"]["duration"])
     size_mb = int(info["format"]["size"]) / (1024 * 1024)
 
     print("\n✨ Official English tero demonstration video successfully generated!")
     print(f"   🎥 File: {OUTPUT_MP4}")
-    print(f"   ⏱️  Duration: {dur:.2f} s ({dur/60:.2f} min)")
+    print(f"   ⏱️  Duration: {dur:.2f} s ({dur / 60:.2f} min)")
     print(f"   💾 Size: {size_mb:.2f} MB")
     print("   🎯 Resolution: 1920x1080 @ 30fps Full HD")
 

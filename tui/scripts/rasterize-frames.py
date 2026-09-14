@@ -78,7 +78,9 @@ def rgba(channel: list[float] | tuple[float, ...]) -> tuple[int, int, int]:
     return (int(round(r)), int(round(g)), int(round(b)))
 
 
-def rasterize(frame: dict, regular: ImageFont.FreeTypeFont, bold: ImageFont.FreeTypeFont) -> Image.Image:
+def rasterize(
+    frame: dict, regular: ImageFont.FreeTypeFont, bold: ImageFont.FreeTypeFont
+) -> Image.Image:
     cols = int(frame["cols"])
     rows = int(frame["rows"])
     img = Image.new("RGB", (cols * CELL_W, rows * CELL_H), (11, 13, 16))
@@ -119,7 +121,11 @@ def main() -> None:
         payload = json.loads(index_path.read_text(encoding="utf-8"))
         names = [item["name"] for item in payload.get("frames") or []]
     if not names:
-        names = [path.stem for path in sorted(FRAMES.glob("*.json")) if path.name not in {"index.json", "theme.json"}]
+        names = [
+            path.stem
+            for path in sorted(FRAMES.glob("*.json"))
+            if path.name not in {"index.json", "theme.json"}
+        ]
     for name in names:
         src = FRAMES / f"{name}.json"
         if not src.is_file():

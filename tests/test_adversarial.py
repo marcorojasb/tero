@@ -108,4 +108,9 @@ class TestAdversarialSecurity:
 
         assert session.phase == "idle"
         assert turn.propuesta is None
-        assert "0 fuente" in turn.respuesta or "no veo" in turn.respuesta.lower() or "vacía" in turn.respuesta.lower() or "5 fuente" not in turn.respuesta
+        assert (
+            "0 fuente" in turn.respuesta
+            or "no veo" in turn.respuesta.lower()
+            or "vacía" in turn.respuesta.lower()
+            or "5 fuente" not in turn.respuesta
+        )

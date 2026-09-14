@@ -59,7 +59,11 @@ class TestProfesoraLenguaje:
 
         # Verificar contenido de la evaluación escrita
         contenido = result.path.read_text(encoding="utf-8")
-        assert "cuento" in contenido.lower() or "condor" in contenido.lower() or "huemul" in contenido.lower()
+        assert (
+            "cuento" in contenido.lower()
+            or "condor" in contenido.lower()
+            or "huemul" in contenido.lower()
+        )
 
 
 class TestProfesorHistoria:
@@ -75,12 +79,18 @@ class TestProfesorHistoria:
         session = open_session(workspace, encargo=encargo, events=events)
 
         # Intención a: responder pregunta diagnóstica de la carpeta
-        turn = session.start_turn("¿Qué documentos históricos o fuentes tengo disponibles en mi carpeta?")
+        turn = session.start_turn(
+            "¿Qué documentos históricos o fuentes tengo disponibles en mi carpeta?"
+        )
 
         assert session.phase == "idle"
         assert turn.propuesta is None
         assert turn.respuesta.strip()
-        assert "fuentes/" in turn.respuesta or "cuento" in turn.respuesta or "carpeta" in turn.respuesta.lower()
+        assert (
+            "fuentes/" in turn.respuesta
+            or "cuento" in turn.respuesta
+            or "carpeta" in turn.respuesta.lower()
+        )
         assert artifact_paths(workspace) == []
 
     def test_catalogo_curricular_honesto(self, workspace: Workspace):
