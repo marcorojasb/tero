@@ -226,3 +226,27 @@ offline prose, Bedrock untested in CI, no source viewer, warnings that never
 block, and a thinner shell than the private desktop that inspired the thesis.
 
 Ship the first. Do not advertise the second.
+
+---
+
+## Actualización: Robustez Adversarial, Validación Multi-Docente y Suite Integral (390 tests)
+
+En la iteración final para el hackathon Agents for Humans (Track: Professional Agents), el sistema completó su migración al paradigma conversacional natural (`AGENTS.md`), incorporando suites formales de estrés y seguridad:
+
+1. **Suite de Seguridad y Sandbox Adversarial (`tests/test_adversarial.py`):**
+   - **Inyección de prompt y bypass:** intentos de `SYSTEM OVERRIDE` o forzar escritura directa sin compuerta docente son neutralizados; el modelo carece de herramientas de escritura en el registro (`no write tools`).
+   - **Escape de sandbox / Path Traversal:** intentos de lectura fuera de la carpeta de trabajo (`../../etc/passwd`, `/etc/hosts`) son interceptados por `Workspace._safe_join` levantando `WorkspaceError`.
+   - **Inviolabilidad de fuentes originales:** `fuentes/` cuenta con hash SHA-256 verificado en cada turno; cualquier intento de sobrescribir archivos originales es impedido y redirigido a `derivados/`.
+   - **Rechazo de orígenes fantasma:** la compuerta rechaza propuestas de adaptación o edición cuyos archivos base no existan físicamente en disco.
+   - **Resiliencia ante carpetas vacías:** degradación limpia en ausencia de fuentes locales.
+
+2. **Batería Multi-Docente de Personas Reales (`tests/test_teacher_personas.py`):**
+   - **Profesora de Lenguaje y Comunicación (4° básico):** generación de evaluación formativa con pauta de retroalimentación alineada a Decreto 67 y citas verificadas.
+   - **Profesor de Historia y Ciencias Sociales (8° básico):** trabajo con fuentes locales y catálogo curricular MINEDUC sin inventar objetivos inexistentes.
+   - **Educadora Diferencial PIE (Decreto 83/2015):** adaptaciones curriculares priorizando adecuaciones de acceso (tiempo extendido, mediación visual) antes de tocar objetivos, preservando el archivo base intacto.
+   - **Profesor Rural Multigrado:** generación de guías imprimibles listas para fotocopiadora en escuelas sin conectividad.
+
+3. **Verificación Cuantitativa:**
+   - **Pytest:** 390 passed, 1 skipped, 0 xfailed (100% verde).
+   - **OpenTUI Shell:** 50/50 passed (283 assertions en Bun).
+   - **Calidad de código:** `ruff check .` y `ruff format --check .` 100% limpios (0 errores).

@@ -87,3 +87,9 @@ flowchart TB
 Python 3.11+ (`src/tero`), Strands Agents, Amazon Bedrock, OpenTUI/Bun (`tui/`),
 LaTeX templates (`templates/latex/`). Protocol: [docs/CONVERSACIONAL.md](docs/CONVERSACIONAL.md).
 Models and measurements: [docs/EVALUATION-PAPER.md](docs/EVALUATION-PAPER.md).
+
+## Verification
+
+- **Python test suite:** 390 passed, 1 skipped, 0 xfailed (`uv run pytest`)
+- **OpenTUI shell tests:** 50 passed across 283 expect assertions (`bun test src` in `tui/`)
+- **Code quality & style:** 100% clean (`uv run ruff check . && uv run ruff format --check .`)

@@ -16,6 +16,7 @@ How not to overspend: [../AWS-GRATIS.md](../AWS-GRATIS.md).
 - [ ] Paste Devpost text: [DEVPOST.md](DEVPOST.md)
 - [ ] Upload diagram: [architecture.png](architecture.png)
 - [x] Video ≤ 5 min (public YouTube): <https://www.youtube.com/watch?v=bNAf-q34lg8>
+- [x] Official Full HD Demos (Spanish 2:33, English 2:32): embedded on live landing with WebVTT subtitles (`site/assets/video/`)
 - [x] Live demo: <https://marcorojasb.github.io/tero/> (if 404, enable Pages)
 - [x] Bonus post on Builder Center: <https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock>
 
@@ -48,6 +49,13 @@ cd tero
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 python -m tero demo --offline --yes
+```
+
+Verification:
+```bash
+pytest                                       # 390 passed, 1 skipped, 0 xfailed (100% green)
+ruff check . && ruff format --check .        # All checks passed, 117 files formatted
+cd tui && bun install && bun test src        # 50 passed (283 assertions)
 ```
 
 Bedrock is optional. With keys: `python -m tero tui` using Nova Lite.

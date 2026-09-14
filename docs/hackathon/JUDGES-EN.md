@@ -194,17 +194,17 @@ Never commit `.env`. Credentials resolve the standard AWS way (`aws configure`,
 
 ```bash
 pytest
-ruff check src tests && ruff format --check src tests
+ruff check . && ruff format --check .
 cd tui && bun install && bun test src
 ```
 
 Actual results at this commit:
 
 ```
-380 passed, 1 skipped, 0 xfailed in 6.88s (100% green, zero xfails)
+390 passed, 1 skipped, 0 xfailed (100% green, zero xfails)
 All checks passed!
-62 files already formatted
-50 pass / 0 fail / 273 expect() calls   (OpenTUI)
+117 files already formatted
+50 pass / 0 fail / 283 expect() calls   (OpenTUI)
 ```
 
 ---

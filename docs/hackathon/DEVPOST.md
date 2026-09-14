@@ -7,7 +7,7 @@ Built with: **Strands Agents SDK (Python, Multi-Agent Graph + OpenTelemetry)** +
 Live demo: https://marcorojasb.github.io/tero/
 
 Video demo (YouTube): https://www.youtube.com/watch?v=bNAf-q34lg8
-Official HD Demos (English & Spanish): embedded in the live demo at https://marcorojasb.github.io/tero/
+Official HD Demos (English & Spanish): embedded in the live demo at https://marcorojasb.github.io/tero/ (Spanish: 2:33, English: 2:32, with full WebVTT subtitles)
 
 AWS Builder post: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
 
@@ -88,6 +88,14 @@ python -m tero demo --offline --yes
 
 TUI (needs Bun): `python -m tero tui --offline`
 
+### Verification
+
+```bash
+pytest                                       # 390 passed, 1 skipped, 0 xfailed (100% green)
+ruff check . && ruff format --check .        # All checks passed, 117 files formatted
+cd tui && bun test src                       # 50 passed (283 assertions)
+```
+
 Bedrock: copy `.env.example` → `.env`, set `TERO_OFFLINE=0`. Verify with `python -m tero check-aws --all-models`. Nova Lite auto-enables on first invoke in us-east-1 (no Model access page).
 
 ### Disclosure
@@ -106,7 +114,7 @@ Strands Agents SDK, Multi-Agent Graph, OpenTelemetry, Amazon Bedrock, Amazon Nov
 
 ## Try it out
  
-- Live interactive demo: https://marcorojasb.github.io/tero/ (with embedded HD video player in English & Spanish)
+- Live interactive demo: https://marcorojasb.github.io/tero/ (with embedded HD video player in English & Spanish: Spanish 2:33, English 2:32)
 - Video demo (YouTube): https://www.youtube.com/watch?v=bNAf-q34lg8
 - AWS Builder Center article: https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock
 

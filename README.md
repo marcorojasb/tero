@@ -23,9 +23,9 @@ A conversational AI teacher agent for Chilean K-12 classrooms. **Strands Agents*
 **Amazon Bedrock** behind an **OpenTUI** shell. The terminal speaks Chilean Spanish
 (it is built for those teachers); the repository, docs and this README are English.
 
-**[Live demo](https://marcorojasb.github.io/tero/)** (if it 404s on a fresh fork,
+**[Live demo](https://marcorojasb.github.io/tero/)** (with embedded HD interactive player: Spanish 2:33, English 2:32; if it 404s on a fresh fork,
 enable it once in [Settings → Pages](https://github.com/marcorojasb/tero/settings/pages),
-source **GitHub Actions**) · **[Video demo](https://www.youtube.com/watch?v=bNAf-q34lg8)** ·
+source **GitHub Actions**) · **[Video demo (YouTube)](https://www.youtube.com/watch?v=bNAf-q34lg8)** ·
 **[Builder post](https://builder.aws.com/content/3JHLe06HvCuE7EBJm4R59FBHSqA/agents-for-humans-building-tero-with-strands-and-bedrock)** ·
 **[Judge quickstart](docs/hackathon/JUDGES-EN.md)** · **[Benchmark paper](docs/EVALUATION-PAPER.md)** · MIT
 
@@ -116,8 +116,8 @@ python -m tero check-aws --all-models
 ## Verify
 
 ```bash
-pytest                                        # 380 passed, 1 skipped, 0 xfailed (100% green)
-ruff check src tests && ruff format --check src tests
+pytest                                        # 390 passed, 1 skipped, 0 xfailed (100% green)
+ruff check . && ruff format --check .
 cd tui && bun install && bun test src         # 50 passed
 ```
 
