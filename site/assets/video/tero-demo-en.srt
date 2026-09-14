@@ -27,9 +27,9 @@ You approve with 'y' or 'dale'. The host materializes the file and delivers the 
 Intent C: special education adaptation under Decreto 83. Original file remains byte-identical.
 
 8
-00:01:54,650 --> 00:02:17,024
+00:01:54,650 --> 00:02:17,048
 Amazon Bedrock Model Trio verified live, plus tero-offline model for air-gapped classrooms.
 
 9
-00:02:17,224 --> 00:02:32,542
+00:02:17,247 --> 00:02:32,566
 tero · Your classroom, your sources, your judgment. Open source under the MIT license.

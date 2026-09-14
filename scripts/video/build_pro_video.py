@@ -65,8 +65,8 @@ COLOR_MUTED = (122, 132, 144)   # #7a8490 (texto secundario)
 
 # Silueta oficial del Queltehue (Vanellus chilensis) trazada de perfil (OpenTUI)
 HOME_BIRD = [
-    "      ▄▄▄▄▄      ▄▄▄▄▄   ",
-    "    ▄████████  ▀▀▀▀▀▀▀▀▀▀",
+    "      ▄▄▄▄▄    ▄▄▄▄▄     ",
+    "    ▄████████▄▄▀▀▀▀▀▀▀▀▀▀",
     "  ▀▀▀▀███████            ",
     "       ██████            ",
     "       ██████▄           ",
@@ -83,7 +83,7 @@ HOME_BIRD = [
 
 
 def render_bird_graphic(width: int = 340, height: int = 380, color: tuple[int, int, int] = COLOR_ACCENT) -> Image.Image:
-    """Renderiza la silueta oficial del Queltehue con supersampling geométrico suave."""
+    """Renderiza la silueta oficial del Queltehue con supersampling geométrico suave y ritmo terminal."""
     scale = 8
     cell_w = 16 * scale
     cell_h = 32 * scale
@@ -94,13 +94,14 @@ def render_bird_graphic(width: int = 340, height: int = 380, color: tuple[int, i
     hi_img = Image.new("RGBA", (hi_w, hi_h), (0, 0, 0, 0))
     d = ImageDraw.Draw(hi_img)
     rgba = color + (255,) if len(color) == 3 else color
+    gap = 2 * scale
     for r, line in enumerate(HOME_BIRD):
         for c, char in enumerate(line):
             x0 = c * cell_w
             y0 = r * cell_h
             x1 = x0 + cell_w
-            y1 = y0 + cell_h
-            ymid = y0 + cell_h // 2
+            y1 = y0 + cell_h - gap
+            ymid = y0 + (cell_h - gap) // 2
             if char == "█":
                 d.rectangle([x0, y0, x1, y1], fill=rgba)
             elif char == "▀":
@@ -361,8 +362,14 @@ def render_scene_base(scene: dict, frame_idx: int, total_frames: int) -> Image.I
 
         bird = render_bird_graphic(width=340, height=380, color=COLOR_ACCENT)
         bx = card_x + (card_w - bird.width) // 2
-        by = card_y + 60 + (card_h - 60 - bird.height) // 2
+        by = card_y + 54 + (card_h - 100 - bird.height) // 2
         canvas.paste(bird, (bx, by), bird)
+
+        font_motto_small = get_font(15, bold=False)
+        motto_t = "El tero avisa · Tú decides"
+        m_bbox = font_motto_small.getbbox(motto_t)
+        m_w = m_bbox[2] - m_bbox[0]
+        draw.text((card_x + (card_w - m_w) // 2, card_y + card_h - 38), motto_t, fill=COLOR_MUTED, font=font_motto_small)
 
         font_hero_title = get_font(108, bold=True)
         font_hero_motto = get_font(38, bold=True)
