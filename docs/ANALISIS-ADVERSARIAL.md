@@ -189,7 +189,7 @@ twice: eligibility and taste.
 - Live Bedrock CI (needs secrets + a cheap smoke, not a full lesson).
 - Pedagogical eval: OA alignment is a string compare **plus** host catalog
   resolve (`curriculum/chile/`). Still not a curriculum expert; unknown ids
-  warn, they do not block `s`.
+  warn, they do not block approval (`y`).
 - `search_sources` is naive substring. Fine for a 5-file carpeta; not a
   retrieval stack.
 - Export docx depends on `python-docx` (in the `dev` extra). A judge who
@@ -207,9 +207,9 @@ twice: eligibility and taste.
 3. Change a source file, rebuild nothing, run again? Hash warning path:
    edit `fuentes/` yourself; `read_source` should flag `changed` and still
    not overwrite.
-4. `python -m tero tui --offline` — type an encargo, `a` the plan, then
-   `c` with a one-line crítica, then `s`. Confirm `derivados/` grew and
-   `fuentes/` hashes did not.
+4. `python -m tero tui --offline` — type a request (e.g. create a reading guide),
+   review the proposal card and preview, then press `y` to approve (or type a revision).
+   Confirm `derivados/` grew and `fuentes/` hashes did not.
 5. Point `--carpeta fixtures/aula-5basico-agua` and confirm the PDF is
    listed and a write to `derivados/` does not alter `05-glaciar-nota.pdf`.
 6. Ask for Bedrock only if credentials exist. If they do not, stop. Do

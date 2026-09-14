@@ -2,7 +2,7 @@
 
 For **Agents for Humans** (Devpost), Track **Professional Agents**.
 
-Verified against `main` at `7500c62`. The pasted outputs are what the commands
+Verified against `main`. The pasted outputs are what the commands
 actually printed.
 
 - **Reading or watching only:** §1–§3, §5–§9.
