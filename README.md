@@ -103,10 +103,11 @@ python -m tero check-aws --all-models
 
 ## Grounding and privacy
 
-- **Official curriculum bank:** a read-only local API over 13,722 curated MINEDUC
-  items and 1,159 teacher guidances. Citations use `banco:<id>`; grounded artifacts
-  record `banco_snapshot` for provenance. Disabled by default
-  (`TERO_BEGONIA_URL`); tero degrades to the local folder and says so.
+- **Official curriculum bank:** a read-only HTTP API (`https://apibegonia.patagua.dev`,
+  espejo v0.4) over curated MINEDUC items and teacher guidances. Citations use
+  `banco:<id>`; grounded artifacts record `banco_snapshot` for provenance.
+  Disabled by default (`TERO_BEGONIA_URL`); tero degrades to the local folder
+  and says so.
 - **Chile's Ley 21.719:** gradebooks, rosters, attendance and health reports are
   never indexed or sent to the model; files are left untouched, with one
   non-blocking advisory. `TERO_DATOS_SENSIBLES=incluir` opts out.

@@ -13,8 +13,11 @@ from strands import tool
 from tero import privacy
 from tero.begonia import (
     INSTRUCCION_ERROR,
+    INSTRUCCION_NO_PUBLICADO,
     BegoniaClient,
     banco_oa_code,
+    compact_item_detail,
+    compact_search_card,
     grade_filter,
     no_configurado,
     subject_filter,
@@ -53,8 +56,6 @@ DRAFT_AGENT_TURNS = 18
 
 # Tope de ítems por búsqueda en el banco: el contexto no es un volcado del banco.
 BANCO_LIMITE_MAX = 20
-BANCO_STEM_CHARS = 280
-BANCO_PAUTA_CHARS = 2000
 BANCO_ORIENTACION_CHARS = 1200
 BANCO_ORIENTACIONES = 3
 
@@ -547,25 +548,13 @@ def _buscar_banco(ctx: TurnContext):
         items_raw = reply.data.get("items") or []
         items_out = []
         for item in items_raw:
-            ident = str(item.get("id") or "")
+            if not isinstance(item, dict):
+                continue
+            card = compact_search_card(item)
+            ident = str(card.get("id") or "")
             if ident:
                 ctx.banco_ids.add(ident)
-            stem = str(item.get("stem") or "")
-            if len(stem) > BANCO_STEM_CHARS:
-                stem = stem[:BANCO_STEM_CHARS] + "…"
-            items_out.append(
-                {
-                    "id": ident,
-                    "banco_path": f"banco:{ident}",
-                    "type": item.get("type"),
-                    "subject": item.get("subject"),
-                    "grade": item.get("grade"),
-                    "oa_code_primary": item.get("oa_code_primary"),
-                    "stem": stem,
-                    "pauta_kind": item.get("pauta_kind"),
-                    "source_kind": item.get("source_kind"),
-                }
-            )
+            items_out.append(card)
         ctx._emit(
             {
                 "type": "activity",
@@ -622,10 +611,14 @@ def _leer_item_banco(ctx: TurnContext):
                 }
             )
             d = reply.as_dict()
-            d["hint"] = INSTRUCCION_ERROR
+            d["hint"] = (
+                INSTRUCCION_NO_PUBLICADO
+                if reply.code == "banco_no_publicado"
+                else INSTRUCCION_ERROR
+            )
             return json.dumps(d, ensure_ascii=False)
         ctx.banco_ids.add(id_clean)
-        item = reply.data.get("item") or reply.data
+        item = compact_item_detail(reply.data)
         ctx._emit(
             {
                 "type": "activity",

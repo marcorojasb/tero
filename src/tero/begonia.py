@@ -1,9 +1,9 @@
 """Cliente de solo lectura del banco pedagógico "begonia" (material oficial MINEDUC).
 
-El banco es un servidor local del docente con una API HTTP pública. tero lo
-consulta por GET y **nunca** escribe en él: no hay métodos de escritura en este
-módulo. Si el banco no está configurado o no responde, todo degrada a un estado
-explícito en español y el turno del agente sigue con la carpeta local.
+El banco es una API HTTP pública de solo lectura (espejo v0.4). tero lo consulta
+por GET y **nunca** escribe en él: no hay métodos de escritura en este módulo.
+Si el banco no está configurado o no responde, todo degrada a un estado explícito
+en español y el turno del agente sigue con la carpeta local.
 
 Sin dependencias nuevas: `urllib.request` de la stdlib.
 """
@@ -24,8 +24,20 @@ from typing import Any
 
 DEFAULT_TIMEOUT = 6.0
 
+# Espejo v0.4 hospedado. Vacío en Settings sigue significando banco deshabilitado.
+HOSTED_BASE_URL = "https://apibegonia.patagua.dev"
+
+# urllib manda "Python-urllib/…": Cloudflare (error 1010) lo bloquea en el borde.
+USER_AGENT = "tero/0.1 (+https://github.com/marcorojasb/tero)"
+
 # El snapshot del banco se reusa dentro del turno; pasado el TTL se vuelve a pedir.
 SNAPSHOT_TTL = 300.0
+
+SEARCH_LIMIT_MAX = 200
+DETAIL_TEXT_DEFAULT_CHARS = 4000
+DETAIL_TEXT_MAX_CHARS = 20000
+SEARCH_STEM_CHARS = 280
+DETAIL_SOLUTION_CHARS = 2000
 
 # Un transporte devuelve (status, cuerpo). Se inyecta en tests para no usar red.
 Transport = Callable[[str, dict[str, str], float], "tuple[int, bytes]"]
@@ -45,6 +57,11 @@ INSTRUCCION_NO_CONFIGURADO = (
 INSTRUCCION_ERROR = (
     "Puedes reintentar la consulta al banco una vez; si vuelve a fallar, sigue con "
     "la carpeta local y dilo en la propuesta."
+)
+
+INSTRUCCION_NO_PUBLICADO = (
+    "Ese ítem ya no está publicado en el banco. Busca otro con buscar_banco; "
+    "no lo cites ni inventes su contenido."
 )
 
 # Códigos OA del banco, p. ej. "CN05 OA 12". El id del catálogo de tero
@@ -112,8 +129,7 @@ def _fold(value: Any) -> str:
     return " ".join(text.split())
 
 
-# El banco etiqueta el mismo curso de varias formas ("5° Básico", "5º Básico",
-# "5º básico"): se piden todas las variantes separadas por coma (el API las une).
+# El banco etiqueta el curso con la forma canónica de /v1/facets ("5° Básico").
 _LEVELS = {"basico": "Básico", "medio": "Medio"}
 
 _NIVELES_ESPECIALES = {
@@ -142,7 +158,8 @@ _SUBJECT_NAMES = (
     "Comunicación integral",
 )
 
-# Abreviaturas y equivalencias de aula chilena.
+# Abreviaturas y equivalencias de aula chilena. El filtro `subject` es exacto:
+# se envía un solo nombre canónico (el primero de cada alias).
 _SUBJECT_ALIASES: dict[str, tuple[str, ...]] = {
     "lenguaje": ("Lenguaje y Comunicación", "Lengua y Literatura"),
     "lenguaje y comunicacion": ("Lenguaje y Comunicación", "Lengua y Literatura"),
@@ -177,10 +194,9 @@ def grade_filter(curso: str) -> str:
         return ""
     number, level, suffix = match.group(1), match.group(2).lower(), (match.group(3) or "")
     label = _LEVELS[level]
-    variants = [f"{number}° {label}", f"{number}º {label}", f"{number}º {label.lower()}"]
     if suffix:
-        variants.append(f"{number}° {label} {suffix.upper()}")
-    return ",".join(variants)
+        return f"{number}° {label} {suffix.upper()}"
+    return f"{number}° {label}"
 
 
 def subject_filter(asignatura: str) -> str:
@@ -189,7 +205,7 @@ def subject_filter(asignatura: str) -> str:
     if not key:
         return ""
     if key in _SUBJECT_ALIASES:
-        return ",".join(_SUBJECT_ALIASES[key])
+        return _SUBJECT_ALIASES[key][0]
     for name in _SUBJECT_NAMES:
         if key == _fold(name):
             return name
@@ -284,6 +300,10 @@ class BegoniaClient:
         reply = self._request("/v1/summary")
         return reply
 
+    def facets(self) -> Reply:
+        """Conteos globales por faceta: sirve para conocer valores exactos de filtro."""
+        return self._request("/v1/facets")
+
     def search(
         self,
         query: str = "",
@@ -293,6 +313,8 @@ class BegoniaClient:
         grade: str = "",
         material_type: str = "",
         oa: str = "",
+        locator_kind: str = "",
+        has_media: bool = False,
         limit: int = 8,
         offset: int = 0,
         sort: str = "",
@@ -304,13 +326,18 @@ class BegoniaClient:
             "grade": grade,
             "material_type": material_type,
             "oa": oa,
-            "limit": limit,
-            "offset": offset,
+            "locator_kind": locator_kind,
+            "limit": min(max(int(limit or 8), 1), SEARCH_LIMIT_MAX),
+            "offset": max(int(offset or 0), 0),
             "sort": sort,
         }
+        if has_media:
+            params["has_media"] = 1
         return self._request("/v1/search", params)
 
-    def item(self, item_id: str, *, text: bool = False, max_chars: int = 6000) -> Reply:
+    def item(
+        self, item_id: str, *, text: bool = False, max_chars: int = DETAIL_TEXT_DEFAULT_CHARS
+    ) -> Reply:
         ident = str(item_id or "").strip()
         if not ident:
             return Reply(
@@ -322,7 +349,9 @@ class BegoniaClient:
         params: dict[str, Any] = {}
         if text:
             params["text"] = 1
-            params["max_chars"] = max_chars
+            params["max_chars"] = min(
+                max(int(max_chars or DETAIL_TEXT_DEFAULT_CHARS), 0), DETAIL_TEXT_MAX_CHARS
+            )
         return self._request(f"/v1/items/{urllib.parse.quote(ident, safe='')}", params)
 
     def guidance(
@@ -345,7 +374,11 @@ class BegoniaClient:
         try:
             status, body = self._transport(
                 url,
-                {"X-Begonia-API-Key": self.api_key, "Accept": "application/json"},
+                {
+                    "X-Begonia-API-Key": self.api_key,
+                    "Accept": "application/json",
+                    "User-Agent": USER_AGENT,
+                },
                 self.timeout,
             )
         except Exception as exc:  # noqa: BLE001 — red caída: el turno sigue
@@ -355,7 +388,7 @@ class BegoniaClient:
                 code="banco_sin_conexion",
                 error=(
                     f"No pude alcanzar el banco pedagógico ({type(exc).__name__}: {exc}). "
-                    "Revisa que el servicio local esté arriba."
+                    "Revisa que el servicio esté arriba o que TERO_BEGONIA_URL sea alcanzable."
                 ),
             )
         if status == 401:
@@ -365,12 +398,46 @@ class BegoniaClient:
                 code="banco_no_autorizado",
                 error="El banco respondió 401: la clave no es válida o no llegó.",
             )
+        if status == 403:
+            return Reply(
+                ok=False,
+                disponible=True,
+                code="banco_bloqueado",
+                error=(
+                    "El borde del banco bloqueó la consulta (HTTP 403). "
+                    "Si el cuerpo menciona error 1010, el cliente no se identificó."
+                ),
+            )
         if status == 404:
             return Reply(
                 ok=False,
                 disponible=True,
-                code="banco_no_encontrado",
-                error="El banco no tiene ese recurso (404).",
+                code="banco_no_publicado",
+                error="El banco no tiene ese recurso o ya no está publicado (404).",
+            )
+        if status == 405:
+            return Reply(
+                ok=False,
+                disponible=True,
+                code="banco_solo_lectura",
+                error="El banco sólo admite lectura (GET).",
+            )
+        if status == 429:
+            return Reply(
+                ok=False,
+                disponible=True,
+                code="banco_limite",
+                error=(
+                    "El banco está recibiendo demasiadas consultas ahora mismo. "
+                    "Espera unos segundos e inténtalo otra vez."
+                ),
+            )
+        if status == 503:
+            return Reply(
+                ok=False,
+                disponible=True,
+                code="banco_no_disponible",
+                error="El banco no está disponible en este momento. Inténtalo otra vez en unos minutos.",
             )
         if status >= 400:
             detail = _short(body, 160)
@@ -407,6 +474,149 @@ class BegoniaClient:
         query = urllib.parse.urlencode(clean)
         base = f"{self.base_url}{path}"
         return f"{base}?{query}" if query else base
+
+
+def compact_search_card(item: dict[str, Any]) -> dict[str, Any]:
+    """Tarjeta de búsqueda v0.4 para el modelo: sin miniaturas ni campos vacíos."""
+    ident = str(item.get("id") or "").strip()
+    stem = str(item.get("stem") or "")
+    if len(stem) > SEARCH_STEM_CHARS:
+        stem = stem[:SEARCH_STEM_CHARS] + "…"
+    title = ""
+    meta = item.get("metadata")
+    if isinstance(meta, dict):
+        title = str(meta.get("title") or "").strip()
+    card: dict[str, Any] = {
+        "id": ident,
+        "banco_path": f"banco:{ident}" if ident else "",
+        "type": item.get("type") or "",
+        "subject": item.get("subject") or "",
+        "grade": item.get("grade") or "",
+        "oa_code_primary": item.get("oa_code_primary") or "",
+        "stem": stem,
+        "material_type": item.get("material_type") or "",
+        "locator_kind": item.get("locator_kind") or "",
+        "formato": _formato_label(item.get("formato")),
+        "has_media": _as_bool(item.get("has_media")) is True,
+    }
+    if title:
+        card["title"] = title
+    pauta = item.get("pauta_kind")
+    if pauta:
+        card["pauta_kind"] = pauta
+    return {key: value for key, value in card.items() if value not in ("", None)}
+
+
+def compact_item_detail(data: dict[str, Any]) -> dict[str, Any]:
+    """Detalle v0.4 para el modelo: canon ⊕ addenda, sin binarios ni OCR crudo."""
+    row = data.get("item") if isinstance(data.get("item"), dict) else data
+    if not isinstance(row, dict):
+        return {}
+    ident = str(row.get("id") or "").strip()
+    meta = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    title = str(meta.get("title") or "").strip()
+    topics = [
+        str(topic).strip()
+        for topic in (meta.get("topics") or [])
+        if isinstance(topic, str) and str(topic).strip()
+    ]
+    stem = str(row.get("stem") or "")
+    solution = str(row.get("solution") or "")
+    if len(solution) > DETAIL_SOLUTION_CHARS:
+        solution = solution[:DETAIL_SOLUTION_CHARS] + "…"
+    oa_codes = [
+        str(code).strip()
+        for code in (row.get("oa_codes") or [])
+        if isinstance(code, str) and str(code).strip()
+    ]
+    primary = str(row.get("oa_code_primary") or "").strip()
+    if primary and primary not in oa_codes:
+        oa_codes = [primary, *oa_codes]
+    locator = row.get("locator") if isinstance(row.get("locator"), dict) else {}
+    item: dict[str, Any] = {
+        "id": ident,
+        "banco_path": f"banco:{ident}" if ident else "",
+        "type": row.get("type") or "",
+        "subject": row.get("subject") or "",
+        "grade": row.get("grade") or "",
+        "title": title,
+        "topics": topics,
+        "stem": stem,
+        "solution": solution,
+        "pauta_kind": row.get("pauta_kind") or "",
+        "oa_code_primary": primary,
+        "oa_codes": oa_codes,
+        "material_type": row.get("material_type") or "",
+        "license_note": row.get("license_note") or "",
+        "state": row.get("state") or "",
+        "locator_url": str(locator.get("url") or "").strip(),
+        "locator_kind": str(locator.get("kind") or "").strip(),
+        "media": _compact_media(row.get("media")),
+        "metadata_addenda": _compact_addenda(row.get("metadata_addenda")),
+    }
+    facing = _as_bool(row.get("student_facing"))
+    if facing is not None:
+        item["student_facing"] = facing
+    return {key: value for key, value in item.items() if value not in ("", None, [], {})}
+
+
+def _compact_media(raw: Any) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, str]] = []
+    for entry in raw[:8]:
+        if not isinstance(entry, dict):
+            continue
+        media = {
+            "name": str(entry.get("name") or "").strip(),
+            "role": str(entry.get("role") or "asset").strip() or "asset",
+            "content_type": str(entry.get("content_type") or "").strip(),
+        }
+        compact = {key: value for key, value in media.items() if value}
+        if compact:
+            out.append(compact)
+    return out
+
+
+def _compact_addenda(raw: Any) -> dict[str, dict[str, str]]:
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, dict[str, str]] = {}
+    for campo in ("title", "topics"):
+        entry = raw.get(campo)
+        if not isinstance(entry, dict) or "valor" not in entry:
+            continue
+        valor = entry.get("valor")
+        if isinstance(valor, list):
+            text = ", ".join(str(part).strip() for part in valor if str(part).strip())
+        else:
+            text = str(valor or "").strip()
+        kind = str(entry.get("provenance_kind") or "").strip()
+        row: dict[str, str] = {}
+        if text:
+            row["valor"] = text[:160]
+        if kind:
+            row["provenance_kind"] = kind
+        if row:
+            out[campo] = row
+    return out
+
+
+def _formato_label(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if re.fullmatch(r"[a-z0-9]{2,4}", text, flags=re.IGNORECASE):
+        return text.upper()
+    return text
+
+
+def _as_bool(value: Any) -> bool | None:
+    if value is True or value == 1 or value == "1":
+        return True
+    if value is False or value == 0 or value == "0":
+        return False
+    return None
 
 
 def _short(value: bytes | str, limit: int) -> str:

@@ -15,8 +15,11 @@ import pytest
 
 from tero.artifacts import materialize_markdown
 from tero.begonia import (
+    HOSTED_BASE_URL,
     BegoniaClient,
     banco_oa_code,
+    compact_item_detail,
+    compact_search_card,
     grade_filter,
     resolve_api_key,
     subject_filter,
@@ -46,6 +49,12 @@ DUMMY_SEARCH = {
     "limit": 8,
     "offset": 0,
     "snapshot_id": "20260911T023022Z-test",
+    "facets": {
+        "type": {"student_activity": 1},
+        "subject": {"Ciencias Naturales": 1},
+        "grade": {"5° Básico": 1},
+        "material_type": {"actividad": 1},
+    },
     "items": [
         {
             "id": "item-arma-abierta-v2-1009",
@@ -54,21 +63,73 @@ DUMMY_SEARCH = {
             "grade": "5° Básico",
             "oa_code_primary": "CN05 OA 12",
             "stem": "¿Cuál es la importancia de los cuerpos de agua dulce?",
-            "solution": "Pauta oficial: criterio de evaluación...",
-            "pauta_kind": "pauta_oficial_abierta",
-            "source_kind": "arma_jsonapi",
+            "material_type": "actividad",
+            "locator_kind": "nid",
+            "formato": "pdf",
+            "has_media": True,
+            "updated_at": "2026-09-11T02:30:32Z",
         }
     ],
 }
 
 DUMMY_ITEM = {
     "id": "item-arma-abierta-v2-1009",
+    "type": "student_activity",
     "stem": "¿Cuál es la importancia de los cuerpos de agua dulce?",
     "solution": "Pauta oficial completa con criterios y puntajes.",
-    "pauta_kind": "pauta_oficial_abierta",
-    "source_kind": "arma_jsonapi",
+    "pauta_kind": "respuesta",
     "subject": "Ciencias Naturales",
     "grade": "5° Básico",
+    "oa_code_primary": "CN05 OA 12",
+    "oa_codes": ["CN05 OA 12"],
+    "material_type": "actividad",
+    "license_note": "Uso educativo MINEDUC",
+    "state": "approved",
+    "student_facing": True,
+    "metadata": {
+        "title": "Cuerpos de agua dulce",
+        "topics": ["hidrografía", "ecosistemas"],
+    },
+    "metadata_addenda": {
+        "title": {
+            "valor": "Cuerpos de agua dulce",
+            "provenance_kind": "source_capture",
+        },
+        "topics": {
+            "valor": ["hidrografía", "ecosistemas"],
+            "provenance_kind": "inferred",
+        },
+    },
+    "locator": {"url": "https://www.curriculumnacional.cl/item/1009", "kind": "nid"},
+    "media": [
+        {
+            "name": "lamina-agua.pdf",
+            "path": "media/lamina-agua.pdf",
+            "url": "/v1/files?path=media/lamina-agua.pdf",
+            "content_type": "application/pdf",
+            "role": "primary",
+        }
+    ],
+    "captures": [
+        {
+            "capture_id": "cap-1",
+            "role": "source",
+            "capture_kind": "pdf",
+            "text": "OCR crudo que no debe ir al modelo.",
+        }
+    ],
+    "snapshot_id": "20260911T023022Z-test",
+}
+
+DUMMY_FACETS = {
+    "total": 13722,
+    "snapshot_id": "20260911T023022Z-test",
+    "facets": {
+        "type": {"student_activity": 8000, "mc_question": 5000},
+        "subject": {"Ciencias Naturales": 1200},
+        "grade": {"5° Básico": 900},
+        "material_type": {"actividad": 4000},
+    },
 }
 
 DUMMY_GUIDANCE = {
@@ -96,6 +157,20 @@ def make_fake_transport(responses: dict[str, tuple[int, dict[str, Any]]]):
     return fake_transport
 
 
+def test_client_sends_user_agent():
+    seen: dict[str, str] = {}
+
+    def capturing(url: str, headers: dict[str, str], timeout: float) -> tuple[int, bytes]:
+        seen.update(headers)
+        return 200, json.dumps(DUMMY_SUMMARY).encode("utf-8")
+
+    client = BegoniaClient(base_url="http://fake-banco", api_key="secret-key", transport=capturing)
+    reply = client.summary()
+    assert reply.ok
+    assert seen["X-Begonia-API-Key"] == "secret-key"
+    assert seen["User-Agent"].startswith("tero/")
+
+
 def test_resolve_api_key(tmp_path: Path):
     assert resolve_api_key(api_key="direct-key") == "direct-key"
     key_file = tmp_path / "keys.txt"
@@ -105,8 +180,10 @@ def test_resolve_api_key(tmp_path: Path):
 
 
 def test_filters():
-    assert "5° Básico" in grade_filter("5° básico")
-    assert "Lenguaje y Comunicación" in subject_filter("lenguaje")
+    assert grade_filter("5° básico") == "5° Básico"
+    assert "," not in grade_filter("5° básico")
+    assert subject_filter("lenguaje") == "Lenguaje y Comunicación"
+    assert "," not in subject_filter("lenguaje")
     assert banco_oa_code("CN05 OA 12") == "CN05 OA 12"
     assert banco_oa_code("LEN-4B-OA04") == ""
 
@@ -123,30 +200,51 @@ def test_client_not_configured():
 
 
 def test_client_endpoints():
-    transport = make_fake_transport(
-        {
-            "/v1/summary": (200, DUMMY_SUMMARY),
-            "/v1/search": (200, DUMMY_SEARCH),
-            "/v1/items/item-arma-abierta-v2-1009": (200, DUMMY_ITEM),
-            "/v1/guidance": (200, DUMMY_GUIDANCE),
-        }
-    )
+    seen_urls: list[str] = []
+
+    def tracking_transport(url: str, headers: dict[str, str], timeout: float) -> tuple[int, bytes]:
+        seen_urls.append(url)
+        return make_fake_transport(
+            {
+                "/v1/summary": (200, DUMMY_SUMMARY),
+                "/v1/facets": (200, DUMMY_FACETS),
+                "/v1/search": (200, DUMMY_SEARCH),
+                "/v1/items/item-arma-abierta-v2-1009": (200, DUMMY_ITEM),
+                "/v1/guidance": (200, DUMMY_GUIDANCE),
+            }
+        )(url, headers, timeout)
+
     client = BegoniaClient(
         base_url="http://fake-banco",
         api_key="secret-key",
-        transport=transport,
+        transport=tracking_transport,
     )
     assert client.configured
     assert client.available()
     assert client.snapshot_id() == "20260911T023022Z-test"
 
-    search_reply = client.search("agua", grade="5° Básico", oa="CN05 OA 12")
+    facets_reply = client.facets()
+    assert facets_reply.ok
+    assert facets_reply.data["facets"]["grade"]["5° Básico"] == 900
+
+    search_reply = client.search(
+        "agua",
+        grade="5° Básico",
+        oa="CN05 OA 12",
+        has_media=True,
+        locator_kind="nid",
+    )
     assert search_reply.ok
     assert len(search_reply.data["items"]) == 1
+    search_urls = [url for url in seen_urls if "/v1/search" in url]
+    assert search_urls
+    assert "has_media=1" in search_urls[-1]
+    assert "locator_kind=nid" in search_urls[-1]
 
     item_reply = client.item("item-arma-abierta-v2-1009", text=True)
     assert item_reply.ok
     assert item_reply.data["stem"].startswith("¿Cuál")
+    assert item_reply.data["metadata"]["title"] == "Cuerpos de agua dulce"
 
     guidance_reply = client.guidance(oa="CN05 OA 12")
     assert guidance_reply.ok
@@ -159,6 +257,12 @@ def test_client_error_handling():
             raise OSError("Connection timeout")
         if "401" in url:
             return 401, b'{"error": "unauthorized"}'
+        if "forbidden" in url:
+            return 403, b'{"error_code":1010}'
+        if "missing" in url:
+            return 404, b'{"error": "not_found"}'
+        if "busy" in url:
+            return 429, b'{"error": "rate_limited"}'
         return 500, b"Internal server error"
 
     client = BegoniaClient(
@@ -174,9 +278,21 @@ def test_client_error_handling():
     assert not r2.ok
     assert r2.code == "banco_no_autorizado"
 
+    r_forbidden = client.search("forbidden")
+    assert not r_forbidden.ok
+    assert r_forbidden.code == "banco_bloqueado"
+
     r3 = client.search("err")
     assert not r3.ok
     assert r3.code == "banco_http_500"
+
+    r4 = client.item("missing")
+    assert not r4.ok
+    assert r4.code == "banco_no_publicado"
+
+    r5 = client.search("busy")
+    assert not r5.ok
+    assert r5.code == "banco_limite"
 
 
 def test_tools_with_banco(workspace: Workspace):
@@ -203,10 +319,25 @@ def test_tools_with_banco(workspace: Workspace):
     res_search = json.loads(tools["buscar_banco"](query="agua", oa="CN05 OA 12"))
     assert res_search["ok"] is True
     assert "item-arma-abierta-v2-1009" in ctx.banco_ids
+    card = res_search["items"][0]
+    assert card["material_type"] == "actividad"
+    assert card["formato"] == "PDF"
+    assert card["has_media"] is True
+    assert "source_kind" not in card
+    assert "thumb_url" not in card
 
     res_item = json.loads(tools["leer_item_banco"](id="banco:item-arma-abierta-v2-1009"))
     assert res_item["ok"] is True
     assert res_item["banco_path"] == "banco:item-arma-abierta-v2-1009"
+    detail = res_item["item"]
+    assert detail["title"] == "Cuerpos de agua dulce"
+    assert detail["topics"] == ["hidrografía", "ecosistemas"]
+    assert detail["pauta_kind"] == "respuesta"
+    assert detail["locator_url"].startswith("https://")
+    assert detail["media"][0]["name"] == "lamina-agua.pdf"
+    assert "url" not in detail["media"][0]
+    assert "captures" not in detail
+    assert detail["metadata_addenda"]["title"]["provenance_kind"] == "source_capture"
 
     res_guidance = json.loads(tools["orientaciones_banco"](oa="CN05 OA 12"))
     assert res_guidance["ok"] is True
@@ -286,21 +417,61 @@ def test_materialize_markdown_includes_banco_snapshot(workspace: Workspace):
     assert "verificada contra el banco oficial" in md
 
 
+def test_compact_helpers_drop_binaries_and_keep_provenance():
+    card = compact_search_card(DUMMY_SEARCH["items"][0])
+    assert card["id"] == "item-arma-abierta-v2-1009"
+    assert card["formato"] == "PDF"
+    assert "solution" not in card
+
+    detail = compact_item_detail(DUMMY_ITEM)
+    assert detail["title"] == "Cuerpos de agua dulce"
+    assert "captures" not in detail
+    assert "url" not in detail["media"][0]
+    assert detail["metadata_addenda"]["topics"]["provenance_kind"] == "inferred"
+
+
+def test_leer_item_unpublished_hints_to_search(workspace: Workspace):
+    def unpublished(_url: str, _headers: dict[str, str], _timeout: float) -> tuple[int, bytes]:
+        return 404, b'{"error": "not_found"}'
+
+    client = BegoniaClient(
+        base_url="http://fake-banco",
+        api_key="secret-key",
+        transport=unpublished,
+    )
+    ctx = TurnContext(workspace=workspace, encargo=Encargo(), banco=client)
+    tools = {t.tool_name: t for t in build_tools(ctx)}
+    res = json.loads(tools["leer_item_banco"](id="banco:item-retirado"))
+    assert res["ok"] is False
+    assert res["code"] == "banco_no_publicado"
+    assert "ya no está publicado" in res["hint"]
+
+
 @pytest.mark.skipif(
-    not (
-        Path("/home/ubuntu/begonia-publish/secrets/public-api-keys").exists()
-        and os.environ.get("RUN_BEGONIA_LIVE_TEST") == "1"
+    os.environ.get("RUN_BEGONIA_LIVE_TEST") != "1"
+    or not (
+        os.environ.get("TERO_BEGONIA_API_KEY", "").strip()
+        or Path(os.environ.get("TERO_BEGONIA_KEY_FILE", "")).expanduser().is_file()
     ),
-    reason="Requiere servidor local de begonia y RUN_BEGONIA_LIVE_TEST=1",
+    reason="Requiere RUN_BEGONIA_LIVE_TEST=1 y TERO_BEGONIA_API_KEY o TERO_BEGONIA_KEY_FILE",
 )
 def test_begonia_live_smoke():
     settings = Settings(
-        begonia_url="http://127.0.0.1:8766",
-        begonia_key_file="/home/ubuntu/begonia-publish/secrets/public-api-keys",
+        begonia_url=os.environ.get("TERO_BEGONIA_URL", "").strip() or HOSTED_BASE_URL,
+        begonia_api_key=os.environ.get("TERO_BEGONIA_API_KEY", "").strip(),
+        begonia_key_file=os.environ.get("TERO_BEGONIA_KEY_FILE", "").strip(),
     )
     client = BegoniaClient.from_settings(settings)
     assert client.configured
     assert client.available()
+    summary = client.summary()
+    assert summary.ok
+    assert summary.data.get("snapshot_id")
     reply = client.search("comprensión lectora", limit=2)
     assert reply.ok
     assert len(reply.data.get("items", [])) > 0
+    card = compact_search_card(reply.data["items"][0])
+    assert card.get("id")
+    facets = client.facets()
+    assert facets.ok
+    assert isinstance(facets.data.get("facets"), dict)
